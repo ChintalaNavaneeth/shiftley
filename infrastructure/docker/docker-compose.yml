@@ -1,0 +1,179 @@
+# Shiftley — Local Development Infrastructure
+# Go backend runs natively on your machine (not in Docker)
+# This stack provides: PostgreSQL, Redis, pgAdmin, MinIO, Go Backend
+#
+# Usage:
+#   docker-compose up -d        → start all services
+#   docker-compose down         → stop all services
+#   docker-compose logs -f      → tail logs
+
+networks:
+  shiftley-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  pgadmin-data:
+    driver: local
+  minio-data:
+    driver: local
+
+services:
+
+  # ─────────────────────────────────────────
+  # PostgreSQL 18 (SUSE BCI — already pulled)
+  # ─────────────────────────────────────────
+  postgres:
+    image: registry.suse.com/suse/postgres:18-contrib
+    container_name: shiftley-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../../backend/internal/data/migrations:/docker-entrypoint-initdb.d   # runs migrations on first boot
+    networks:
+      - shiftley-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ─────────────────────────────────────────
+  # Redis 7 (Alpine — already pulled)
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:alpine3.23
+    container_name: shiftley-redis
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ../redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - shiftley-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # pgAdmin 4 (already pulled)
+  # ─────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: shiftley-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@shiftley.in
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"       # single-user mode (no login screen)
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ../postgres/pgadmin-servers.json:/pgadmin4/servers.json:ro  # auto-add postgres server
+    networks:
+      - shiftley-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────
+  # MinIO — S3-compatible object storage
+  # Files: profile pictures, KYC docs, business verification photos
+  # API:     http://localhost:9000
+  # Console: http://localhost:9001  (user: admin / password: admin123)
+  # ─────────────────────────────────────────
+  minio:
+    image: minio/minio
+    container_name: shiftley-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
+    ports:
+      - "9000:9000"   # S3 API (used by backend SDK)
+      - "9001:9001"   # MinIO web console
+    volumes:
+      - minio-data:/data
+    networks:
+      - shiftley-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─────────────────────────────────────────
+  # Go Backend API (built from Dockerfile)
+  # Swagger: http://localhost:8080/swagger/index.html
+  # Health:  http://localhost:8080/health
+  # ─────────────────────────────────────────
+  backend:
+    build:
+      context: ../../backend       # path to backend/ folder (where Dockerfile lives)
+      dockerfile: Dockerfile
+    image: shiftley-backend:dev
+    container_name: shiftley-backend
+    restart: unless-stopped
+    env_file:
+      - ../../backend/.env.docker  # uses Docker service names (postgres, redis, minio)
+    ports:
+      - "8080:8080"
+    networks:
+      - shiftley-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────────
+  # MinIO Init — auto-creates buckets on startup
+  # Runs once, exits after setup (restart: no)
+  # ─────────────────────────────────────────
+  minio-init:
+    image: minio/minio
+    container_name: shiftley-minio-init
+    restart: "no"                      # run once and exit
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - shiftley-network
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 admin admin123 &&
+
+        mc mb --ignore-existing local/profile-pictures &&
+        mc mb --ignore-existing local/kyc-documents &&
+        mc mb --ignore-existing local/business-documents &&
+
+        mc anonymous set public local/profile-pictures &&
+
+        echo '✅ MinIO buckets ready'
+      "
