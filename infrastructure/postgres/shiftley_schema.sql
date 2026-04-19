@@ -69,11 +69,44 @@ CREATE TABLE IF NOT EXISTS shiftley.kyc_sessions (
     masked_aadhaar VARCHAR(12), -- XXXX-XXXX-1234
     face_match_score NUMERIC(3, 2) CHECK (face_match_score >= 0 AND face_match_score <= 1),
     verified_at TIMESTAMP WITH TIME ZONE,
+    document_url VARCHAR(255), -- Link to masked identity PDF/image
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- -----------------------------------------------------------------------------
--- MODULE 2: PROFILES
+-- MODULE 2: SKILL TAXONOMY
+-- -----------------------------------------------------------------------------
+
+-- Table: business_types
+-- Categories for businesses (F&B, Retail, etc.)
+CREATE TABLE IF NOT EXISTS shiftley.business_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table: skill_categories
+-- Groups of skills (e.g., Kitchen Staff, Warehouse Logistics)
+CREATE TABLE IF NOT EXISTS shiftley.skill_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    business_type_id UUID REFERENCES shiftley.business_types(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table: skills
+-- Individual skills (Waiter, Dishwasher, Loader)
+CREATE TABLE IF NOT EXISTS shiftley.skills (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category_id UUID REFERENCES shiftley.skill_categories(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- -----------------------------------------------------------------------------
+-- MODULE 3: PROFILES
 -- -----------------------------------------------------------------------------
 
 -- Table: worker_profiles
@@ -88,6 +121,12 @@ CREATE TABLE IF NOT EXISTS shiftley.worker_profiles (
     upi_id VARCHAR(100),
     profile_photo_url VARCHAR(255),
     reliability_badge VARCHAR(10) DEFAULT 'GREEN' CHECK (reliability_badge IN ('GREEN', 'YELLOW', 'RED')),
+    degree VARCHAR(100), -- Resume: Highest degree
+    specialization VARCHAR(100), -- Resume: Specialization (e.g., Pastry Chef)
+    passing_year SMALLINT, -- Resume: Graduation year
+    bank_name VARCHAR(100), -- Payout: Encrypted in Go backend
+    account_number VARCHAR(100), -- Payout: Encrypted in Go backend
+    ifsc_code VARCHAR(20), -- Payout: Encrypted in Go backend
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE
@@ -106,6 +145,8 @@ CREATE TABLE IF NOT EXISTS shiftley.employer_profiles (
     gst_number VARCHAR(15),
     business_address TEXT NOT NULL,
     location GEOGRAPHY(POINT, 4326),
+    business_type_id UUID REFERENCES shiftley.business_types(id),
+    owner_personal_phone VARCHAR(15), -- For personal KYC verification
     verification_status VARCHAR(20) DEFAULT 'PENDING' CHECK (verification_status IN ('PENDING', 'IN_PROGRESS', 'APPROVED', 'REJECTED')),
     subscription_status VARCHAR(20) DEFAULT 'INACTIVE' CHECK (subscription_status IN ('INACTIVE', 'ACTIVE', 'EXPIRED')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -139,35 +180,13 @@ CREATE INDEX IF NOT EXISTS idx_employers_location ON shiftley.employer_profiles 
 CREATE INDEX IF NOT EXISTS idx_users_role ON shiftley.users(role);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON shiftley.users(phone_number);
 
--- -----------------------------------------------------------------------------
--- MODULE 3: SKILL TAXONOMY
--- -----------------------------------------------------------------------------
-
--- Table: business_types
--- Categories for businesses (F&B, Retail, etc.)
-CREATE TABLE IF NOT EXISTS shiftley.business_types (
+-- Table: employer_business_photos
+-- Photos uploaded by the employer during onboarding
+CREATE TABLE IF NOT EXISTS shiftley.employer_business_photos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Table: skill_categories
--- Groups of skills (e.g., Kitchen Staff, Warehouse Logistics)
-CREATE TABLE IF NOT EXISTS shiftley.skill_categories (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    business_type_id UUID REFERENCES shiftley.business_types(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Table: skills
--- Individual skills (Waiter, Dishwasher, Loader)
-CREATE TABLE IF NOT EXISTS shiftley.skills (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    category_id UUID REFERENCES shiftley.skill_categories(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
+    employer_id UUID NOT NULL REFERENCES shiftley.employer_profiles(id) ON DELETE CASCADE,
+    photo_url VARCHAR(255) NOT NULL,
+    tag VARCHAR(50), -- e.g., 'FRONT_VIEW', 'INTERIOR_1'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -253,6 +272,19 @@ CREATE TABLE IF NOT EXISTS shiftley.employer_subscriptions (
 
 CREATE TRIGGER update_employer_subscriptions_updated_at
 BEFORE UPDATE ON shiftley.employer_subscriptions
+FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Table: platform_settings
+-- Global configuration variables (managed by Admin)
+CREATE TABLE IF NOT EXISTS shiftley.platform_settings (
+    key VARCHAR(100) PRIMARY KEY,
+    value JSONB NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_platform_settings_updated_at
+BEFORE UPDATE ON shiftley.platform_settings
 FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
 -- -----------------------------------------------------------------------------
@@ -433,6 +465,29 @@ CREATE INDEX IF NOT EXISTS idx_bookings_status ON shiftley.bookings(status);
 CREATE INDEX IF NOT EXISTS idx_tx_user ON shiftley.payment_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_tx_provider ON shiftley.payment_transactions(provider_transaction_id);
 
+-- Table: expenditures
+-- Logging platform-wide external costs (Marketing, Infra, etc.)
+CREATE TABLE IF NOT EXISTS shiftley.expenditures (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category VARCHAR(50) NOT NULL, -- e.g., 'MARKETING', 'INFRASTRUCTURE', 'PAYROLL'
+    amount_paise BIGINT NOT NULL CHECK (amount_paise >= 0),
+    description TEXT,
+    expense_date DATE DEFAULT CURRENT_DATE,
+    created_by UUID REFERENCES shiftley.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table: gst_verifications
+-- Full audit log of GST validation responses
+CREATE TABLE IF NOT EXISTS shiftley.gst_verifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employer_id UUID NOT NULL REFERENCES shiftley.employer_profiles(id) ON DELETE CASCADE,
+    gst_number VARCHAR(15) NOT NULL,
+    response_payload JSONB NOT NULL, -- Full response from Govt API
+    status VARCHAR(20) NOT NULL, -- e.g., 'ACTIVE', 'INACTIVE'
+    verified_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- -----------------------------------------------------------------------------
 -- MODULE 9: NO-SHOWS & EMERGENCY REPLACEMENT
 -- -----------------------------------------------------------------------------
@@ -497,7 +552,9 @@ CREATE TABLE IF NOT EXISTS shiftley.notification_log (
     recipient_user_id UUID NOT NULL REFERENCES shiftley.users(id),
     channel VARCHAR(20) NOT NULL,
     template_name VARCHAR(100) NOT NULL,
-    status VARCHAR(20) DEFAULT 'SENT',
+    provider_message_id VARCHAR(255), -- Interakt/Email ID
+    status VARCHAR(20) DEFAULT 'SENT', -- e.g., 'SENT', 'DELIVERED', 'READ', 'FAILED'
+    delivery_status VARCHAR(50), 
     sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

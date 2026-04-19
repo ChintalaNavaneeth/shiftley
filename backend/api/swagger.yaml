@@ -1,0 +1,38 @@
+openapi: 3.0.3
+info:
+  title: Shiftley Gig Marketplace API
+  description: |
+    Comprehensive API for Shiftley.in, connecting employers with gig workers.
+    This API handles user authentication, profile onboarding, gig management, 
+    matching logic, and escrow payments.
+  contact:
+    email: support@shiftley.in
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local Development Server
+paths:
+  /auth/otp/send:
+    post:
+      summary: Request verification OTP
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: OTP sent successfully
+  /auth/otp/verify:
+    post:
+      summary: Verify OTP and login/register
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: OTP verified
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
