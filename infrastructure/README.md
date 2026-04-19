@@ -1,68 +1,73 @@
-# Shiftley Infrastructure Guide
+# Shiftley Infrastructure & Local Development
 
-This document covers the local development infrastructure setup for the Shiftley platform.
+This directory contains everything needed to spin up the local development environment for **Shiftley.in**. We use a containerized stack to ensure consistency across development, staging, and production.
+
+## 🚀 Quick Start
+
+To spin up the entire infrastructure including the Go backend and all backing services:
+
+```powershell
+# Navigate to the docker directory
+cd infrastructure/docker
+
+# Build and start the containers
+docker compose up -d --build
+```
+
+To stop the environment and wipe all data (useful for schema resets):
+```powershell
+docker compose down -v
+```
+
+---
+
+## 🔗 Service Dashboard
+
+| Service | Local URL / Endpoint | Port | Description |
+|---|---|---|---|
+| **Backend API** | [http://localhost:8080](http://localhost:8080) | `8080` | The Go Gin server. |
+| **Swagger UI** | [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html) | `8080` | Interactive API documentation. |
+| **MinIO Console**| [http://localhost:9001](http://localhost:9001) | `9001` | Dashboard for managing file storage (Buckets). |
+| **pgAdmin 4** | [http://localhost:5050](http://localhost:5050) | `5050` | Web UI for exploring the PostgreSQL database. |
+| **PostgreSQL** | `localhost:5432` | `5432` | Primary DB with PostGIS support. |
+| **Redis** | `localhost:6379` | `6379` | In-memory store for OTPs & rate limiting. |
+
+### Default Credentials
+*   **Postgres**: `postgres` / `root` (DB Name: `postgres`)
+*   **pgAdmin**: `admin@shiftley.in` / `admin`
+*   **MinIO**: `admin` / `admin123`
+
+---
 
 ## 🐳 Docker Stack
 
-We use a containerized stack to provide all necessary backing services. The Go backend also runs within this stack for consistent environment handling.
+We use professional-grade images to power the platform:
 
-### Docker Images Used
-
-| Image ID/Name | Role | Description |
-|---|---|---|
-| `registry.suse.com/suse/postgres:18-contrib` | **Primary Database** | PostgreSQL 18 with PostGIS extensions for proximity matching. |
-| `redis:alpine3.23` | **Cache & Rate Limiting** | Fast in-memory store for OTPs and API rate limit counters. |
-| `minio/minio` | **Object Storage** | S3-compatible storage for profile pictures and KYC documents. |
-| `dpage/pgadmin4:latest` | **Database Management** | Web-based UI for managing PostgreSQL. |
-| `shiftley-backend:dev` | **Go API Server** | Built from `registry.suse.com/bci/golang:1.26` (builder) and `registry.suse.com/bci/bci-base:15.7` (runner). |
+1.  **PostgreSQL (`postgis/postgis:15-3.4`)**: Optimized for geospatial proximity matching between workers and gigs.
+2.  **Redis (`redis:alpine3.23`)**: Lightweight and fast, used for high-frequency OTP storage.
+3.  **Go Backend (`shiftley-backend:dev`)**: A custom multi-stage build:
+    *   **Builder**: `registry.suse.com/bci/golang:1.21`
+    *   **Runtime**: `registry.suse.com/bci/bci-base:15.5` (Statically linked binary).
 
 ---
 
-## 🔗 Service URLs & Credentials
+## 💾 Database Schema
 
-| Service | Local URL | Credentials |
-|---|---|---|
-| **Backend API** | [http://localhost:8080](http://localhost:8080) | - |
-| **Swagger UI** | [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html) | API Bearer Auth |
-| **Health Check** | [http://localhost:8080/health](http://localhost:8080/health) | - |
-| **MinIO Console**| [http://localhost:9001](http://localhost:9001) | `admin` / `admin123` |
-| **MinIO API** | [http://localhost:9000](http://localhost:9000) | `admin` / `admin123` |
-| **pgAdmin** | [http://localhost:5050](http://localhost:5050) | `admin@shiftley.in` / `admin` |
-| **PostgreSQL** | `localhost:5432` | `postgres` / `root` |
-| **Redis** | `localhost:6379` | (No password) |
+The database is automatically initialized on the first boot using the master schema file:
+📍 `infrastructure/postgres/shiftley_schema.sql`
 
----
-
-## 🚀 How to Start
-
-The fastest way to start the environment is using the helper script:
-
-```powershell
-# From the project root
-.\infrastructure\scripts\dev-up.ps1
-```
-
-Alternatively, use the standard Docker Compose command:
-```powershell
-cd infrastructure/docker
-docker-compose up -d --build
-```
+This file creates the `shiftley` schema and all **37 core tables**, including:
+*   User & Worker Profiles
+*   Skill Taxonomy (Business Types, Skills, etc.)
+*   Gig Lifecycle (Requests, Assignments, Fines)
+*   Financials (Transactions, Expenditures)
+*   Notifications & Audit Logs
 
 ---
 
-## 📂 Infrastructure Structure
+## 🛠️ Storage (MinIO)
 
-- `infrastructure/docker/`: Contains the `docker-compose.yml` and service definitions.
-- `infrastructure/postgres/`: pgAdmin server configurations.
-- `infrastructure/redis/`: Redis performance and memory configurations.
-- `infrastructure/scripts/`: Utility scripts for development lifecycle.
-- `backend/internal/data/migrations/`: Unified source of truth for the DB schema.
-
----
-
-## 🛠️ Storage Buckets (MinIO)
-
-The following buckets are automatically created on startup:
-1. `profile-pictures`: **Public** read access.
-2. `kyc-documents`: **Private** (Signed URLs only).
-3. `business-documents`: **Private** (Signed URLs only).
+The system automatically creates these buckets on startup:
+*   `profile-pictures`: Publicly accessible images.
+*   `kyc-documents`: Private encrypted storage for identity verification.
+*   `business-documents`: Private storage for employer business proofs.
