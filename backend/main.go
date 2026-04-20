@@ -6,6 +6,8 @@ import (
 	"shiftley/internal/auth"
 	"shiftley/internal/config"
 	"shiftley/internal/onboarding"
+	"shiftley/pkg/storage"
+	"context"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -58,14 +60,27 @@ func main() {
 		DB:       0,
 	})
 
-	// 4. Initialize Handlers & Services
+	// 4. Initialize Storage
+	storageSvc, err := storage.NewMinioStorage(cfg.MinioEndpoint, cfg.MinioUser, cfg.MinioPassword)
+	if err != nil {
+		log.Fatalf("Failed to connect to Minio: %v", err)
+	}
+	
+	buckets := []string{cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC}
+	for _, b := range buckets {
+		if err := storageSvc.EnsureBucketExists(context.Background(), b); err != nil {
+			log.Fatalf("Failed to ensure Minio bucket %s exists: %v", b, err)
+		}
+	}
+
+	// 5. Initialize Handlers & Services
 	authRepo := auth.NewRepository(db, rdb)
 	authSvc := auth.NewService(authRepo, cfg.JWTSecret)
 	authHandler := auth.NewHandler(authSvc)
 	
-	onboardingHandler := onboarding.NewHandler()
+	onboardingHandler := onboarding.NewHandler(storageSvc, cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC)
 
-	// 5. Setup Router
+	// 6. Setup Router
 	r := gin.Default()
 
 	// Health Check

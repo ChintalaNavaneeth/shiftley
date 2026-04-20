@@ -3,15 +3,20 @@ FROM registry.suse.com/bci/golang:1.26 as builder
 
 WORKDIR /app
 
-# Copy all source code first
+# Pre-install swag to cache the tool layer
+RUN go install github.com/swaggo/swag/cmd/swag@v1.16.2
+
+# Copy dependency files first
+COPY go.mod go.sum ./
+# Copy vendor directory (this is where the "bin" of packages lives)
+COPY vendor/ ./vendor/
+
+# Copy the rest of the source code
 COPY . .
 
-# Initialize module if go.mod is missing, then tidy and build
-RUN if [ ! -f go.mod ]; then go mod init shiftley; fi && \
-    go install github.com/swaggo/swag/cmd/swag@v1.16.2 && \
-    swag init --parseDependency && \
-    go mod tidy && \
-    CGO_ENABLED=0 GOOS=linux go build -o main .
+# Generate swagger docs and build using the vendor folder
+RUN swag init --parseDependency && \
+    CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o main .
 
 # Run Stage
 FROM registry.suse.com/bci/golang:1.26

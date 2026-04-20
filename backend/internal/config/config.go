@@ -17,7 +17,10 @@ type Config struct {
 	JWTSecret     string `mapstructure:"JWT_SECRET"`
 	MinioEndpoint string `mapstructure:"MINIO_ENDPOINT"`
 	MinioUser     string `mapstructure:"MINIO_ROOT_USER"`
-	MinioPassword string `mapstructure:"MINIO_ROOT_PASSWORD"`
+	MinioPassword  string `mapstructure:"MINIO_ROOT_PASSWORD"`
+	BucketProfiles string `mapstructure:"BUCKET_PROFILES"`
+	BucketLogos    string `mapstructure:"BUCKET_LOGOS"`
+	BucketKYC      string `mapstructure:"BUCKET_KYC"`
 }
 
 var GlobalConfig *Config
@@ -30,8 +33,8 @@ func LoadConfig() *Config {
 	// But let's be explicit to avoid "empty string" issues
 	envVars := []string{
 		"APP_PORT", "DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME",
-		"REDIS_HOST", "REDIS_PORT", "REDIS_PASSWORD", "JWT_SECRET",
-		"MINIO_ENDPOINT", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD",
+		"MINIO_ENDPOINT", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD", 
+		"BUCKET_PROFILES", "BUCKET_LOGOS", "BUCKET_KYC",
 	}
 	for _, env := range envVars {
 		viper.BindEnv(env)
@@ -50,7 +53,10 @@ func LoadConfig() *Config {
 		JWTSecret:     getEnv("JWT_SECRET", "shiftley_secret_dev_123"),
 		MinioEndpoint: getEnv("MINIO_ENDPOINT", "localhost:9000"),
 		MinioUser:     getEnv("MINIO_ROOT_USER", "minioadmin"),
-		MinioPassword: getEnv("MINIO_ROOT_PASSWORD", "minioadmin"),
+		MinioPassword:  getEnv("MINIO_ROOT_PASSWORD", "minioadmin"),
+		BucketProfiles: getEnv("BUCKET_PROFILES", "profile-pics"),
+		BucketLogos:    getEnv("BUCKET_LOGOS", "business-logos"),
+		BucketKYC:      getEnv("BUCKET_KYC", "kyc-documents"),
 	}
 
 	GlobalConfig = config
