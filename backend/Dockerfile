@@ -1,34 +1,28 @@
-# Stage 1: Build
-FROM registry.suse.com/bci/golang:1.21 AS builder
+# Build Stage
+FROM registry.suse.com/bci/golang:1.26 as builder
 
 WORKDIR /app
 
-# Copy go.mod and go.sum (if exists)
-COPY go.mod go.sum* ./
-
-# Download dependencies (skip if go.sum doesn't exist yet, but we'll try)
-# RUN go mod download
-
-# Copy the source code
+# Copy all source code first
 COPY . .
 
-# Build the project
-RUN go mod tidy
-RUN CGO_ENABLED=0 go build -o /app/bin/server cmd/api/main.go
+# Initialize module if go.mod is missing, then tidy and build
+RUN if [ ! -f go.mod ]; then go mod init shiftley; fi && \
+    go install github.com/swaggo/swag/cmd/swag@v1.16.2 && \
+    swag init --parseDependency && \
+    go mod tidy && \
+    CGO_ENABLED=0 GOOS=linux go build -o main .
 
-# Stage 2: Runtime
-FROM registry.suse.com/bci/bci-base:15.5
+# Run Stage
+FROM registry.suse.com/bci/golang:1.26
 
 WORKDIR /app
 
-# Copy the binary from the builder stage
-COPY --from=builder /app/bin/server /app/server
+# Copy the binary from the build stage
+COPY --from=builder /app/main .
 
-# Copy .env.docker for default environment (or it can be passed via Compose)
-# COPY .env.docker /app/.env
-
-# Expose the API port
+# Expose port
 EXPOSE 8080
 
-# Run the server
-CMD ["/app/server"]
+# Command to run the application
+CMD ["./main"]

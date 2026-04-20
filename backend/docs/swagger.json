@@ -1,0 +1,57 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Shiftley Backend API Documentation",
+    "title": "Shiftley API",
+    "version": "1.0.0"
+  },
+  "basePath": "/api/v1",
+  "paths": {
+    "/auth/otp/send": {
+      "post": {
+        "summary": "Request OTP",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "identifier": { "type": "string" },
+                "type": { "type": "string", "enum": ["PHONE", "EMAIL"] },
+                "role": { "type": "string", "enum": ["WORKER", "EMPLOYER"] }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Success" }
+        }
+      }
+    },
+    "/auth/otp/verify": {
+      "post": {
+        "summary": "Verify OTP",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "identifier": { "type": "string" },
+                "type": { "type": "string", "enum": ["PHONE", "EMAIL"] },
+                "code": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Success" }
+        }
+      }
+    }
+  }
+}
