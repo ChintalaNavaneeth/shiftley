@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"shiftley/internal/admin"
 	"shiftley/internal/auth"
 	"shiftley/internal/config"
 	"shiftley/internal/onboarding"
+	"shiftley/pkg/middleware"
 	"shiftley/pkg/storage"
 	"context"
 
@@ -80,6 +82,8 @@ func main() {
 	
 	onboardingHandler := onboarding.NewHandler(storageSvc, cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC)
 
+	adminHandler := admin.NewHandler(db)
+
 	// 6. Setup Router
 	r := gin.Default()
 
@@ -108,7 +112,24 @@ func main() {
 		onboardingGroup := v1.Group("/onboarding")
 		{
 			onboardingGroup.POST("/employer", onboardingHandler.OnboardEmployer)
-			onboardingGroup.POST("/employee", onboardingHandler.OnboardEmployee)
+			
+			// Employee Onboarding is strictly for SUPER_ADMIN
+			onboardingGroup.POST("/employee", 
+				middleware.RequireAuth(cfg.JWTSecret), 
+				middleware.RequireRoles(string(auth.RoleSuperAdmin)), 
+				onboardingHandler.OnboardEmployee,
+			)
+		}
+
+		// Admin
+		adminGroup := v1.Group("/admin")
+		{
+			usersGroup := adminGroup.Group("/users")
+			// Only SUPER_ADMIN and ADMIN (HR_ADMIN) can invite internal staff
+			usersGroup.Use(middleware.RequireAuth(cfg.JWTSecret), middleware.RequireRoles(string(auth.RoleSuperAdmin), string(auth.RoleAdmin)))
+			{
+				usersGroup.POST("/invite", adminHandler.InviteUser)
+			}
 		}
 	}
 

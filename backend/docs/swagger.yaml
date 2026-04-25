@@ -1,5 +1,24 @@
 basePath: /api/v1
 definitions:
+  admin.InviteUserRequest:
+    properties:
+      aadhaar_number:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      phone_number:
+        type: string
+      role:
+        type: string
+    required:
+    - aadhaar_number
+    - email
+    - full_name
+    - phone_number
+    - role
+    type: object
   utils.ErrorDetail:
     properties:
       code:
@@ -39,6 +58,43 @@ info:
   title: Shiftley API
   version: "1.0"
 paths:
+  /admin/users/invite:
+    post:
+      consumes:
+      - application/json
+      description: Creates an internal account and triggers an email with a secure,
+        temporary password.
+      parameters:
+      - description: Invitation Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/admin.InviteUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Invite Internal Staff
+      tags:
+      - Admin
   /auth/otp/send:
     post:
       consumes:
