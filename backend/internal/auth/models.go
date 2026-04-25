@@ -29,6 +29,7 @@ type User struct {
 	Role         UserRole       `gorm:"type:varchar(20);not null" json:"role"`
 	IsVerified   bool           `gorm:"default:false" json:"is_verified"`
 	IsSuspended  bool           `gorm:"default:false" json:"is_suspended"`
+	UnpaidFinePaise int64        `gorm:"default:0" json:"unpaid_fine_paise"`
 	LastLoginAt  *time.Time     `json:"last_login_at"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`

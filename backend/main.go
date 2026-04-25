@@ -6,8 +6,13 @@ import (
 	"shiftley/internal/admin"
 	"shiftley/internal/auth"
 	"shiftley/internal/config"
+	"shiftley/internal/employee"
+	"shiftley/internal/employer"
+	"shiftley/internal/gig"
 	"shiftley/internal/onboarding"
+	"shiftley/internal/support"
 	"shiftley/internal/taxonomy"
+	"shiftley/internal/verifier"
 	"shiftley/pkg/middleware"
 	"shiftley/pkg/storage"
 	"context"
@@ -58,7 +63,7 @@ func main() {
 
 	// Auto Migrate Models
 	db.Exec("CREATE SCHEMA IF NOT EXISTS shiftley")
-	db.AutoMigrate(&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &taxonomy.Category{}, &taxonomy.Skill{}, &config.PlatformConfig{})
+	db.AutoMigrate(&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &taxonomy.Category{}, &taxonomy.Skill{}, &config.PlatformConfig{}, &verifier.VerificationAudit{}, &employer.Subscription{}, &gig.Gig{}, &gig.GigApplication{})
 
 	// 3. Initialize Redis
 	rdb := redis.NewClient(&redis.Options{
@@ -89,6 +94,13 @@ func main() {
 
 	adminHandler := admin.NewHandler(db, rdb)
 	taxonomyAdminHandler := admin.NewTaxonomyHandler(db)
+	employerHandler := employer.NewHandler(db)
+	gigHandler := gig.NewHandler(db)
+	employeeHandler := employee.NewHandler(db)
+	supportHandler := support.NewHandler(db)
+
+	verifierRepo := verifier.NewRepository(db)
+	verifierHandler := verifier.NewHandler(verifierRepo, storageSvc, cfg.BucketKYC)
 
 	taxonomyRepo := taxonomy.NewRepository(db)
 	taxonomyHandler := taxonomy.NewHandler(taxonomyRepo)
@@ -169,6 +181,61 @@ func main() {
 
 			// Platform Config
 			adminGroup.PATCH("/config/fees", middleware.RequireRoles(string(auth.RoleSuperAdmin)), adminHandler.UpdatePlatformConfig)
+		}
+
+		// Verifier
+		verifierGroup := v1.Group("/verifier")
+		verifierGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleVerifier), string(auth.RoleSuperAdmin)))
+		{
+			verifierGroup.GET("/queue", verifierHandler.GetQueue)
+			verifierGroup.POST("/employers/:id/verify", verifierHandler.VerifyEmployer)
+			verifierGroup.POST("/employees/:id/verify", verifierHandler.VerifyEmployee)
+		}
+
+		// Employer & Gigs
+		employerGroup := v1.Group("/employers")
+		employerGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)))
+		{
+			employerGroup.GET("/me", employerHandler.GetProfile)
+			employerGroup.GET("/me/gigs", employerHandler.GetMyGigs)
+			employerGroup.POST("/me/subscription", employerHandler.PurchaseSubscription)
+			employerGroup.GET("/profiles/employees/:empId", employerHandler.GetEmployeeProfile)
+		}
+
+		gigGroup := v1.Group("/gigs")
+		gigGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+		{
+			gigGroup.GET("/wage-benchmark", gigHandler.GetBenchmark)
+			
+			// Employer only actions
+			gigGroup.POST("", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.PostGig)
+			gigGroup.GET("/:gigId/applications", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.GetApplications)
+			gigGroup.POST("/:gigId/cancel", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.CancelGig)
+			gigGroup.POST("/:gigId/close-unfilled", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.CloseUnfilled)
+			gigGroup.GET("/:gigId/attendance-qr", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.GenerateQR)
+			gigGroup.POST("/:gigId/employees/:empId/mark-arrived", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.MarkArrived)
+			gigGroup.POST("/:gigId/employees/:empId/complete", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.CompleteShift)
+			gigGroup.POST("/:gigId/emergency-hire", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.EmergencyHire)
+			gigGroup.POST("/:gigId/employees/:empId/review", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.SubmitReview)
+		}
+
+		appGroup := v1.Group("/applications")
+		appGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+		{
+			appGroup.PATCH("/:applicationId/status", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.ApproveApplication)
+		}
+
+		employeeGroup := v1.Group("/employees")
+		employeeGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)))
+		{
+			employeeGroup.POST("/me/pay-fine", employeeHandler.PayFine)
+		}
+
+
+		supportGroup := v1.Group("/support")
+		supportGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+		{
+			supportGroup.POST("/tickets", supportHandler.CreateTicket)
 		}
 	}
 

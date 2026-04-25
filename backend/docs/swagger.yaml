@@ -81,6 +81,50 @@ definitions:
     required:
     - status
     type: object
+  gig.PostGigRequest:
+    properties:
+      category_id:
+        type: string
+      description:
+        type: string
+      end_time:
+        type: string
+      pay_type:
+        description: PER_DAY, PER_HOUR
+        type: string
+      skill_id:
+        type: string
+      start_time:
+        type: string
+      title:
+        type: string
+      wage_per_worker:
+        type: integer
+      workers_needed:
+        type: integer
+    required:
+    - category_id
+    - description
+    - end_time
+    - pay_type
+    - skill_id
+    - start_time
+    - title
+    - wage_per_worker
+    - workers_needed
+    type: object
+  support.CreateTicketRequest:
+    properties:
+      description:
+        type: string
+      related_gig_id:
+        type: string
+      subject:
+        type: string
+    required:
+    - description
+    - subject
+    type: object
   utils.ErrorDetail:
     properties:
       code:
@@ -324,6 +368,35 @@ paths:
       summary: Invite Internal Staff
       tags:
       - Admin
+  /applications/{applicationId}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Hires a specific applicant for the gig slot.
+      parameters:
+      - description: Application ID
+        in: path
+        name: applicationId
+        required: true
+        type: string
+      - description: 'Status: APPROVED'
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Approve Application
+      tags:
+      - Gig
   /auth/otp/send:
     post:
       consumes:
@@ -407,6 +480,365 @@ paths:
       summary: Verify OTP
       tags:
       - Auth
+  /employees/me/pay-fine:
+    post:
+      description: Clears the user's debt (Mock Payment).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Pay Unpaid Fines
+      tags:
+      - Employee
+  /employers/me:
+    get:
+      description: Fetches employer details and business metrics.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Employer Dashboard Profile
+      tags:
+      - Employer
+  /employers/me/gigs:
+    get:
+      description: Fetches employer's gig history with status filtering.
+      parameters:
+      - description: Gig Status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: View My Gigs (History & Active)
+      tags:
+      - Employer
+  /employers/me/subscription:
+    post:
+      consumes:
+      - application/json
+      description: Generates a mock Razorpay Order ID for subscription purchase.
+      parameters:
+      - description: Plan Details
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Purchase Subscription Plan
+      tags:
+      - Employer
+  /employers/profiles/employees/{empId}:
+    get:
+      description: Fetches detailed resume and past feedback of a worker.
+      parameters:
+      - description: Employee User ID
+        in: path
+        name: empId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: View Full Worker Profile
+      tags:
+      - Employer
+  /gigs:
+    post:
+      consumes:
+      - application/json
+      description: Creates a gig and generates a mock Razorpay Escrow order.
+      parameters:
+      - description: Gig Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/gig.PostGigRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Post a New Gig
+      tags:
+      - Gig
+  /gigs/{gigId}/applications:
+    get:
+      description: Fetches the list of employees who have applied for a specific gig.
+      parameters:
+      - description: Gig ID
+        in: path
+        name: gigId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: View Gig Applications
+      tags:
+      - Gig
+  /gigs/{gigId}/attendance-qr:
+    get:
+      description: Generates a time-sensitive, rotating QR code string.
+      parameters:
+      - description: Gig ID
+        in: path
+        name: gigId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Generate Shift QR Codes
+      tags:
+      - Gig
+  /gigs/{gigId}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Allows the employer to cancel a gig with automated penalty calculation.
+      parameters:
+      - description: Gig ID
+        in: path
+        name: gigId
+        required: true
+        type: string
+      - description: Reason
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Cancel Gig
+      tags:
+      - Gig
+  /gigs/{gigId}/close-unfilled:
+    post:
+      description: Closes a gig that had no worker approvals before start.
+      parameters:
+      - description: Gig ID
+        in: path
+        name: gigId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Close Gig with Full Refund
+      tags:
+      - Gig
+  /gigs/{gigId}/emergency-hire:
+    post:
+      consumes:
+      - application/json
+      description: Penalizes the no-show employee and approves a replacement.
+      parameters:
+      - description: Gig ID
+        in: path
+        name: gigId
+        required: true
+        type: string
+      - description: Replacement Details
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Emergency No-Show Replacement
+      tags:
+      - Gig
+  /gigs/{gigId}/employees/{empId}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Triggers the Razorpay payout for a worker.
+      parameters:
+      - description: Gig ID
+        in: path
+        name: gigId
+        required: true
+        type: string
+      - description: Employee ID
+        in: path
+        name: empId
+        required: true
+        type: string
+      - description: Override Details
+        in: body
+        name: request
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Manual Shift Complete (Trigger Payout)
+      tags:
+      - Gig
+  /gigs/{gigId}/employees/{empId}/mark-arrived:
+    post:
+      description: Manually mark the worker as arrived via the app.
+      parameters:
+      - description: Gig ID
+        in: path
+        name: gigId
+        required: true
+        type: string
+      - description: Employee ID
+        in: path
+        name: empId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Manual Check-In (QR Fallback)
+      tags:
+      - Gig
+  /gigs/{gigId}/employees/{empId}/review:
+    post:
+      consumes:
+      - application/json
+      description: Allows the employer to leave a rating and comment for the employee.
+      parameters:
+      - description: Gig ID
+        in: path
+        name: gigId
+        required: true
+        type: string
+      - description: Employee ID
+        in: path
+        name: empId
+        required: true
+        type: string
+      - description: Review Details
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Rate Employee Post-Shift
+      tags:
+      - Gig
+  /gigs/wage-benchmark:
+    get:
+      description: Returns the average market wage for a skill.
+      parameters:
+      - description: Skill ID
+        in: query
+        name: skill_id
+        required: true
+        type: string
+      - description: PER_DAY or PER_HOUR
+        in: query
+        name: pay_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Wage Benchmark Check
+      tags:
+      - Gig
   /onboarding/employee:
     post:
       consumes:
@@ -562,6 +994,30 @@ paths:
       summary: Onboard Employer
       tags:
       - Onboarding
+  /support/tickets:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new support ticket for a user.
+      parameters:
+      - description: Ticket Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/support.CreateTicketRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Raise Customer Support Ticket
+      tags:
+      - Support
   /taxonomy:
     get:
       description: Returns a fully nested list of all active categories and their
@@ -576,6 +1032,115 @@ paths:
       summary: Get All Categories & Skills
       tags:
       - Taxonomy
+  /verifier/employees/{id}/verify:
+    post:
+      consumes:
+      - application/json
+      description: Remotely approve an employee after reviewing Aadhaar and photo.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status and Notes
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Verify Employee (Remote KYC)
+      tags:
+      - Verifier
+  /verifier/employers/{id}/verify:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Finalizes the physical location check with photographic proof.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: APPROVED or REJECTED
+        in: formData
+        name: status
+        required: true
+        type: string
+      - description: Verification Notes
+        in: formData
+        name: notes
+        type: string
+      - description: JSON GPS pin override
+        in: formData
+        name: verified_location
+        type: string
+      - description: Selfie of verifier at location
+        in: formData
+        name: verifier_selfie
+        required: true
+        type: file
+      - description: Location Proof 1
+        in: formData
+        name: location_photo_1
+        required: true
+        type: file
+      - description: Location Proof 2
+        in: formData
+        name: location_photo_2
+        required: true
+        type: file
+      - description: Location Proof 3
+        in: formData
+        name: location_photo_3
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Verify Employer (Physical Visit)
+      tags:
+      - Verifier
+  /verifier/queue:
+    get:
+      description: Fetches a list of users awaiting verification.
+      parameters:
+      - description: User Type (EMPLOYER or EMPLOYEE)
+        in: query
+        name: type
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Pending Queues
+      tags:
+      - Verifier
 securityDefinitions:
   ApiKeyAuth:
     in: header

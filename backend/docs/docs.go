@@ -348,6 +348,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/applications/{applicationId}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Hires a specific applicant for the gig slot.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Approve Application",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "applicationId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status: APPROVED",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/otp/send": {
             "post": {
                 "description": "Sends a 6-digit OTP to the user's phone or email",
@@ -465,6 +511,582 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/utils.FailureResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/employees/me/pay-fine": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Clears the user's debt (Mock Payment).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Employee"
+                ],
+                "summary": "Pay Unpaid Fines",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/employers/me": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fetches employer details and business metrics.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Employer"
+                ],
+                "summary": "Employer Dashboard Profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/employers/me/gigs": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fetches employer's gig history with status filtering.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Employer"
+                ],
+                "summary": "View My Gigs (History \u0026 Active)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gig Status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/employers/me/subscription": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Generates a mock Razorpay Order ID for subscription purchase.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Employer"
+                ],
+                "summary": "Purchase Subscription Plan",
+                "parameters": [
+                    {
+                        "description": "Plan Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/employers/profiles/employees/{empId}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fetches detailed resume and past feedback of a worker.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Employer"
+                ],
+                "summary": "View Full Worker Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee User ID",
+                        "name": "empId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates a gig and generates a mock Razorpay Escrow order.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Post a New Gig",
+                "parameters": [
+                    {
+                        "description": "Gig Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gig.PostGigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs/wage-benchmark": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the average market wage for a skill.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Wage Benchmark Check",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Skill ID",
+                        "name": "skill_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "PER_DAY or PER_HOUR",
+                        "name": "pay_type",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs/{gigId}/applications": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fetches the list of employees who have applied for a specific gig.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "View Gig Applications",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gig ID",
+                        "name": "gigId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs/{gigId}/attendance-qr": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Generates a time-sensitive, rotating QR code string.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Generate Shift QR Codes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gig ID",
+                        "name": "gigId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs/{gigId}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Allows the employer to cancel a gig with automated penalty calculation.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Cancel Gig",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gig ID",
+                        "name": "gigId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Reason",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs/{gigId}/close-unfilled": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Closes a gig that had no worker approvals before start.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Close Gig with Full Refund",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gig ID",
+                        "name": "gigId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs/{gigId}/emergency-hire": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Penalizes the no-show employee and approves a replacement.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Emergency No-Show Replacement",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gig ID",
+                        "name": "gigId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Replacement Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs/{gigId}/employees/{empId}/complete": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Triggers the Razorpay payout for a worker.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Manual Shift Complete (Trigger Payout)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gig ID",
+                        "name": "gigId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Employee ID",
+                        "name": "empId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Override Details",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs/{gigId}/employees/{empId}/mark-arrived": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Manually mark the worker as arrived via the app.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Manual Check-In (QR Fallback)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gig ID",
+                        "name": "gigId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Employee ID",
+                        "name": "empId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gigs/{gigId}/employees/{empId}/review": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Allows the employer to leave a rating and comment for the employee.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gig"
+                ],
+                "summary": "Rate Employee Post-Shift",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gig ID",
+                        "name": "gigId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Employee ID",
+                        "name": "empId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Review Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
                         }
                     }
                 }
@@ -699,6 +1321,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/support/tickets": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates a new support ticket for a user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Support"
+                ],
+                "summary": "Raise Customer Support Ticket",
+                "parameters": [
+                    {
+                        "description": "Ticket Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/support.CreateTicketRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/taxonomy": {
             "get": {
                 "description": "Returns a fully nested list of all active categories and their child skills.",
@@ -709,6 +1370,175 @@ const docTemplate = `{
                     "Taxonomy"
                 ],
                 "summary": "Get All Categories \u0026 Skills",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/verifier/employees/{id}/verify": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Remotely approve an employee after reviewing Aadhaar and photo.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Verifier"
+                ],
+                "summary": "Verify Employee (Remote KYC)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status and Notes",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/verifier/employers/{id}/verify": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Finalizes the physical location check with photographic proof.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Verifier"
+                ],
+                "summary": "Verify Employer (Physical Visit)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "APPROVED or REJECTED",
+                        "name": "status",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Verification Notes",
+                        "name": "notes",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON GPS pin override",
+                        "name": "verified_location",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Selfie of verifier at location",
+                        "name": "verifier_selfie",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Location Proof 1",
+                        "name": "location_photo_1",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Location Proof 2",
+                        "name": "location_photo_2",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Location Proof 3",
+                        "name": "location_photo_3",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/verifier/queue": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fetches a list of users awaiting verification.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Verifier"
+                ],
+                "summary": "Get Pending Queues",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User Type (EMPLOYER or EMPLOYEE)",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -837,6 +1667,68 @@ const docTemplate = `{
                 },
                 "status": {
                     "description": "SUSPENDED, ACTIVE",
+                    "type": "string"
+                }
+            }
+        },
+        "gig.PostGigRequest": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "description",
+                "end_time",
+                "pay_type",
+                "skill_id",
+                "start_time",
+                "title",
+                "wage_per_worker",
+                "workers_needed"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "pay_type": {
+                    "description": "PER_DAY, PER_HOUR",
+                    "type": "string"
+                },
+                "skill_id": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "wage_per_worker": {
+                    "type": "integer"
+                },
+                "workers_needed": {
+                    "type": "integer"
+                }
+            }
+        },
+        "support.CreateTicketRequest": {
+            "type": "object",
+            "required": [
+                "description",
+                "subject"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "related_gig_id": {
+                    "type": "string"
+                },
+                "subject": {
                     "type": "string"
                 }
             }

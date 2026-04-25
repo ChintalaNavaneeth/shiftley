@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 // RequireAuth validates the JWT token and injects claims into the context
@@ -104,3 +105,31 @@ func RequireRoles(roles ...string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// RequireNoDebt blocks workers with unpaid fines
+func RequireNoDebt(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDStr, exists := c.Get("userID")
+		if !exists {
+			c.Abort()
+			return
+		}
+
+		var unpaidFine int64
+		err := db.Table("shiftley.users").Where("id = ?", userIDStr).Select("unpaid_fine_paise").Scan(&unpaidFine).Error
+		if err != nil {
+			utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Error checking penalties", nil)
+			c.Abort()
+			return
+		}
+
+		if unpaidFine > 0 {
+			utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden, fmt.Sprintf("Account locked due to unpaid fine: ₹%.2f. Please pay to resume.", float64(unpaidFine)/100.0), nil)
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
