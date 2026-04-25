@@ -167,22 +167,55 @@
                         "required": true
                     },
                     {
-                        "type": "file",
-                        "description": "Profile Photo",
-                        "name": "profile_photo",
+                        "type": "string",
+                        "description": "Email",
+                        "name": "email",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Phone Number",
+                        "name": "phone_number",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Skill IDs (JSON array: [\\",
+                        "name": "skill_ids",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Degree (Optional)",
+                        "name": "degree",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Specialization (Optional)",
+                        "name": "specialization",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Passing Year (Optional)",
+                        "name": "passing_year",
                         "in": "formData"
                     },
                     {
                         "type": "file",
-                        "description": "Aadhaar Front",
-                        "name": "aadhaar_front",
+                        "description": "Aadhaar PDF (Masked)",
+                        "name": "aadhaar_pdf",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "Aadhaar Back",
-                        "name": "aadhaar_back",
+                        "description": "Profile Picture (Professional)",
+                        "name": "profile_picture",
                         "in": "formData",
                         "required": true
                     }
@@ -237,10 +270,87 @@
                         "required": true
                     },
                     {
-                        "type": "file",
-                        "description": "Business Logo",
-                        "name": "business_logo",
+                        "type": "string",
+                        "description": "Business Type",
+                        "name": "business_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Location (JSON string: {\\",
+                        "name": "location",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Business Address",
+                        "name": "business_address",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "GST Number (Optional)",
+                        "name": "gst_number",
                         "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Email",
+                        "name": "email",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Business Phone Number",
+                        "name": "business_phone_number",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Employer Phone Number",
+                        "name": "employer_phone_number",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Aadhaar Number (12 digits)",
+                        "name": "aadhaar_number",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Aadhaar PDF (Masked)",
+                        "name": "aadhaar_pdf",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Business Photo 1",
+                        "name": "business_photo_1",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Business Photo 2",
+                        "name": "business_photo_2",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Business Photo 3",
+                        "name": "business_photo_3",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {

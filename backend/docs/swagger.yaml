@@ -133,18 +133,41 @@ paths:
         name: full_name
         required: true
         type: string
-      - description: Profile Photo
+      - description: Email
         in: formData
-        name: profile_photo
-        type: file
-      - description: Aadhaar Front
+        name: email
+        required: true
+        type: string
+      - description: Phone Number
         in: formData
-        name: aadhaar_front
+        name: phone_number
+        required: true
+        type: string
+      - description: 'Skill IDs (JSON array: [\'
+        in: formData
+        name: skill_ids
+        required: true
+        type: string
+      - description: Degree (Optional)
+        in: formData
+        name: degree
+        type: string
+      - description: Specialization (Optional)
+        in: formData
+        name: specialization
+        type: string
+      - description: Passing Year (Optional)
+        in: formData
+        name: passing_year
+        type: integer
+      - description: Aadhaar PDF (Masked)
+        in: formData
+        name: aadhaar_pdf
         required: true
         type: file
-      - description: Aadhaar Back
+      - description: Profile Picture (Professional)
         in: formData
-        name: aadhaar_back
+        name: profile_picture
         required: true
         type: file
       produces:
@@ -179,9 +202,64 @@ paths:
         name: business_name
         required: true
         type: string
-      - description: Business Logo
+      - description: Business Type
         in: formData
-        name: business_logo
+        name: business_type
+        required: true
+        type: string
+      - description: 'Location (JSON string: {\'
+        in: formData
+        name: location
+        required: true
+        type: string
+      - description: Business Address
+        in: formData
+        name: business_address
+        required: true
+        type: string
+      - description: GST Number (Optional)
+        in: formData
+        name: gst_number
+        type: string
+      - description: Email
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: Business Phone Number
+        in: formData
+        name: business_phone_number
+        required: true
+        type: string
+      - description: Employer Phone Number
+        in: formData
+        name: employer_phone_number
+        required: true
+        type: string
+      - description: Aadhaar Number (12 digits)
+        in: formData
+        name: aadhaar_number
+        required: true
+        type: string
+      - description: Aadhaar PDF (Masked)
+        in: formData
+        name: aadhaar_pdf
+        required: true
+        type: file
+      - description: Business Photo 1
+        in: formData
+        name: business_photo_1
+        required: true
+        type: file
+      - description: Business Photo 2
+        in: formData
+        name: business_photo_2
+        required: true
+        type: file
+      - description: Business Photo 3
+        in: formData
+        name: business_photo_3
+        required: true
         type: file
       produces:
       - application/json

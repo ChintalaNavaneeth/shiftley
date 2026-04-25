@@ -83,6 +83,9 @@ func main() {
 	// 6. Setup Router
 	r := gin.Default()
 
+	// Suppress trusted proxies warning
+	r.SetTrustedProxies(nil)
+
 	// Health Check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "healthy", "service": "shiftley-backend"})
