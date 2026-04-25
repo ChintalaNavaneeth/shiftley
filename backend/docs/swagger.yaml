@@ -1,5 +1,36 @@
 basePath: /api/v1
 definitions:
+  admin.ConfigUpdateRequest:
+    properties:
+      employer_per_day_fee:
+        type: number
+      employer_subscription_monthly:
+        type: number
+      employer_subscription_weekly:
+        type: number
+      worker_cancel_penalty:
+        type: number
+    type: object
+  admin.CreateCategoryRequest:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    required:
+    - id
+    - name
+    type: object
+  admin.CreateSkillRequest:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    required:
+    - id
+    - name
+    type: object
   admin.InviteUserRequest:
     properties:
       aadhaar_number:
@@ -18,6 +49,37 @@ definitions:
     - full_name
     - phone_number
     - role
+    type: object
+  admin.ManagementUserRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      phone_number:
+        type: string
+      role:
+        type: string
+    required:
+    - email
+    - full_name
+    - phone_number
+    - role
+    type: object
+  admin.ToggleStateRequest:
+    properties:
+      is_active:
+        type: boolean
+    type: object
+  admin.UserStatusRequest:
+    properties:
+      reason:
+        type: string
+      status:
+        description: SUSPENDED, ACTIVE
+        type: string
+    required:
+    - status
     type: object
   utils.ErrorDetail:
     properties:
@@ -58,6 +120,173 @@ info:
   title: Shiftley API
   version: "1.0"
 paths:
+  /admin/config/fees:
+    patch:
+      consumes:
+      - application/json
+      description: Updates global business variables like platform cuts or fees.
+      parameters:
+      - description: Config Updates
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/admin.ConfigUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update Platform Configuration
+      tags:
+      - Admin
+  /admin/super/users:
+    post:
+      consumes:
+      - application/json
+      description: Creates ADMIN and HR_ADMIN accounts. Restricted to SUPER_ADMIN.
+      parameters:
+      - description: Management User Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/admin.ManagementUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create Management Roles
+      tags:
+      - Admin
+  /admin/taxonomy/categories:
+    post:
+      consumes:
+      - application/json
+      description: Adds a new broad job category to the platform.
+      parameters:
+      - description: Category Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/admin.CreateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create Taxonomy Category
+      tags:
+      - Admin
+  /admin/taxonomy/categories/{categoryId}/skills:
+    post:
+      consumes:
+      - application/json
+      description: Adds a specific job role under an existing category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: categoryId
+        required: true
+        type: string
+      - description: Skill Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/admin.CreateSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create Taxonomy Skill
+      tags:
+      - Admin
+  /admin/taxonomy/skills/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Safely disables a skill so it no longer appears in public dropdowns.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Toggle State
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/admin.ToggleStateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Toggle Taxonomy State
+      tags:
+      - Admin
+  /admin/users/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Instantly revokes access for staff or public users.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status Update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/admin.UserStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Revoke / Ban User
+      tags:
+      - Admin
   /admin/users/invite:
     post:
       consumes:
@@ -333,6 +562,20 @@ paths:
       summary: Onboard Employer
       tags:
       - Onboarding
+  /taxonomy:
+    get:
+      description: Returns a fully nested list of all active categories and their
+        child skills.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+      summary: Get All Categories & Skills
+      tags:
+      - Taxonomy
 securityDefinitions:
   ApiKeyAuth:
     in: header

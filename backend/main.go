@@ -7,6 +7,7 @@ import (
 	"shiftley/internal/auth"
 	"shiftley/internal/config"
 	"shiftley/internal/onboarding"
+	"shiftley/internal/taxonomy"
 	"shiftley/pkg/middleware"
 	"shiftley/pkg/storage"
 	"context"
@@ -55,6 +56,10 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
+	// Auto Migrate Models
+	db.Exec("CREATE SCHEMA IF NOT EXISTS shiftley")
+	db.AutoMigrate(&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &taxonomy.Category{}, &taxonomy.Skill{}, &config.PlatformConfig{})
+
 	// 3. Initialize Redis
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort),
@@ -82,7 +87,16 @@ func main() {
 	
 	onboardingHandler := onboarding.NewHandler(storageSvc, cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC)
 
-	adminHandler := admin.NewHandler(db)
+	adminHandler := admin.NewHandler(db, rdb)
+	taxonomyAdminHandler := admin.NewTaxonomyHandler(db)
+
+	taxonomyRepo := taxonomy.NewRepository(db)
+	taxonomyHandler := taxonomy.NewHandler(taxonomyRepo)
+
+	// Seed Taxonomy Data
+	if err := taxonomyRepo.SeedInitialData(context.Background()); err != nil {
+		log.Printf("Warning: Failed to seed taxonomy data: %v", err)
+	}
 
 	// 6. Setup Router
 	r := gin.Default()
@@ -115,21 +129,46 @@ func main() {
 			
 			// Employee Onboarding is strictly for SUPER_ADMIN
 			onboardingGroup.POST("/employee", 
-				middleware.RequireAuth(cfg.JWTSecret), 
+				middleware.RequireAuth(cfg.JWTSecret, rdb), 
 				middleware.RequireRoles(string(auth.RoleSuperAdmin)), 
 				onboardingHandler.OnboardEmployee,
 			)
 		}
 
+		// Taxonomy
+		v1.GET("/taxonomy", taxonomyHandler.GetTaxonomy)
+
 		// Admin
 		adminGroup := v1.Group("/admin")
 		{
+			// Global Admin Protection
+			adminGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+
 			usersGroup := adminGroup.Group("/users")
 			// Only SUPER_ADMIN and ADMIN (HR_ADMIN) can invite internal staff
-			usersGroup.Use(middleware.RequireAuth(cfg.JWTSecret), middleware.RequireRoles(string(auth.RoleSuperAdmin), string(auth.RoleAdmin)))
+			usersGroup.Use(middleware.RequireRoles(string(auth.RoleSuperAdmin), string(auth.RoleAdmin)))
 			{
 				usersGroup.POST("/invite", adminHandler.InviteUser)
+				usersGroup.PATCH("/:id/status", adminHandler.UpdateUserStatus)
 			}
+
+			superGroup := adminGroup.Group("/super")
+			superGroup.Use(middleware.RequireRoles(string(auth.RoleSuperAdmin)))
+			{
+				superGroup.POST("/users", adminHandler.CreateManagementUser)
+			}
+
+			// Taxonomy Admin
+			taxGroup := adminGroup.Group("/taxonomy")
+			taxGroup.Use(middleware.RequireRoles(string(auth.RoleSuperAdmin)))
+			{
+				taxGroup.POST("/categories", taxonomyAdminHandler.CreateCategory)
+				taxGroup.POST("/categories/:categoryId/skills", taxonomyAdminHandler.CreateSkill)
+				taxGroup.PATCH("/skills/:id", taxonomyAdminHandler.ToggleSkillState)
+			}
+
+			// Platform Config
+			adminGroup.PATCH("/config/fees", middleware.RequireRoles(string(auth.RoleSuperAdmin)), adminHandler.UpdatePlatformConfig)
 		}
 	}
 

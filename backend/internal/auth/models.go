@@ -16,6 +16,7 @@ const (
 	RoleCSAgent    UserRole = "CS_AGENT"
 	RoleAnalyst    UserRole = "ANALYST"
 	RoleAdmin      UserRole = "ADMIN"
+	RoleHRAdmin    UserRole = "HR_ADMIN"
 	RoleSuperAdmin UserRole = "SUPER_ADMIN"
 )
 

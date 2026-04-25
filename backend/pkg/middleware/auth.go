@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,10 +10,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 )
 
 // RequireAuth validates the JWT token and injects claims into the context
-func RequireAuth(jwtSecret string) gin.HandlerFunc {
+func RequireAuth(jwtSecret string, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -43,15 +45,26 @@ func RequireAuth(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			c.Set("userID", claims["sub"])
-			c.Set("userRole", claims["role"])
-			c.Set("tokenType", claims["type"])
-		} else {
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
 			utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized, "Failed to parse token claims", nil)
 			c.Abort()
 			return
 		}
+
+		userID := claims["sub"].(string)
+
+		// Check Redis blacklist
+		blacklisted, _ := rdb.Exists(context.Background(), "blacklist:"+userID).Result()
+		if blacklisted > 0 {
+			utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized, "Account suspended or session revoked", nil)
+			c.Abort()
+			return
+		}
+
+		c.Set("userID", userID)
+		c.Set("userRole", claims["role"])
+		c.Set("tokenType", claims["type"])
 
 		c.Next()
 	}
