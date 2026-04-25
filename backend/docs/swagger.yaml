@@ -1,0 +1,207 @@
+basePath: /api/v1
+definitions:
+  utils.ErrorDetail:
+    properties:
+      code:
+        type: string
+      details:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+    type: object
+  utils.FailureResponse:
+    properties:
+      error:
+        $ref: '#/definitions/utils.ErrorDetail'
+      success:
+        type: boolean
+    type: object
+  utils.SuccessResponse:
+    properties:
+      data: {}
+      meta: {}
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@shiftley.com
+    name: API Support
+    url: http://www.shiftley.com/support
+  description: Shiftley Backend API Documentation.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Shiftley API
+  version: "1.0"
+paths:
+  /auth/otp/send:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Sends a 6-digit OTP to the user's phone or email
+      parameters:
+      - description: Identifier (Phone or Email)
+        in: formData
+        name: identifier
+        required: true
+        type: string
+      - description: Type
+        enum:
+        - PHONE
+        - EMAIL
+        in: formData
+        name: type
+        required: true
+        type: string
+      - description: Role
+        enum:
+        - WORKER
+        - EMPLOYER
+        in: formData
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+      summary: Request OTP
+      tags:
+      - Auth
+  /auth/otp/verify:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Verifies the OTP and returns a JWT token
+      parameters:
+      - description: Identifier (Phone or Email)
+        in: formData
+        name: identifier
+        required: true
+        type: string
+      - description: Type
+        enum:
+        - PHONE
+        - EMAIL
+        in: formData
+        name: type
+        required: true
+        type: string
+      - description: 6-digit OTP
+        in: formData
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+      summary: Verify OTP
+      tags:
+      - Auth
+  /onboarding/employee:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Completes the onboarding process for an employee
+      parameters:
+      - description: Full Name
+        in: formData
+        name: full_name
+        required: true
+        type: string
+      - description: Profile Photo
+        in: formData
+        name: profile_photo
+        type: file
+      - description: Aadhaar Front
+        in: formData
+        name: aadhaar_front
+        required: true
+        type: file
+      - description: Aadhaar Back
+        in: formData
+        name: aadhaar_back
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Onboard Employee
+      tags:
+      - Onboarding
+  /onboarding/employer:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Completes the onboarding process for an employer
+      parameters:
+      - description: Full Name
+        in: formData
+        name: full_name
+        required: true
+        type: string
+      - description: Business Name
+        in: formData
+        name: business_name
+        required: true
+        type: string
+      - description: Business Logo
+        in: formData
+        name: business_logo
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.FailureResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Onboard Employer
+      tags:
+      - Onboarding
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

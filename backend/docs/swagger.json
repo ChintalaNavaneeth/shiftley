@@ -1,57 +1,310 @@
 {
-  "swagger": "2.0",
-  "info": {
-    "description": "Shiftley Backend API Documentation",
-    "title": "Shiftley API",
-    "version": "1.0.0"
-  },
-  "basePath": "/api/v1",
-  "paths": {
-    "/auth/otp/send": {
-      "post": {
-        "summary": "Request OTP",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "identifier": { "type": "string" },
-                "type": { "type": "string", "enum": ["PHONE", "EMAIL"] },
-                "role": { "type": "string", "enum": ["WORKER", "EMPLOYER"] }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": { "description": "Success" }
-        }
-      }
+    "swagger": "2.0",
+    "info": {
+        "description": "Shiftley Backend API Documentation.",
+        "title": "Shiftley API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.shiftley.com/support",
+            "email": "support@shiftley.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
     },
-    "/auth/otp/verify": {
-      "post": {
-        "summary": "Verify OTP",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "identifier": { "type": "string" },
-                "type": { "type": "string", "enum": ["PHONE", "EMAIL"] },
-                "code": { "type": "string" }
-              }
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/auth/otp/send": {
+            "post": {
+                "description": "Sends a 6-digit OTP to the user's phone or email",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Request OTP",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Identifier (Phone or Email)",
+                        "name": "identifier",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "PHONE",
+                            "EMAIL"
+                        ],
+                        "type": "string",
+                        "description": "Type",
+                        "name": "type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "WORKER",
+                            "EMPLOYER"
+                        ],
+                        "type": "string",
+                        "description": "Role",
+                        "name": "role",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.FailureResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.FailureResponse"
+                        }
+                    }
+                }
             }
-          }
-        ],
-        "responses": {
-          "200": { "description": "Success" }
+        },
+        "/auth/otp/verify": {
+            "post": {
+                "description": "Verifies the OTP and returns a JWT token",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Verify OTP",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Identifier (Phone or Email)",
+                        "name": "identifier",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "PHONE",
+                            "EMAIL"
+                        ],
+                        "type": "string",
+                        "description": "Type",
+                        "name": "type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "6-digit OTP",
+                        "name": "code",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.FailureResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/onboarding/employee": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Completes the onboarding process for an employee",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Onboarding"
+                ],
+                "summary": "Onboard Employee",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Full Name",
+                        "name": "full_name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Profile Photo",
+                        "name": "profile_photo",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Aadhaar Front",
+                        "name": "aadhaar_front",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Aadhaar Back",
+                        "name": "aadhaar_back",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.FailureResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/onboarding/employer": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Completes the onboarding process for an employer",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Onboarding"
+                ],
+                "summary": "Onboard Employer",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Full Name",
+                        "name": "full_name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Business Name",
+                        "name": "business_name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Business Logo",
+                        "name": "business_logo",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.FailureResponse"
+                        }
+                    }
+                }
+            }
         }
-      }
+    },
+    "definitions": {
+        "utils.ErrorDetail": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "utils.FailureResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/utils.ErrorDetail"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "utils.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "meta": {},
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
-  }
 }

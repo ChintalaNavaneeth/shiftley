@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8' (obsolete)
 
 services:
   db:
@@ -46,6 +46,12 @@ services:
       - minio_data:/data
     networks:
       - shiftley_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -88,6 +94,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      minio:
+        condition: service_healthy
     networks:
       - shiftley_network
 
