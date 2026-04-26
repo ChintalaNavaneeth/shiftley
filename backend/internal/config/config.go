@@ -21,6 +21,12 @@ type Config struct {
 	BucketProfiles string `mapstructure:"BUCKET_PROFILES"`
 	BucketLogos    string `mapstructure:"BUCKET_LOGOS"`
 	BucketKYC      string `mapstructure:"BUCKET_KYC"`
+	// WhatsApp Business Cloud API (Meta)
+	// Leave empty to run in mock mode (logs to stdout, no real messages sent)
+	WhatsAppPhoneNumberID string `mapstructure:"WHATSAPP_PHONE_NUMBER_ID"`
+	WhatsAppAccessToken   string `mapstructure:"WHATSAPP_ACCESS_TOKEN"`
+	RazorpayWebhookSecret string `mapstructure:"RAZORPAY_WEBHOOK_SECRET"`
+	WhatsAppWebhookSecret string `mapstructure:"WHATSAPP_WEBHOOK_SECRET"`
 }
 
 var GlobalConfig *Config
@@ -33,8 +39,10 @@ func LoadConfig() *Config {
 	// But let's be explicit to avoid "empty string" issues
 	envVars := []string{
 		"APP_PORT", "DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME",
-		"MINIO_ENDPOINT", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD", 
+		"MINIO_ENDPOINT", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD",
 		"BUCKET_PROFILES", "BUCKET_LOGOS", "BUCKET_KYC",
+		"WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_ACCESS_TOKEN",
+		"RAZORPAY_WEBHOOK_SECRET", "WHATSAPP_WEBHOOK_SECRET",
 	}
 	for _, env := range envVars {
 		viper.BindEnv(env)
@@ -57,6 +65,11 @@ func LoadConfig() *Config {
 		BucketProfiles: getEnv("BUCKET_PROFILES", "profile-pics"),
 		BucketLogos:    getEnv("BUCKET_LOGOS", "business-logos"),
 		BucketKYC:      getEnv("BUCKET_KYC", "kyc-documents"),
+		// WhatsApp: defaults to empty → mock mode enabled
+		WhatsAppPhoneNumberID: getEnv("WHATSAPP_PHONE_NUMBER_ID", ""),
+		WhatsAppAccessToken:   getEnv("WHATSAPP_ACCESS_TOKEN", ""),
+		RazorpayWebhookSecret: getEnv("RAZORPAY_WEBHOOK_SECRET", "razorpay_secret_dev"),
+		WhatsAppWebhookSecret: getEnv("WHATSAPP_WEBHOOK_SECRET", "whatsapp_secret_dev"),
 	}
 
 	GlobalConfig = config

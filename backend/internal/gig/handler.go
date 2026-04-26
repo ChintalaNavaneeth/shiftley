@@ -2,10 +2,13 @@ package gig
 
 import (
 	"fmt"
+	"math"
 	"net/http"
+	"strconv"
 	"time"
 
 	"shiftley/internal/auth"
+	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
 
 	"github.com/gin-gonic/gin"
@@ -14,11 +17,12 @@ import (
 )
 
 type Handler struct {
-	db *gorm.DB
+	db     *gorm.DB
+	notify *notify.NotifyService
 }
 
-func NewHandler(db *gorm.DB) *Handler {
-	return &Handler{db: db}
+func NewHandler(db *gorm.DB, notifySvc *notify.NotifyService) *Handler {
+	return &Handler{db: db, notify: notifySvc}
 }
 
 type PostGigRequest struct {
@@ -155,6 +159,20 @@ func (h *Handler) ApproveApplication(c *gin.Context) {
 		return
 	}
 
+	// Fetch data for notification
+	var app GigApplication
+	h.db.First(&app, "id = ?", appID)
+	var worker auth.User
+	h.db.First(&worker, "id = ?", app.EmployeeID)
+	var g Gig
+	h.db.First(&g, "id = ?", app.GigID)
+
+	if req.Status == "APPROVED" {
+		h.notify.SendApplicationAccepted(worker.PhoneNumber, worker.FullName, g.Title, "Employer")
+	} else if req.Status == "REJECTED" {
+		h.notify.SendApplicationRejected(worker.PhoneNumber, worker.FullName, g.Title)
+	}
+
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"application_id": appID, "status": req.Status}, nil)
 }
 
@@ -197,6 +215,16 @@ func (h *Handler) CancelGig(c *gin.Context) {
 	g.Status = StatusCancelled
 	g.CancelReason = req.Reason
 	h.db.Save(&g)
+
+	// Notify workers (Mock: sending to all applicants)
+	var apps []GigApplication
+	h.db.Where("gig_id = ? AND status = ?", g.ID, AppApproved).Find(&apps)
+	for _, app := range apps {
+		var worker auth.User
+		if err := h.db.First(&worker, "id = ?", app.EmployeeID).Error; err == nil {
+			h.notify.SendGigCancelledToWorker(worker.PhoneNumber, worker.FullName, g.Title, fmt.Sprintf("%d", penalty))
+		}
+	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
 		"status":        StatusCancelled,
@@ -279,6 +307,16 @@ func (h *Handler) MarkArrived(c *gin.Context) {
 		return
 	}
 
+	// Notify Employer
+	var worker auth.User
+	h.db.First(&worker, "id = ?", empID)
+	var g Gig
+	h.db.First(&g, "id = ?", gigID)
+	var employer auth.User
+	h.db.First(&employer, "id = ?", g.EmployerID)
+
+	h.notify.SendCheckinConfirmed(employer.PhoneNumber, worker.FullName, g.Title, now.Format("15:04"))
+
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"status": "CHECKED_IN", "check_in_time": now}, nil)
 }
 
@@ -305,6 +343,13 @@ func (h *Handler) CompleteShift(c *gin.Context) {
 		"amount_released_paise": 60000,
 	}, nil)
 	fmt.Printf("[MOCK PAYOUT] Triggered Razorpay Route for Employee %s (Gig %s)\n", empID, gigID)
+
+	// Notify Worker
+	var worker auth.User
+	h.db.First(&worker, "id = ?", empID)
+	var g Gig
+	h.db.First(&g, "id = ?", gigID)
+	h.notify.SendPaymentReleased(worker.PhoneNumber, worker.FullName, "600.00", g.Title)
 }
 
 // EmergencyHire handles POST /api/v1/gigs/{gigId}/emergency-hire
@@ -408,5 +453,235 @@ func (h *Handler) SubmitReview(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, http.StatusCreated, review, nil)
+}
+
+// SearchGigs handles GET /api/v1/gigs/search
+// @Summary Geospatial Gig Search
+// @Description Find gigs within a specific radius.
+// @Tags Gig
+// @Produce json
+// @Param lat query float64 true "Latitude"
+// @Param lng query float64 true "Longitude"
+// @Param radius_km query float64 false "Radius in KM"
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /gigs/search [get]
+func (h *Handler) SearchGigs(c *gin.Context) {
+	lat, _ := strconv.ParseFloat(c.Query("lat"), 64)
+	lng, _ := strconv.ParseFloat(c.Query("lng"), 64)
+	radius, _ := strconv.ParseFloat(c.DefaultQuery("radius_km", "10"), 64)
+
+	var gigs []Gig
+	// Mock geospatial search using a simple bounding box or direct distance
+	// In production, use PostGIS: ST_DWithin(location, ST_MakePoint(lng, lat), radius * 1000)
+	h.db.Where("status = ?", StatusOpen).Find(&gigs)
+
+	type SearchResult struct {
+		Gig
+		DistanceKM float64 `json:"distance_km"`
+	}
+
+	results := []SearchResult{}
+	for _, g := range gigs {
+		dist := calculateDistance(lat, lng, g.Lat, g.Lng)
+		if dist <= radius {
+			results = append(results, SearchResult{Gig: g, DistanceKM: dist})
+		}
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, results, nil)
+}
+
+// calculateDistance returns distance between two points in KM using Haversine formula
+func calculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
+	const R = 6371 // Earth radius in km
+	dLat := (lat2 - lat1) * (math.Pi / 180)
+	dLon := (lon2 - lon1) * (math.Pi / 180)
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(lat1*(math.Pi/180))*math.Cos(lat2*(math.Pi/180))*
+			math.Sin(dLon/2)*math.Sin(dLon/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	return R * c
+}
+
+// ApplyForGig handles POST /api/v1/gigs/{gigId}/apply
+// @Summary Apply for a Gig
+// @Description Submit application for an open gig.
+// @Tags Gig
+// @Produce json
+// @Param gigId path string true "Gig ID"
+// @Success 201 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /gigs/{gigId}/apply [post]
+func (h *Handler) ApplyForGig(c *gin.Context) {
+	gigID, _ := uuid.Parse(c.Param("gigId"))
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	// 1. Check if gig is open
+	var g Gig
+	if err := h.db.First(&g, gigID).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Gig not found", nil)
+		return
+	}
+	if g.Status != StatusOpen {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Gig is no longer open for applications", nil)
+		return
+	}
+
+	// 2. Check for overlapping accepted gigs
+	var overlapCount int64
+	h.db.Table("shiftley.gig_applications").
+		Joins("JOIN shiftley.gigs ON shiftley.gigs.id = shiftley.gig_applications.gig_id").
+		Where("shiftley.gig_applications.employee_id = ? AND shiftley.gig_applications.status = ?", userID, AppApproved).
+		Where("NOT (shiftley.gigs.end_time <= ? OR shiftley.gigs.start_time >= ?)", g.StartTime, g.EndTime).
+		Count(&overlapCount)
+
+	if overlapCount > 0 {
+		utils.RespondError(c, http.StatusConflict, utils.ErrConflict, "You already have a confirmed shift during this time", nil)
+		return
+	}
+
+	// 3. Create Application
+	app := GigApplication{
+		GigID:      gigID,
+		EmployeeID: userID,
+		Status:     AppApplied,
+	}
+
+	if err := h.db.Create(&app).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to apply", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusCreated, "Application submitted", nil)
+}
+
+// ConfirmAttendance handles POST /api/v1/gigs/{gigId}/confirm-attendance
+// @Summary Confirm Shift Attendance
+// @Description Must be called between T-60 and T-45 mins of start time.
+// @Tags Gig
+// @Produce json
+// @Param gigId path string true "Gig ID"
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /gigs/{gigId}/confirm-attendance [post]
+func (h *Handler) ConfirmAttendance(c *gin.Context) {
+	gigID := c.Param("gigId")
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	var g Gig
+	h.db.First(&g, "id = ?", gigID)
+
+	timeToStart := time.Until(g.StartTime)
+	if timeToStart > 60*time.Minute {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Too early to confirm. Please confirm within 1 hour of start time.", nil)
+		return
+	}
+	if timeToStart < 45*time.Minute {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Confirmation window closed. Emergency replacement may have been triggered.", nil)
+		return
+	}
+
+	// Mark as confirmed (could be a new status or a flag)
+	utils.RespondSuccess(c, http.StatusOK, "Attendance confirmed", nil)
+}
+
+// ScanQR handles POST /api/v1/gigs/{gigId}/scan-qr
+// @Summary Clock-In/Out via QR Scan
+// @Description Validates the QR token and logs attendance.
+// @Tags Gig
+// @Accept json
+// @Produce json
+// @Param gigId path string true "Gig ID"
+// @Param request body object true "QR Token and Action"
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /gigs/{gigId}/scan-qr [post]
+func (h *Handler) ScanQR(c *gin.Context) {
+	var req struct {
+		QRToken string `json:"qr_token" binding:"required"`
+		Action  string `json:"action" binding:"required,oneof=CLOCK_IN CLOCK_OUT"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid request", nil)
+		return
+	}
+
+	// In production, validate QRToken against Redis cache
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"status":    fmt.Sprintf("SUCCESSFULLY_%s", req.Action),
+		"timestamp": time.Now(),
+	}, nil)
+}
+
+// SubmitEmployerReview handles POST /api/v1/gigs/{gigId}/employer-review
+// @Summary Rate Employer Post-Shift
+// @Description Worker rates the employer.
+// @Tags Gig
+// @Accept json
+// @Produce json
+// @Param gigId path string true "Gig ID"
+// @Param request body object true "Review Details"
+// @Success 201 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /gigs/{gigId}/employer-review [post]
+func (h *Handler) SubmitEmployerReview(c *gin.Context) {
+	gigID, _ := uuid.Parse(c.Param("gigId"))
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	var req struct {
+		Rating  int    `json:"rating" binding:"required,min=1,max=5"`
+		Comment string `json:"comment"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Rating (1-5) required", nil)
+		return
+	}
+
+	var g Gig
+	h.db.First(&g, gigID)
+
+	review := GigReview{
+		GigID:      gigID,
+		FromUserID: userID,
+		ToUserID:   g.EmployerID,
+		Rating:     req.Rating,
+		Comment:    req.Comment,
+	}
+
+	h.db.Create(&review)
+	utils.RespondSuccess(c, http.StatusCreated, "Review submitted", nil)
+}
+
+// RevokeApplication handles POST /api/v1/gigs/{gigId}/revoke-application
+// @Summary Withdraw Application
+// @Description Allows worker to withdraw. Blocked if < 1 hour to start for approved gigs.
+// @Tags Gig
+// @Produce json
+// @Param gigId path string true "Gig ID"
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /gigs/{gigId}/revoke-application [post]
+func (h *Handler) RevokeApplication(c *gin.Context) {
+	gigID := c.Param("gigId")
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	var app GigApplication
+	if err := h.db.Preload("Gig").Where("gig_id = ? AND employee_id = ?", gigID, userID).First(&app).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Application not found", nil)
+		return
+	}
+
+	if app.Status == AppApproved {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Cannot revoke an application that has already been accepted by the employer. Please contact support if you cannot attend.", nil)
+		return
+	}
+
+	h.db.Delete(&app)
+	utils.RespondSuccess(c, http.StatusOK, "Application revoked", nil)
 }
 

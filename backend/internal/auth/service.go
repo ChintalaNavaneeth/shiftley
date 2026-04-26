@@ -12,7 +12,7 @@ import (
 )
 
 type Service interface {
-	SendOTP(ctx context.Context, identifier string, channel string, role string) error
+	SendOTP(ctx context.Context, identifier string, channel string, role string) (string, error)
 	VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, bool, *User, error)
 }
 
@@ -25,11 +25,11 @@ func NewService(repo Repository, jwtSecret string) Service {
 	return &service{repo: repo, jwtSecret: jwtSecret}
 }
 
-func (s *service) SendOTP(ctx context.Context, identifier string, channel string, role string) error {
+func (s *service) SendOTP(ctx context.Context, identifier string, channel string, role string) (string, error) {
 	// 1. Check if user exists, if not create a placeholder or just use the intent
 	user, err := s.repo.GetUserByPhone(ctx, identifier)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
+		return "", err
 	}
 
 	if user == nil {
@@ -43,7 +43,7 @@ func (s *service) SendOTP(ctx context.Context, identifier string, channel string
 			IsVerified:  false,
 		}
 		if err := s.repo.CreateUser(ctx, user); err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -57,7 +57,7 @@ func (s *service) SendOTP(ctx context.Context, identifier string, channel string
 	
 	fmt.Printf("[MOCK OTP] Sent %s to %s via %s\n", code, identifier, deliveryChannel)
 
-	// 3. Store OTP in DB
+	// Store OTP in DB
 	otp := &OTP{
 		UserID:    user.ID,
 		Channel:   deliveryChannel,
@@ -65,7 +65,12 @@ func (s *service) SendOTP(ctx context.Context, identifier string, channel string
 		ExpiresAt: time.Now().Add(5 * time.Minute),
 	}
 
-	return s.repo.CreateOTP(ctx, otp)
+	if err := s.repo.CreateOTP(ctx, otp); err != nil {
+		return "", err
+	}
+
+	// Return code so the handler can send it via WhatsApp Business API
+	return code, nil
 }
 
 func (s *service) VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, bool, *User, error) {

@@ -24,6 +24,9 @@ type Gig struct {
 	Description    string         `gorm:"type:text" json:"description"`
 	CategoryID     string         `gorm:"not null;index" json:"category_id"`
 	SkillID        string         `gorm:"not null;index" json:"skill_id"`
+	Lat            float64        `gorm:"type:decimal(10,8)" json:"lat"`
+	Lng            float64        `gorm:"type:decimal(11,8)" json:"lng"`
+	Address        string         `gorm:"type:text" json:"address"`
 	StartTime      time.Time      `gorm:"not null" json:"start_time"`
 	EndTime        time.Time      `gorm:"not null" json:"end_time"`
 	PayType        string         `gorm:"type:varchar(10);not null" json:"pay_type"` // PER_DAY, PER_HOUR

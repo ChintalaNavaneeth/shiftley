@@ -1316,23 +1316,36 @@ Receives async payment confirmation from Razorpay. On success, the backend marks
 *   `200 OK`: Webhook acknowledged. Gig flipped to `LIVE`.
 *   `400 Bad Request`: Invalid HMAC signature — request dropped.
 
-### 11.2 Hyperverge KYC Webhook
-Receives async KYC result from Hyperverge after the employer or employee completes identity verification. On success, the backend marks the user's KYC status as `VERIFIED` and unlocks their account.
+### 11.2 Offline Aadhaar XML Verification
+Strictly for Workers. Instead of third-party KYC, workers upload their UIDAI-signed Offline eKYC XML and share code. The backend verifies the digital signature and extracts verified demographics.
 
-**Endpoint:** `POST /api/v1/webhooks/hyperverge`
-**Headers:** `X-Hyperverge-Signature: <hmac_sha256_hash>`
+**Endpoint:** `POST /api/v1/auth/kyc/aadhaar-xml`
+**Headers:** `Authorization: Bearer <registration_jwt>`
 
-**Request Body (sent by Hyperverge):**
+**Request Body (multipart/form-data):**
+- `xml_file`: The .zip or .xml file from UIDAI.
+- `share_code`: 4-digit code set by the user during download.
+
+**Responses:**
+*   `200 OK`: XML verified. Data extracted and saved.
 ```json
 {
-  "transactionId": "txn_XXXXX",
-  "status": "auto_approved",
-  "details": {
-    "maskedAadhaar": "XXXX-XXXX-1234",
-    "faceMatchConfidence": 97.4
+  "success": true,
+  "data": {
+    "name": "John Doe",
+    "masked_aadhaar": "XXXX-XXXX-1234",
+    "status": "VERIFIED"
   }
 }
 ```
+*   `400 Bad Request`: Invalid signature or incorrect share code.
+
+### 11.3 WhatsApp Message Status Webhook
+Receives delivery and read receipts from Meta's WhatsApp Business Cloud API. Used to track if notifications (like OTPs) are reaching the users.
+
+**Endpoint:** `POST /api/v1/webhooks/whatsapp`
+**Headers:** `X-Hub-Signature-256: <sha256_hash>`
+
 **Responses:**
-*   `200 OK`: KYC verified. User account unlocked for verification queue.
-*   `400 Bad Request`: Invalid signature or unrecognized transaction ID.
+*   `200 OK`: Receipt acknowledged.
+

@@ -4,17 +4,23 @@ import (
 	"fmt"
 	"log"
 	"shiftley/internal/admin"
+	"shiftley/internal/analytics"
 	"shiftley/internal/auth"
 	"shiftley/internal/config"
+	"shiftley/internal/cs"
 	"shiftley/internal/employee"
 	"shiftley/internal/employer"
 	"shiftley/internal/gig"
+	"shiftley/internal/hr"
+	"shiftley/internal/webhook"
 	"shiftley/internal/onboarding"
 	"shiftley/internal/support"
 	"shiftley/internal/taxonomy"
 	"shiftley/internal/verifier"
 	"shiftley/pkg/middleware"
+	"shiftley/pkg/notify"
 	"shiftley/pkg/storage"
+	"shiftley/pkg/utils"
 	"context"
 
 	"github.com/gin-gonic/gin"
@@ -63,7 +69,7 @@ func main() {
 
 	// Auto Migrate Models
 	db.Exec("CREATE SCHEMA IF NOT EXISTS shiftley")
-	db.AutoMigrate(&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &taxonomy.Category{}, &taxonomy.Skill{}, &config.PlatformConfig{}, &verifier.VerificationAudit{}, &employer.Subscription{}, &gig.Gig{}, &gig.GigApplication{})
+	db.AutoMigrate(&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &taxonomy.Category{}, &taxonomy.Skill{}, &config.PlatformConfig{}, &verifier.VerificationAudit{}, &employer.Subscription{}, &gig.Gig{}, &gig.GigApplication{}, &analytics.Expenditure{}, &cs.AccountNote{})
 
 	// 3. Initialize Redis
 	rdb := redis.NewClient(&redis.Options{
@@ -85,22 +91,29 @@ func main() {
 		}
 	}
 
-	// 5. Initialize Handlers & Services
+	// 5. Initialize Notify Service (WhatsApp Business Cloud API)
+	notifySvc := notify.NewNotifyService(cfg.WhatsAppPhoneNumberID, cfg.WhatsAppAccessToken)
+
+	// 6. Initialize Handlers & Services
 	authRepo := auth.NewRepository(db, rdb)
 	authSvc := auth.NewService(authRepo, cfg.JWTSecret)
-	authHandler := auth.NewHandler(authSvc)
-	
-	onboardingHandler := onboarding.NewHandler(storageSvc, cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC)
+	authHandler := auth.NewHandler(authSvc, notifySvc, db)
+
+	onboardingHandler := onboarding.NewHandler(storageSvc, cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC, notifySvc)
 
 	adminHandler := admin.NewHandler(db, rdb)
 	taxonomyAdminHandler := admin.NewTaxonomyHandler(db)
 	employerHandler := employer.NewHandler(db)
-	gigHandler := gig.NewHandler(db)
+	gigHandler := gig.NewHandler(db, notifySvc)
 	employeeHandler := employee.NewHandler(db)
 	supportHandler := support.NewHandler(db)
-
+	analyticsHandler := analytics.NewHandler(db)
+	csHandler := cs.NewHandler(db, notifySvc)
+	hrHandler := hr.NewHandler(db, rdb)
+	webhookHandler := webhook.NewHandler(db, cfg.RazorpayWebhookSecret, cfg.WhatsAppWebhookSecret)
+	
 	verifierRepo := verifier.NewRepository(db)
-	verifierHandler := verifier.NewHandler(verifierRepo, storageSvc, cfg.BucketKYC)
+	verifierHandler := verifier.NewHandler(verifierRepo, storageSvc, cfg.BucketKYC, notifySvc)
 
 	taxonomyRepo := taxonomy.NewRepository(db)
 	taxonomyHandler := taxonomy.NewHandler(taxonomyRepo)
@@ -132,6 +145,13 @@ func main() {
 		{
 			authGroup.POST("/otp/send", authHandler.SendOTP)
 			authGroup.POST("/otp/verify", authHandler.VerifyOTP)
+			
+			// KYC - Protected by Registration Token (Worker only usually)
+			kycGroup := authGroup.Group("/kyc")
+			kycGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+			{
+				kycGroup.POST("/aadhaar-xml", authHandler.VerifyAadhaarXML)
+			}
 		}
 
 		// Onboarding
@@ -183,6 +203,50 @@ func main() {
 			adminGroup.PATCH("/config/fees", middleware.RequireRoles(string(auth.RoleSuperAdmin)), adminHandler.UpdatePlatformConfig)
 		}
 
+		// Analytics
+		analyticsGroup := v1.Group("/analytics")
+		analyticsGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+		{
+			// Read-only metrics for Analysts and Super Admins
+			analystRoles := []string{string(auth.RoleAnalyst), string(auth.RoleSuperAdmin)}
+			analyticsGroup.GET("/overview", middleware.RequireRoles(analystRoles...), analyticsHandler.GetOverview)
+			analyticsGroup.GET("/financials", middleware.RequireRoles(analystRoles...), analyticsHandler.GetFinancials)
+			analyticsGroup.GET("/liquidity", middleware.RequireRoles(analystRoles...), analyticsHandler.GetLiquidity)
+			analyticsGroup.GET("/health", middleware.RequireRoles(analystRoles...), analyticsHandler.GetHealth)
+			analyticsGroup.GET("/customer-service", middleware.RequireRoles(analystRoles...), analyticsHandler.GetCustomerServiceStats)
+
+			// Financial inputs and P&L strictly for Super Admin
+			analyticsGroup.POST("/expenditure", middleware.RequireRoles(string(auth.RoleSuperAdmin)), analyticsHandler.LogExpenditure)
+			analyticsGroup.GET("/pnl", middleware.RequireRoles(string(auth.RoleSuperAdmin)), analyticsHandler.GetPnL)
+		}
+
+		// Customer Service (Internal)
+		csGroup := v1.Group("/cs")
+		csGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleCSAgent), string(auth.RoleSuperAdmin)))
+		{
+			csGroup.GET("/users/search", csHandler.SearchUser)
+			csGroup.POST("/users/:userId/notes", csHandler.AddNote)
+			csGroup.GET("/users/:userId/notes", csHandler.GetNotes)
+			csGroup.GET("/gigs/:gigId", csHandler.GetGigDetails)
+			csGroup.POST("/gigs/:gigId/employees/:empId/force-release", csHandler.ForceEscrowRelease)
+		}
+
+		// HR Admin
+		hrGroup := v1.Group("/hr")
+		hrGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleHRAdmin), string(auth.RoleSuperAdmin)))
+		{
+			hrGroup.POST("/staff", hrHandler.CreateStaff)
+			hrGroup.GET("/staff", hrHandler.GetStaffRoster)
+			hrGroup.PATCH("/staff/:id/status", hrHandler.UpdateStaffStatus)
+		}
+
+		// Webhooks (Internal)
+		webhookGroup := v1.Group("/webhooks")
+		{
+			webhookGroup.POST("/razorpay", webhookHandler.RazorpayWebhook)
+			webhookGroup.POST("/whatsapp", webhookHandler.WhatsAppWebhook)
+		}
+
 		// Verifier
 		verifierGroup := v1.Group("/verifier")
 		verifierGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleVerifier), string(auth.RoleSuperAdmin)))
@@ -209,6 +273,13 @@ func main() {
 			
 			// Employer only actions
 			gigGroup.POST("", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.PostGig)
+			gigGroup.GET("/search", middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)), gigHandler.SearchGigs)
+			gigGroup.POST("/:gigId/apply", middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)), gigHandler.ApplyForGig)
+			gigGroup.POST("/:gigId/confirm-attendance", middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)), gigHandler.ConfirmAttendance)
+			gigGroup.POST("/:gigId/scan-qr", middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)), gigHandler.ScanQR)
+			gigGroup.POST("/:gigId/employer-review", middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)), gigHandler.SubmitEmployerReview)
+			gigGroup.POST("/:gigId/revoke-application", middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)), gigHandler.RevokeApplication)
+			
 			gigGroup.GET("/:gigId/applications", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.GetApplications)
 			gigGroup.POST("/:gigId/cancel", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.CancelGig)
 			gigGroup.POST("/:gigId/close-unfilled", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.CloseUnfilled)
@@ -228,7 +299,10 @@ func main() {
 		employeeGroup := v1.Group("/employees")
 		employeeGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)))
 		{
-			employeeGroup.POST("/me/pay-fine", employeeHandler.PayFine)
+			employeeGroup.GET("/me", employeeHandler.GetProfile)
+			employeeGroup.GET("/me/schedule", employeeHandler.GetSchedule)
+			employeeGroup.PUT("/me/payout-methods", employeeHandler.UpdatePayoutMethods)
+			employeeGroup.POST("/me/pay-penalty", employeeHandler.PayPenalty)
 		}
 
 

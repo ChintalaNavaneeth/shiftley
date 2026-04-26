@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"shiftley/pkg/notify"
 	"shiftley/pkg/storage"
 	"shiftley/pkg/utils"
 
@@ -18,14 +19,16 @@ type Handler struct {
 	bucketProfiles string
 	bucketLogos    string
 	bucketKYC      string
+	notify         *notify.NotifyService
 }
 
-func NewHandler(storage storage.Storage, bucketProfiles, bucketLogos, bucketKYC string) *Handler {
+func NewHandler(storage storage.Storage, bucketProfiles, bucketLogos, bucketKYC string, notifySvc *notify.NotifyService) *Handler {
 	return &Handler{
 		storage:        storage,
 		bucketProfiles: bucketProfiles,
 		bucketLogos:    bucketLogos,
 		bucketKYC:      bucketKYC,
+		notify:         notifySvc,
 	}
 }
 
@@ -134,6 +137,9 @@ func (h *Handler) OnboardEmployer(c *gin.Context) {
 		url, _ := h.storage.GetFileURL(c.Request.Context(), fInfo.bucket, objectName)
 		uploadedUrls[fInfo.fieldName] = url
 	}
+
+	// Fire WhatsApp notification: Employer Verification Pending
+	h.notify.SendEmployerVerificationPending(employerPhone, fullName, businessName)
 
 	// 6. Return Success with aggregated data
 	utils.RespondSuccess(c, http.StatusCreated, gin.H{

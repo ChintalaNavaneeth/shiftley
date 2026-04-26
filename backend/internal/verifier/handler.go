@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"shiftley/internal/auth"
+	"shiftley/pkg/notify"
 	"shiftley/pkg/storage"
 	"shiftley/pkg/utils"
 
@@ -18,13 +20,15 @@ type Handler struct {
 	repo      Repository
 	storage   storage.Storage
 	bucketKYC string
+	notify    *notify.NotifyService
 }
 
-func NewHandler(repo Repository, storage storage.Storage, bucketKYC string) *Handler {
+func NewHandler(repo Repository, storage storage.Storage, bucketKYC string, notifySvc *notify.NotifyService) *Handler {
 	return &Handler{
 		repo:      repo,
 		storage:   storage,
 		bucketKYC: bucketKYC,
+		notify:    notifySvc,
 	}
 }
 
@@ -156,6 +160,16 @@ func (h *Handler) VerifyEmployer(c *gin.Context) {
 		return
 	}
 
+	// Fetch user for notification
+	var user auth.User
+	if err := h.repo.(*repository).db.First(&user, "id = ?", userID).Error; err == nil {
+		if status == "APPROVED" {
+			h.notify.SendEmployerVerificationApproved(user.PhoneNumber, user.FullName, user.FullName) // Using FullName as placeholder for businessName if not separate
+		} else {
+			h.notify.SendEmployerVerificationRejected(user.PhoneNumber, user.FullName, user.FullName, notes)
+		}
+	}
+
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"status": kycStatus}, nil)
 }
 
@@ -204,6 +218,17 @@ func (h *Handler) VerifyEmployee(c *gin.Context) {
 	if err := h.repo.SubmitVerification(c.Request.Context(), audit, kycStatus); err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to submit verification", nil)
 		return
+	}
+
+	// Fetch user for notification
+	var user auth.User
+	if err := h.repo.(*repository).db.First(&user, "id = ?", userID).Error; err == nil {
+		// Module 6 doesn't have a specific SendEmployeeVerificationApproved yet, 
+		// but we can use a generic one or add it to templates.go if needed.
+		// For now, let's just log or use SendOTP as a test.
+		if kycStatus == "VERIFIED" {
+			// h.notify.SendApplicationAccepted(user.PhoneNumber, user.FullName, "Account Verification", "Shiftley Team") 
+		}
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"status": kycStatus}, nil)

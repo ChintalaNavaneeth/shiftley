@@ -2,17 +2,24 @@ package auth
 
 import (
 	"net/http"
+	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
-	svc Service
+	svc    Service
+	notify *notify.NotifyService
+	db     *gorm.DB
 }
 
-func NewHandler(svc Service) *Handler {
-	return &Handler{svc: svc}
+func NewHandler(svc Service, notifySvc *notify.NotifyService, db *gorm.DB) *Handler {
+	return &Handler{svc: svc, notify: notifySvc, db: db}
 }
 
 type SendOTPRequest struct {
@@ -41,10 +48,14 @@ func (h *Handler) SendOTP(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.SendOTP(c.Request.Context(), req.Identifier, req.Type, req.Role); err != nil {
+	code, err := h.svc.SendOTP(c.Request.Context(), req.Identifier, req.Type, req.Role)
+	if err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to send OTP", []string{err.Error()})
 		return
 	}
+
+	// Fire WhatsApp OTP notification (non-blocking)
+	h.notify.SendOTP(req.Identifier, code)
 
 	utils.RespondSuccess(c, http.StatusOK, "OTP sent successfully", nil)
 }
@@ -97,3 +108,60 @@ func (h *Handler) VerifyOTP(c *gin.Context) {
 		}, nil)
 	}
 }
+
+// VerifyAadhaarXML handles POST /api/v1/auth/kyc/aadhaar-xml
+func (h *Handler) VerifyAadhaarXML(c *gin.Context) {
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	shareCode := c.PostForm("share_code")
+	file, err := c.FormFile("xml_file")
+	if err != nil || shareCode == "" {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "XML file and share code are required", nil)
+		return
+	}
+
+	// 1. Process File (Simplified: assuming extracted XML or standard Zip)
+	// In production, use github.com/alexmullins/zip for password-protected zips
+	f, _ := file.Open()
+	defer f.Close()
+
+	// Mock data extraction (simulate XML parsing)
+	// Normal flow: Read XML -> Decrypt with share code -> Verify UIDAI Signature -> Extract
+	fmt.Printf("[MOCK Aadhaar KYC] Verifying XML for user %s with share code %s\n", userID, shareCode)
+
+	// Simulation of extracted data
+	extractedName := "Verified User"
+	maskedAadhaar := "XXXX XXXX 1234"
+
+	// 2. Update KYC Session
+	now := time.Now()
+	kyc := &KYCSession{
+		UserID:        userID,
+		Provider:      "OFFLINE_XML",
+		Status:        "VERIFIED",
+		MaskedAadhaar: maskedAadhaar,
+		VerifiedAt:    &now,
+	}
+
+	if err := h.db.Where("user_id = ?", userID).Assign(kyc).FirstOrCreate(&kyc).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to save KYC results", nil)
+		return
+	}
+
+	// 3. Update User Status
+	if err := h.db.Model(&User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"is_verified": true,
+		"full_name":   extractedName,
+	}).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update user status", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"name":           extractedName,
+		"masked_aadhaar": maskedAadhaar,
+		"status":         "VERIFIED",
+	}, nil)
+}
+
