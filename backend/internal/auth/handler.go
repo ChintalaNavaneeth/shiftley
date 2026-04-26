@@ -1,10 +1,10 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"

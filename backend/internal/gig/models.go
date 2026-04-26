@@ -10,11 +10,12 @@ import (
 type GigStatus string
 
 const (
-	StatusDraft     GigStatus = "DRAFT"
-	StatusOpen      GigStatus = "OPEN"
-	StatusFilled    GigStatus = "FILLED"
-	StatusCompleted GigStatus = "COMPLETED"
-	StatusCancelled GigStatus = "CANCELLED"
+	StatusDraft          GigStatus = "DRAFT"
+	StatusPendingPayment GigStatus = "PENDING_PAYMENT"
+	StatusOpen           GigStatus = "OPEN"
+	StatusFilled         GigStatus = "FILLED"
+	StatusCompleted      GigStatus = "COMPLETED"
+	StatusCancelled      GigStatus = "CANCELLED"
 )
 
 type Gig struct {

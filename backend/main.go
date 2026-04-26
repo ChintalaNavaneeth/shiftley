@@ -20,7 +20,6 @@ import (
 	"shiftley/pkg/middleware"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/storage"
-	"shiftley/pkg/utils"
 	"context"
 
 	"github.com/gin-gonic/gin"

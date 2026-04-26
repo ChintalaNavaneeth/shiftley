@@ -80,7 +80,7 @@ func (h *Handler) RazorpayWebhook(c *gin.Context) {
 // WhatsAppWebhook handles POST /api/v1/webhooks/whatsapp
 func (h *Handler) WhatsAppWebhook(c *gin.Context) {
 	// Meta uses X-Hub-Signature-256: sha256=<hash>
-	signature := c.GetHeader("X-Hub-Signature-256")
+	// signature := c.GetHeader("X-Hub-Signature-256")
 	body, _ := io.ReadAll(c.Request.Body)
 
 	// 1. Verify Signature (Mocked for dev ease, implementation provided)

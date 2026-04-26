@@ -3,7 +3,6 @@ package cs
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"shiftley/internal/auth"
 	"shiftley/internal/gig"

@@ -584,7 +584,13 @@ func (h *Handler) ConfirmAttendance(c *gin.Context) {
 		return
 	}
 
-	// Mark as confirmed (could be a new status or a flag)
+	// Update application status to CONFIRMED
+	result := h.db.Model(&GigApplication{}).Where("gig_id = ? AND employee_id = ?", gigID, userID).Update("status", "CONFIRMED")
+	if result.Error != nil || result.RowsAffected == 0 {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrNotFound, "Approved application not found for this gig", nil)
+		return
+	}
+
 	utils.RespondSuccess(c, http.StatusOK, "Attendance confirmed", nil)
 }
 
