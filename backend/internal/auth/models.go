@@ -73,3 +73,46 @@ type KYCSession struct {
 func (k *KYCSession) TableName() string {
 	return "shiftley.kyc_sessions"
 }
+
+type WorkerProfile struct {
+	ID                uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID            uuid.UUID      `gorm:"type:uuid;not null;unique;index" json:"user_id"`
+	Lat               float64        `gorm:"type:decimal(10,8)" json:"lat"`
+	Lng               float64        `gorm:"type:decimal(11,8)" json:"lng"`
+	SearchRadiusKM    int            `gorm:"default:10" json:"search_radius_km"`
+	ReliabilityScore  int            `gorm:"default:100" json:"reliability_score"`
+	ProfilePhotoURL   string         `json:"profile_photo_url"`
+	Degree            string         `json:"degree"`
+	Specialization    string         `json:"specialization"`
+	PassingYear       int            `json:"passing_year"`
+	Skills            []string       `gorm:"type:text[]" json:"skill_ids"` // Simplified Skill IDs
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+func (WorkerProfile) TableName() string {
+	return "shiftley.worker_profiles"
+}
+
+type EmployerProfile struct {
+	ID                uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID            uuid.UUID      `gorm:"type:uuid;not null;unique;index" json:"user_id"`
+	BusinessName      string         `gorm:"not null" json:"business_name"`
+	BusinessType      string         `gorm:"not null" json:"business_type"`
+	GSTNumber         string         `json:"gst_number"`
+	BusinessAddress   string         `gorm:"type:text;not null" json:"business_address"`
+	Lat               float64        `gorm:"type:decimal(10,8)" json:"lat"`
+	Lng               float64        `gorm:"type:decimal(11,8)" json:"lng"`
+	VerificationStatus string         `gorm:"default:'PENDING'" json:"verification_status"`
+	AadhaarLast4      string         `json:"aadhaar_last_4"`
+	AadhaarURL        string         `json:"aadhaar_url"`
+	PhotoURLs         []string       `gorm:"type:text[]" json:"photo_urls"`
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+func (EmployerProfile) TableName() string {
+	return "shiftley.employer_profiles"
+}

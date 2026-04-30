@@ -106,6 +106,20 @@ func RequireRoles(roles ...string) gin.HandlerFunc {
 	}
 }
 
+// RequireTokenType ensures the token has a specific purpose (session vs registration)
+func RequireTokenType(expectedType string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenType, exists := c.Get("tokenType")
+		if !exists || tokenType.(string) != expectedType {
+			utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden, fmt.Sprintf("This endpoint requires a %s token", expectedType), nil)
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+
 // RequireNoDebt blocks workers with unpaid fines
 func RequireNoDebt(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

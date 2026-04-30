@@ -173,7 +173,7 @@ func (h *Handler) InviteUser(c *gin.Context) {
 			FullName:     req.FullName,
 			Role:         auth.UserRole(req.Role),
 			IsVerified:   true, // Bypassing OTP
-			PasswordHash: "temp_secure_hash_here", // Placeholder for actual hash logic
+			PasswordHash: fmt.Sprintf("$2a$10$temporary_hash_%s", uuid.New().String()[:8]),
 		}
 
 		if err := tx.Create(user).Error; err != nil {

@@ -36,8 +36,17 @@ type CreateTicketRequest struct {
 // @Security ApiKeyAuth
 // @Router /support/tickets [post]
 func (h *Handler) CreateTicket(c *gin.Context) {
-	userIDStr, _ := c.Get("userID")
-	userID, _ := uuid.Parse(userIDStr.(string))
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized, "User session not found", nil)
+		return
+	}
+	userIDStr, ok := userIDVal.(string)
+	if !ok {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Invalid session data", nil)
+		return
+	}
+	userID, _ := uuid.Parse(userIDStr)
 
 	var req CreateTicketRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

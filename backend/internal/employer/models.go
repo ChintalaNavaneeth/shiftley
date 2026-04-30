@@ -16,6 +16,19 @@ const (
 	PlanNone    SubscriptionPlan = "NONE"
 )
 
+type SubscriptionPlanMeta struct {
+	ID          string  `gorm:"primaryKey" json:"id"`
+	Name        string  `json:"name"`
+	PricePaise  int64   `json:"price_paise"`
+	DurationDay int     `json:"duration_days"`
+	IsActive    bool    `gorm:"default:true" json:"is_active"`
+}
+
+func (SubscriptionPlanMeta) TableName() string {
+	return "shiftley.subscription_plans"
+}
+
+
 type Subscription struct {
 	ID         uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	EmployerID uuid.UUID        `gorm:"type:uuid;not null;index" json:"employer_id"`

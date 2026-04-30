@@ -18,11 +18,12 @@ import (
 
 type Handler struct {
 	db     *gorm.DB
+	rdb    *redis.Client
 	notify *notify.NotifyService
 }
 
-func NewHandler(db *gorm.DB, notifySvc *notify.NotifyService) *Handler {
-	return &Handler{db: db, notify: notifySvc}
+func NewHandler(db *gorm.DB, rdb *redis.Client, notifySvc *notify.NotifyService) *Handler {
+	return &Handler{db: db, rdb: rdb, notify: notifySvc}
 }
 
 type PostGigRequest struct {
@@ -48,6 +49,17 @@ type PostGigRequest struct {
 // @Security ApiKeyAuth
 // @Router /gigs [post]
 func (h *Handler) PostGig(c *gin.Context) {
+	// 1. Check Idempotency Header
+	idemKey := c.GetHeader("Idempotency-Key")
+	if idemKey != "" {
+		if cached, err := h.rdb.Get(c.Request.Context(), "idem:gig:"+idemKey).Result(); err == nil {
+			var resp map[string]interface{}
+			json.Unmarshal([]byte(cached), &resp)
+			utils.RespondSuccess(c, http.StatusOK, resp, nil)
+			return
+		}
+	}
+
 	userIDStr, _ := c.Get("userID")
 	userID, _ := uuid.Parse(userIDStr.(string))
 
@@ -57,16 +69,26 @@ func (h *Handler) PostGig(c *gin.Context) {
 		return
 	}
 
-	// 1. Calculate Escrow Amount (Simple Logic)
+	// 2. Calculate Escrow Amount
 	totalWage := req.WagePerWorker * int64(req.WorkersNeeded)
 	
-	// 2. Create Gig in DRAFT
+	// 3. Fetch Employer Profile for Location
+	var profile auth.EmployerProfile
+	if err := h.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Employer profile not found. Please complete onboarding.", nil)
+		return
+	}
+
+	// 4. Create Gig in DRAFT
 	gig := Gig{
 		EmployerID:    userID,
 		Title:         req.Title,
 		Description:   req.Description,
 		CategoryID:    req.CategoryID,
 		SkillID:       req.SkillID,
+		Lat:           profile.Lat,
+		Lng:           profile.Lng,
+		Address:       profile.BusinessAddress,
 		StartTime:     req.StartTime,
 		EndTime:       req.EndTime,
 		PayType:       req.PayType,
@@ -81,12 +103,20 @@ func (h *Handler) PostGig(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusCreated, gin.H{
+	respData := gin.H{
 		"gig_id":            gig.ID,
 		"razorpay_order_id": gig.EscrowOrderID,
 		"amount_to_escrow":  totalWage,
 		"message":           "Gig created in DRAFT. Fund the escrow to make it public.",
-	}, nil)
+	}
+
+	// 4. Cache response if Idempotency-Key was provided
+	if idemKey != "" {
+		cachedResp, _ := json.Marshal(respData)
+		h.rdb.Set(c.Request.Context(), "idem:gig:"+idemKey, cachedResp, 24*time.Hour)
+	}
+
+	utils.RespondSuccess(c, http.StatusCreated, respData, nil)
 }
 
 // GetBenchmark handles GET /api/v1/gigs/wage-benchmark
@@ -467,26 +497,33 @@ func (h *Handler) SubmitReview(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /gigs/search [get]
 func (h *Handler) SearchGigs(c *gin.Context) {
-	lat, _ := strconv.ParseFloat(c.Query("lat"), 64)
-	lng, _ := strconv.ParseFloat(c.Query("lng"), 64)
-	radius, _ := strconv.ParseFloat(c.DefaultQuery("radius_km", "10"), 64)
+	latStr := c.Query("lat")
+	lngStr := c.Query("lng")
+	radiusStr := c.DefaultQuery("radius_km", "10")
 
-	var gigs []Gig
-	// Mock geospatial search using a simple bounding box or direct distance
-	// In production, use PostGIS: ST_DWithin(location, ST_MakePoint(lng, lat), radius * 1000)
-	h.db.Where("status = ?", StatusOpen).Find(&gigs)
+	lat, _ := strconv.ParseFloat(latStr, 64)
+	lng, _ := strconv.ParseFloat(lngStr, 64)
+	radiusKM, _ := strconv.ParseFloat(radiusStr, 64)
 
 	type SearchResult struct {
 		Gig
-		DistanceKM float64 `json:"distance_km"`
+		DistanceMeters float64 `json:"distance_meters"`
 	}
 
-	results := []SearchResult{}
-	for _, g := range gigs {
-		dist := calculateDistance(lat, lng, g.Lat, g.Lng)
-		if dist <= radius {
-			results = append(results, SearchResult{Gig: g, DistanceKM: dist})
-		}
+	var results []SearchResult
+
+	// PostGIS Query using ST_DWithin and ST_Distance
+	query := `
+		SELECT *, ST_Distance(ST_MakePoint(lng, lat)::geography, ST_MakePoint(?, ?)::geography) as distance_meters
+		FROM shiftley.gigs
+		WHERE status = 'OPEN' 
+		AND ST_DWithin(ST_MakePoint(lng, lat)::geography, ST_MakePoint(?, ?)::geography, ?)
+		ORDER BY distance_meters ASC
+	`
+
+	if err := h.db.Raw(query, lng, lat, lng, lat, radiusKM*1000).Scan(&results).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Geospatial search failed", nil)
+		return
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, results, nil)

@@ -68,7 +68,16 @@ func main() {
 
 	// Auto Migrate Models
 	db.Exec("CREATE SCHEMA IF NOT EXISTS shiftley")
-	db.AutoMigrate(&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &taxonomy.Category{}, &taxonomy.Skill{}, &config.PlatformConfig{}, &verifier.VerificationAudit{}, &employer.Subscription{}, &gig.Gig{}, &gig.GigApplication{}, &analytics.Expenditure{}, &cs.AccountNote{})
+	db.AutoMigrate(
+		&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &auth.WorkerProfile{}, &auth.EmployerProfile{},
+		&taxonomy.Category{}, &taxonomy.Skill{}, 
+		&config.PlatformConfig{}, 
+		&verifier.VerificationAudit{}, 
+		&employer.Subscription{}, &employer.SubscriptionPlanMeta{}, 
+		&gig.Gig{}, &gig.GigApplication{}, &gig.GigAttendance{}, &gig.GigReview{}, &gig.SupportTicket{},
+		&analytics.Expenditure{}, 
+		&cs.AccountNote{},
+	)
 
 	// 3. Initialize Redis
 	rdb := redis.NewClient(&redis.Options{
@@ -98,12 +107,12 @@ func main() {
 	authSvc := auth.NewService(authRepo, cfg.JWTSecret)
 	authHandler := auth.NewHandler(authSvc, notifySvc, db)
 
-	onboardingHandler := onboarding.NewHandler(storageSvc, cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC, notifySvc)
+	onboardingHandler := onboarding.NewHandler(db, storageSvc, cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC, notifySvc)
 
 	adminHandler := admin.NewHandler(db, rdb)
 	taxonomyAdminHandler := admin.NewTaxonomyHandler(db)
 	employerHandler := employer.NewHandler(db)
-	gigHandler := gig.NewHandler(db, notifySvc)
+	gigHandler := gig.NewHandler(db, rdb, notifySvc)
 	employeeHandler := employee.NewHandler(db)
 	supportHandler := support.NewHandler(db)
 	analyticsHandler := analytics.NewHandler(db)
@@ -120,6 +129,18 @@ func main() {
 	// Seed Taxonomy Data
 	if err := taxonomyRepo.SeedInitialData(context.Background()); err != nil {
 		log.Printf("Warning: Failed to seed taxonomy data: %v", err)
+	}
+
+	// Seed Subscription Plans
+	var planCount int64
+	db.Model(&employer.SubscriptionPlanMeta{}).Count(&planCount)
+	if planCount == 0 {
+		plans := []employer.SubscriptionPlanMeta{
+			{ID: "daily_access", Name: "24-Hour Unlimited", PricePaise: 9900, DurationDay: 1},
+			{ID: "weekly_unlimited", Name: "7-Day Unlimited", PricePaise: 49900, DurationDay: 7},
+			{ID: "monthly_unlimited", Name: "30-Day Unlimited", PricePaise: 149900, DurationDay: 30},
+		}
+		db.Create(&plans)
 	}
 
 	// 6. Setup Router
@@ -147,23 +168,18 @@ func main() {
 			
 			// KYC - Protected by Registration Token (Worker only usually)
 			kycGroup := authGroup.Group("/kyc")
-			kycGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+			kycGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("registration"))
 			{
 				kycGroup.POST("/aadhaar-xml", authHandler.VerifyAadhaarXML)
 			}
 		}
 
-		// Onboarding
+		// Onboarding - Strictly for users with a registration token
 		onboardingGroup := v1.Group("/onboarding")
+		onboardingGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("registration"))
 		{
 			onboardingGroup.POST("/employer", onboardingHandler.OnboardEmployer)
-			
-			// Employee Onboarding is strictly for SUPER_ADMIN
-			onboardingGroup.POST("/employee", 
-				middleware.RequireAuth(cfg.JWTSecret, rdb), 
-				middleware.RequireRoles(string(auth.RoleSuperAdmin)), 
-				onboardingHandler.OnboardEmployee,
-			)
+			onboardingGroup.POST("/employee", onboardingHandler.OnboardEmployee)
 		}
 
 		// Taxonomy
@@ -173,7 +189,7 @@ func main() {
 		adminGroup := v1.Group("/admin")
 		{
 			// Global Admin Protection
-			adminGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+			adminGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"))
 
 			usersGroup := adminGroup.Group("/users")
 			// Only SUPER_ADMIN and ADMIN (HR_ADMIN) can invite internal staff
@@ -204,7 +220,7 @@ func main() {
 
 		// Analytics
 		analyticsGroup := v1.Group("/analytics")
-		analyticsGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+		analyticsGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"))
 		{
 			// Read-only metrics for Analysts and Super Admins
 			analystRoles := []string{string(auth.RoleAnalyst), string(auth.RoleSuperAdmin)}
@@ -221,7 +237,7 @@ func main() {
 
 		// Customer Service (Internal)
 		csGroup := v1.Group("/cs")
-		csGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleCSAgent), string(auth.RoleSuperAdmin)))
+		csGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"), middleware.RequireRoles(string(auth.RoleCSAgent), string(auth.RoleSuperAdmin)))
 		{
 			csGroup.GET("/users/search", csHandler.SearchUser)
 			csGroup.POST("/users/:userId/notes", csHandler.AddNote)
@@ -232,7 +248,7 @@ func main() {
 
 		// HR Admin
 		hrGroup := v1.Group("/hr")
-		hrGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleHRAdmin), string(auth.RoleSuperAdmin)))
+		hrGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"), middleware.RequireRoles(string(auth.RoleHRAdmin), string(auth.RoleSuperAdmin)))
 		{
 			hrGroup.POST("/staff", hrHandler.CreateStaff)
 			hrGroup.GET("/staff", hrHandler.GetStaffRoster)
@@ -248,7 +264,7 @@ func main() {
 
 		// Verifier
 		verifierGroup := v1.Group("/verifier")
-		verifierGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleVerifier), string(auth.RoleSuperAdmin)))
+		verifierGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"), middleware.RequireRoles(string(auth.RoleVerifier), string(auth.RoleSuperAdmin)))
 		{
 			verifierGroup.GET("/queue", verifierHandler.GetQueue)
 			verifierGroup.POST("/employers/:id/verify", verifierHandler.VerifyEmployer)
@@ -257,7 +273,7 @@ func main() {
 
 		// Employer & Gigs
 		employerGroup := v1.Group("/employers")
-		employerGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)))
+		employerGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"), middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)))
 		{
 			employerGroup.GET("/me", employerHandler.GetProfile)
 			employerGroup.GET("/me/gigs", employerHandler.GetMyGigs)
@@ -266,7 +282,7 @@ func main() {
 		}
 
 		gigGroup := v1.Group("/gigs")
-		gigGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+		gigGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"))
 		{
 			gigGroup.GET("/wage-benchmark", gigHandler.GetBenchmark)
 			
@@ -290,7 +306,7 @@ func main() {
 		}
 
 		appGroup := v1.Group("/applications")
-		appGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb))
+		appGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"))
 		{
 			appGroup.PATCH("/:applicationId/status", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.ApproveApplication)
 		}

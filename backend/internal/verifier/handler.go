@@ -160,6 +160,14 @@ func (h *Handler) VerifyEmployer(c *gin.Context) {
 		return
 	}
 
+	// Update Employer Profile location if overridden
+	if lat != 0 && lng != 0 {
+		h.repo.(*repository).db.Model(&auth.EmployerProfile{}).Where("user_id = ?", userID).Updates(map[string]interface{}{
+			"lat": lat,
+			"lng": lng,
+		})
+	}
+
 	// Fetch user for notification
 	var user auth.User
 	if err := h.repo.(*repository).db.First(&user, "id = ?", userID).Error; err == nil {

@@ -111,8 +111,17 @@ func (h *Handler) VerifyOTP(c *gin.Context) {
 
 // VerifyAadhaarXML handles POST /api/v1/auth/kyc/aadhaar-xml
 func (h *Handler) VerifyAadhaarXML(c *gin.Context) {
-	userIDStr, _ := c.Get("userID")
-	userID, _ := uuid.Parse(userIDStr.(string))
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized, "User session not found", nil)
+		return
+	}
+	userIDStr, ok := userIDVal.(string)
+	if !ok {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Invalid session data", nil)
+		return
+	}
+	userID, _ := uuid.Parse(userIDStr)
 
 	shareCode := c.PostForm("share_code")
 	file, err := c.FormFile("xml_file")
