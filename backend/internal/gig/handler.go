@@ -70,7 +70,7 @@ func (h *Handler) PostGig(c *gin.Context) {
 	}
 
 	// 2. Calculate Escrow Amount
-	totalWage := req.WagePerWorker * int64(req.WorkersNeeded)
+	totalEscrow := req.WagePerWorker * int64(req.WorkersNeeded)
 	
 	// 3. Fetch Employer Profile for Location
 	var profile auth.EmployerProfile
