@@ -10,9 +10,11 @@ import (
 	"shiftley/internal/auth"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
+	"encoding/json"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -106,7 +108,7 @@ func (h *Handler) PostGig(c *gin.Context) {
 	respData := gin.H{
 		"gig_id":            gig.ID,
 		"razorpay_order_id": gig.EscrowOrderID,
-		"amount_to_escrow":  totalWage,
+		"amount_to_escrow":  totalEscrow,
 		"message":           "Gig created in DRAFT. Fund the escrow to make it public.",
 	}
 

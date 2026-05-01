@@ -14,9 +14,11 @@ COPY vendor/ ./vendor/
 # Copy the rest of the source code
 COPY . .
 
-# Generate swagger docs and build using the vendor folder
-RUN swag init --parseDependency && \
-    CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o main .
+# Generate swagger docs
+RUN $(go env GOPATH)/bin/swag init --parseDependency
+
+# Build the application using the vendor folder
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o main .
 
 # Run Stage
 FROM registry.suse.com/bci/golang:1.26

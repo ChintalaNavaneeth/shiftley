@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"shiftley/internal/auth"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/storage"
 	"shiftley/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
