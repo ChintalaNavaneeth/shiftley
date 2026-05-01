@@ -34,6 +34,7 @@ type User struct {
 	BankAccount  string         `json:"bank_account"`
 	BankIFSC     string         `json:"bank_ifsc"`
 	LastLoginAt  *time.Time     `json:"last_login_at"`
+	IsInitialSetupComplete bool           `gorm:"default:false" json:"is_initial_setup_complete"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`

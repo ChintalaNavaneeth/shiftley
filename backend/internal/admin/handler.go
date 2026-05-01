@@ -280,3 +280,64 @@ func (h *Handler) CreateManagementUser(c *gin.Context) {
 	}, nil)
 }
 
+type SuperAdminSetupRequest struct {
+	FullName    string `json:"full_name" binding:"required"`
+	Email       string `json:"email" binding:"required,email"`
+	PhoneNumber string `json:"phone_number" binding:"required"`
+}
+
+// UpdateSuperAdminSetup handles PATCH /api/v1/admin/super/setup
+// @Summary Super Admin Initial Setup
+// @Description Updates root admin details and marks setup as complete. Can only be done once.
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param request body SuperAdminSetupRequest true "Setup Details"
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /admin/super/setup [patch]
+func (h *Handler) UpdateSuperAdminSetup(c *gin.Context) {
+	userIDVal, _ := c.Get("userID")
+	userIDStr := userIDVal.(string)
+
+	var user auth.User
+	if err := h.db.First(&user, "id = ?", userIDStr).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, "USER_NOT_FOUND", "User not found", nil)
+		return
+	}
+
+	if user.Role != auth.RoleSuperAdmin {
+		utils.RespondError(c, http.StatusForbidden, "FORBIDDEN", "Only Super Admin can access this", nil)
+		return
+	}
+
+	if user.IsInitialSetupComplete {
+		utils.RespondError(c, http.StatusForbidden, "SETUP_ALREADY_COMPLETE", "Initial setup has already been completed", nil)
+		return
+	}
+
+	var req SuperAdminSetupRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid request payload", nil)
+		return
+	}
+
+	// Update user details
+	updates := map[string]interface{}{
+		"full_name":                 req.FullName,
+		"email":                     req.Email,
+		"phone_number":              req.PhoneNumber,
+		"is_initial_setup_complete": true,
+	}
+
+	if err := h.db.Model(&user).Updates(updates).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to complete setup", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"message":                   "Super Admin setup complete. Your credentials have been updated.",
+		"is_initial_setup_complete": true,
+	}, nil)
+}
+

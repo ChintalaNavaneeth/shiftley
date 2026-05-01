@@ -143,6 +143,9 @@ func main() {
 		db.Create(&plans)
 	}
 
+	// Seed Default Super Admin
+	seedDefaultSuperAdmin(db)
+
 	// 6. Setup Router
 	r := gin.Default()
 
@@ -203,6 +206,7 @@ func main() {
 			superGroup.Use(middleware.RequireRoles(string(auth.RoleSuperAdmin)))
 			{
 				superGroup.POST("/users", adminHandler.CreateManagementUser)
+				superGroup.PATCH("/setup", adminHandler.UpdateSuperAdminSetup)
 			}
 
 			// Taxonomy Admin
@@ -331,5 +335,25 @@ func main() {
 	fmt.Printf("Shiftley Backend starting on :%s...\n", cfg.AppPort)
 	if err := r.Run(":" + cfg.AppPort); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
+	}
+}
+
+func seedDefaultSuperAdmin(db *gorm.DB) {
+	var count int64
+	db.Model(&auth.User{}).Where("role = ?", auth.RoleSuperAdmin).Count(&count)
+	if count == 0 {
+		root := &auth.User{
+			Email:                  "root@shiftley.in",
+			PhoneNumber:            "+910000000000",
+			FullName:               "Root Super Admin",
+			Role:                   auth.RoleSuperAdmin,
+			IsVerified:             true,
+			IsInitialSetupComplete: false,
+		}
+		if err := db.Create(root).Error; err != nil {
+			log.Printf("Warning: Failed to seed default Super Admin: %v", err)
+		} else {
+			log.Println("Default Super Admin created: +910000000000")
+		}
 	}
 }

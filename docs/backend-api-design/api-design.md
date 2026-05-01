@@ -131,6 +131,7 @@ Verifies the 6-digit code. This endpoint acts as the universal **Login** for pub
   "data": {
     "is_new_user": false,
     "session_token": "primary_jwt_xyz789",
+    "is_initial_setup_complete": true,
     "user": { "id": "nano123", "role": "EMPLOYER", "kyc_status": "VERIFIED" }
   }
 }
@@ -375,6 +376,26 @@ Updates global business variables like platform cuts or subscription fees withou
 ```
 **Responses:**
 *   `200 OK`: Global configuration updated.
+
+### 3.7 Super Admin Initial Setup
+This flow is triggered only once for the default root account (`+910000000000`). It allows the owner to "claim" the root account by providing their real identity.
+
+**Endpoint:** `PATCH /api/v1/admin/super/setup`
+**Headers:** `Authorization: Bearer <super_admin_jwt>`
+**Pre-condition:** `is_initial_setup_complete` must be `false`.
+
+**Request Body:**
+```json
+{
+  "full_name": "Navaneeth Chintala",
+  "email": "navaneeth@shiftley.in",
+  "phone_number": "+919876543210"
+}
+```
+
+**Responses:**
+*   `200 OK`: Setup complete. The user now has their real phone number and the setup flag is set to `true`.
+*   `403 Forbidden`: "Initial setup has already been completed" or user is not a Super Admin.
 
 ---
 
