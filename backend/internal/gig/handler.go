@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"shiftley/internal/auth"
+	"shiftley/internal/employer"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
 	"encoding/json"
@@ -70,6 +71,29 @@ func (h *Handler) PostGig(c *gin.Context) {
 		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid request payload", nil)
 		return
 	}
+
+	// --- SUBSCRIPTION & LIMIT CHECK ---
+	var sub employer.Subscription
+	if err := h.db.Where("employer_id = ? AND status = ?", userID, "ACTIVE").First(&sub).Error; err != nil {
+		utils.RespondError(c, http.StatusForbidden, "ERR_SUBSCRIPTION_REQUIRED", "No active subscription found. Please purchase a plan to post gigs.", nil)
+		return
+	}
+
+	if sub.ExpiresAt.Before(time.Now()) {
+		utils.RespondError(c, http.StatusForbidden, "ERR_SUBSCRIPTION_EXPIRED", "Your subscription has expired. Please renew to continue.", nil)
+		return
+	}
+
+	var plan employer.SubscriptionPlanMeta
+	if err := h.db.Where("id = ?", sub.PlanID).First(&plan).Error; err == nil {
+		var gigCount int64
+		h.db.Table("shiftley.gigs").Where("employer_id = ? AND created_at >= ?", userID, sub.StartsAt).Count(&gigCount)
+		if int(gigCount) >= plan.MaxGigs {
+			utils.RespondError(c, http.StatusForbidden, "ERR_LIMIT_REACHED", fmt.Sprintf("You have reached the limit of %d gigs for your current plan.", plan.MaxGigs), nil)
+			return
+		}
+	}
+	// ----------------------------------
 
 	// 2. Calculate Escrow Amount
 	totalEscrow := req.WagePerWorker * int64(req.WorkersNeeded)

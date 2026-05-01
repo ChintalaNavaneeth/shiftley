@@ -1370,3 +1370,61 @@ Receives delivery and read receipts from Meta's WhatsApp Business Cloud API. Use
 **Responses:**
 *   `200 OK`: Receipt acknowledged.
 
+---
+
+## Module 5: Subscriptions & Gig Limits
+
+Shiftley follows a "Pay-to-Play" model for employers. A valid subscription is required to post gigs.
+
+### 1. Subscription Management
+
+#### 1.1 View Active Subscription
+Fetches the current subscription status and remaining gig limits for the employer.
+
+**Endpoint:** `GET /api/v1/employers/me/subscription`
+**Responses:**
+*   `200 OK`: Returns plan details, expiry, and status.
+
+#### 1.2 Purchase/Activate Plan
+Activates a subscription tier for the employer.
+
+**Endpoint:** `POST /api/v1/employers/me/subscription`
+**Request Body:**
+```json
+{
+  "plan_id": "daily_access" 
+}
+```
+*(Note: Valid `plan_id` values: `daily_access`, `weekly_unlimited`, `monthly_unlimited`)*.
+
+---
+
+### 2. Gig Rate Limiting
+
+To prevent platform abuse and ensure fair resource allocation, gig posting is rate-limited based on the active plan:
+
+| Plan Tier | Duration | Max Gigs |
+| :--- | :--- | :--- |
+| **Daily Access** | 24 Hours | 5 Gigs |
+| **Weekly Unlimited** | 7 Days | 40 Gigs |
+| **Monthly Premium** | 30 Days | 200 Gigs |
+
+#### 2.1 Enforcement Logic
+The `POST /api/v1/gigs` endpoint performs a three-way check:
+1.  **Status Check**: Is the subscription `ACTIVE`?
+2.  **Time Check**: Is `now < expires_at`?
+3.  **Count Check**: Have they posted fewer than `max_gigs` since the subscription started?
+
+If any check fails, the API returns `403 Forbidden` with a specific error code (`ERR_SUBSCRIPTION_REQUIRED`, `ERR_SUBSCRIPTION_EXPIRED`, or `ERR_LIMIT_REACHED`).
+
+---
+
+### 3. Background Expiry Worker
+
+The platform runs a background synchronization task every **1 hour** to manage lifecycle transitions.
+
+**Responsibilities:**
+*   Scans for subscriptions where `expires_at < now`.
+*   Updates `status` to `EXPIRED`.
+*   Triggers "Plan Expired" notifications via WhatsApp/Push.
+*   **Graceful Expiry Policy**: Any gig already posted remains LIVE until its end date, even if the subscription expires mid-gig. Only **new** gig creations are blocked.

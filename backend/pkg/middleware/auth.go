@@ -18,6 +18,7 @@ import (
 func RequireAuth(jwtSecret string, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
+		fmt.Printf("[DEBUG] Auth Header: %s\n", authHeader)
 		if authHeader == "" {
 			utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized, "Authorization header is required", nil)
 			c.Abort()

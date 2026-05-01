@@ -36,7 +36,12 @@ CREATE TABLE IF NOT EXISTS shiftley.users (
     role VARCHAR(20) NOT NULL CHECK (role IN ('WORKER', 'EMPLOYER', 'VERIFIER', 'CS_AGENT', 'ANALYST', 'ADMIN', 'SUPER_ADMIN')),
     is_verified BOOLEAN DEFAULT FALSE,
     is_suspended BOOLEAN DEFAULT FALSE,
+    unpaid_fine_paise BIGINT DEFAULT 0,
+    upi_id VARCHAR(100),
+    bank_account VARCHAR(100),
+    bank_ifsc VARCHAR(20),
     last_login_at TIMESTAMP WITH TIME ZONE,
+    is_initial_setup_complete BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE -- Soft delete support
@@ -65,7 +70,7 @@ CREATE TABLE IF NOT EXISTS shiftley.kyc_sessions (
     user_id UUID NOT NULL UNIQUE REFERENCES shiftley.users(id) ON DELETE CASCADE,
     provider VARCHAR(50) DEFAULT 'HYPERVERGE',
     provider_session_id VARCHAR(255),
-    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'REJECTED')),
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'REJECTED', 'VERIFIED')),
     masked_aadhaar VARCHAR(12), -- XXXX-XXXX-1234
     face_match_score NUMERIC(3, 2) CHECK (face_match_score >= 0 AND face_match_score <= 1),
     verified_at TIMESTAMP WITH TIME ZONE,
@@ -253,6 +258,7 @@ CREATE TABLE IF NOT EXISTS shiftley.subscription_plans (
     name VARCHAR(50) UNIQUE NOT NULL, -- e.g., '1_DAY', '1_WEEK', '1_MONTH'
     price_paise BIGINT NOT NULL CHECK (price_paise >= 0),
     duration_days SMALLINT NOT NULL CHECK (duration_days > 0),
+    max_gigs INT DEFAULT 0, -- Limit for gig posts
     features JSONB, -- list of features like 'multi_day_gigs'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

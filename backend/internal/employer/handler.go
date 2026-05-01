@@ -42,24 +42,27 @@ func (h *Handler) GetProfile(c *gin.Context) {
 
 	// Calculate Stats
 	var totalGigs int64
-	h.db.Model(&gig.Gig{}).Where("employer_id = ?", userID).Count(&totalGigs)
+	h.db.Table("shiftley.gigs").Where("employer_id = ?", userID).Count(&totalGigs)
 
 	var activeSub Subscription
-	err := h.db.Where("employer_id = ? AND is_active = ? AND end_date > ?", userID, true, time.Now()).
-		Order("end_date DESC").First(&activeSub).Error
+	err := h.db.Where("employer_id = ? AND status = ?", userID, "ACTIVE").First(&activeSub).Error
 
 	stats := EmployerStats{
 		TotalGigsPosted:   totalGigs,
-		FreeGigsRemaining: 5 - int(totalGigs), // Mock logic: 5 free gigs
 		ActivePlan:        PlanNone,
-	}
-	if stats.FreeGigsRemaining < 0 {
-		stats.FreeGigsRemaining = 0
 	}
 
 	if err == nil {
-		stats.ActivePlan = activeSub.PlanID
-		stats.PlanExpiresAt = &activeSub.EndDate
+		stats.ActivePlan = SubscriptionPlan(activeSub.PlanID)
+		stats.PlanExpiresAt = &activeSub.ExpiresAt
+		
+		var plan SubscriptionPlanMeta
+		if err := h.db.Where("id = ?", activeSub.PlanID).First(&plan).Error; err == nil {
+			stats.FreeGigsRemaining = plan.MaxGigs - int(totalGigs)
+			if stats.FreeGigsRemaining < 0 {
+				stats.FreeGigsRemaining = 0
+			}
+		}
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
@@ -68,17 +71,10 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	}, nil)
 }
 
-// PurchaseSubscription handles POST /api/v1/employers/me/subscription
-// @Summary Purchase Subscription Plan
-// @Description Generates a mock Razorpay Order ID for subscription purchase.
-// @Tags Employer
-// @Accept json
-// @Produce json
-// @Param request body object true "Plan Details"
-// @Success 200 {object} utils.SuccessResponse
-// @Security ApiKeyAuth
-// @Router /employers/me/subscription [post]
 func (h *Handler) PurchaseSubscription(c *gin.Context) {
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
 	var req struct {
 		PlanID string `json:"plan_id" binding:"required"`
 	}
@@ -87,13 +83,32 @@ func (h *Handler) PurchaseSubscription(c *gin.Context) {
 		return
 	}
 
-	// Mock Razorpay Order Generation
-	mockOrderID := fmt.Sprintf("order_sub_%s", uuid.New().String()[:8])
+	var plan SubscriptionPlanMeta
+	if err := h.db.Where("id = ?", req.PlanID).First(&plan).Error; err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Plan not found", nil)
+		return
+	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{
-		"razorpay_order_id": mockOrderID,
-		"plan_id":           req.PlanID,
-		"message":           "Proceed to payment with the generated Order ID",
+	// For testing, we immediately create the subscription as if payment succeeded
+	now := time.Now()
+	sub := Subscription{
+		EmployerID: userID,
+		PlanID:     plan.ID,
+		Status:     "ACTIVE",
+		StartsAt:   now,
+		ExpiresAt:  now.AddDate(0, 0, plan.DurationDay),
+	}
+
+	if err := h.db.Create(&sub).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to activate subscription", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusCreated, gin.H{
+		"subscription_id": sub.ID,
+		"status":          sub.Status,
+		"expires_at":      sub.ExpiresAt,
+		"message":         fmt.Sprintf("Plan %s activated successfully. You can now post up to %d gigs.", plan.Name, plan.MaxGigs),
 	}, nil)
 }
 

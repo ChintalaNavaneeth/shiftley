@@ -25,7 +25,7 @@ func NewHandler(svc Service, notifySvc *notify.NotifyService, db *gorm.DB) *Hand
 type SendOTPRequest struct {
 	Identifier string `json:"identifier" form:"identifier" binding:"required"`
 	Type       string `json:"type" form:"type" binding:"required,oneof=PHONE EMAIL"`
-	Role       string `json:"role" form:"role" binding:"required,oneof=WORKER EMPLOYER SUPER_ADMIN"`
+	Role       string `json:"role" form:"role" binding:"required,oneof=WORKER EMPLOYER VERIFIER CS_AGENT ANALYST ADMIN HR_ADMIN SUPER_ADMIN"`
 }
 
 // SendOTP handles POST /api/v1/auth/otp/send

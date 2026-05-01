@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 	"shiftley/internal/admin"
 	"shiftley/internal/analytics"
 	"shiftley/internal/auth"
@@ -17,6 +18,7 @@ import (
 	"shiftley/internal/support"
 	"shiftley/internal/taxonomy"
 	"shiftley/internal/verifier"
+	"shiftley/internal/worker"
 	"shiftley/pkg/middleware"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/storage"
@@ -56,14 +58,23 @@ func main() {
 	cfg := config.LoadConfig()
 
 	// 2. Initialize Database
+	var db *gorm.DB
+	var err error
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort)
-	
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+
+	for i := 0; i < 10; i++ {
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Info),
+		})
+		if err == nil {
+			break
+		}
+		fmt.Printf("Failed to connect to database (attempt %d): %v\n", i+1, err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to connect to database after retries: %v", err)
 	}
 
 	// Auto Migrate Models
@@ -126,6 +137,10 @@ func main() {
 	taxonomyRepo := taxonomy.NewRepository(db)
 	taxonomyHandler := taxonomy.NewHandler(taxonomyRepo)
 
+	// 7. Start Background Workers
+	subscriptionWorker := worker.NewSubscriptionWorker(db)
+	subscriptionWorker.Start()
+
 	// Seed Taxonomy Data
 	if err := taxonomyRepo.SeedInitialData(context.Background()); err != nil {
 		log.Printf("Warning: Failed to seed taxonomy data: %v", err)
@@ -136,9 +151,9 @@ func main() {
 	db.Model(&employer.SubscriptionPlanMeta{}).Count(&planCount)
 	if planCount == 0 {
 		plans := []employer.SubscriptionPlanMeta{
-			{ID: "daily_access", Name: "24-Hour Unlimited", PricePaise: 9900, DurationDay: 1},
-			{ID: "weekly_unlimited", Name: "7-Day Unlimited", PricePaise: 49900, DurationDay: 7},
-			{ID: "monthly_unlimited", Name: "30-Day Unlimited", PricePaise: 149900, DurationDay: 30},
+			{ID: "daily_access", Name: "24-Hour Unlimited", PricePaise: 9900, DurationDay: 1, MaxGigs: 5},
+			{ID: "weekly_unlimited", Name: "7-Day Unlimited", PricePaise: 49900, DurationDay: 7, MaxGigs: 40},
+			{ID: "monthly_unlimited", Name: "30-Day Premium", PricePaise: 149900, DurationDay: 30, MaxGigs: 200},
 		}
 		db.Create(&plans)
 	}

@@ -89,6 +89,7 @@ services:
       - BUCKET_PROFILES=${BUCKET_PROFILES}
       - BUCKET_LOGOS=${BUCKET_LOGOS}
       - BUCKET_KYC=${BUCKET_KYC}
+      - JWT_SECRET=test_secret
     depends_on:
       db:
         condition: service_healthy

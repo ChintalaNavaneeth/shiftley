@@ -21,6 +21,7 @@ type SubscriptionPlanMeta struct {
 	Name        string  `json:"name"`
 	PricePaise  int64   `json:"price_paise"`
 	DurationDay int     `json:"duration_days"`
+	MaxGigs     int     `json:"max_gigs"`
 	IsActive    bool    `gorm:"default:true" json:"is_active"`
 }
 
@@ -30,19 +31,19 @@ func (SubscriptionPlanMeta) TableName() string {
 
 
 type Subscription struct {
-	ID         uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	EmployerID uuid.UUID        `gorm:"type:uuid;not null;index" json:"employer_id"`
-	PlanID     SubscriptionPlan `gorm:"type:varchar(20);not null" json:"plan_id"`
-	StartDate  time.Time        `json:"start_date"`
-	EndDate    time.Time        `json:"end_date"`
-	IsActive   bool             `gorm:"default:true" json:"is_active"`
-	CreatedAt  time.Time        `json:"created_at"`
-	UpdatedAt  time.Time        `json:"updated_at"`
-	DeletedAt  gorm.DeletedAt   `gorm:"index" json:"-"`
+	ID         uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	EmployerID uuid.UUID      `gorm:"type:uuid;not null;index" json:"employer_id"`
+	PlanID     string         `gorm:"type:varchar(50);not null" json:"plan_id"`
+	Status     string         `gorm:"type:varchar(20);default:'ACTIVE'" json:"status"`
+	StartsAt   time.Time      `json:"starts_at"`
+	ExpiresAt  time.Time      `json:"expires_at"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (Subscription) TableName() string {
-	return "shiftley.subscriptions"
+	return "shiftley.employer_subscriptions"
 }
 
 type EmployerStats struct {
