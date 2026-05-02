@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"shiftley/internal/auth"
-	"shiftley/internal/employer"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
 	"encoding/json"
@@ -73,19 +72,32 @@ func (h *Handler) PostGig(c *gin.Context) {
 	}
 
 	// --- SUBSCRIPTION & LIMIT CHECK ---
-	var sub employer.Subscription
-	if err := h.db.Where("employer_id = ? AND status = ?", userID, "ACTIVE").First(&sub).Error; err != nil {
+	// Using raw inline structs to avoid import cycle with employer package
+	type subRow struct {
+		ID         string
+		EmployerID string
+		PlanID     string
+		Status     string
+		StartsAt   time.Time
+		ExpiresAt  time.Time
+	}
+	var sub subRow
+	if err := h.db.Table("shiftley.employer_subscriptions").Where("employer_id = ? AND status = ?", userID, "ACTIVE").First(&sub).Error; err != nil {
 		utils.RespondError(c, http.StatusForbidden, "ERR_SUBSCRIPTION_REQUIRED", "No active subscription found. Please purchase a plan to post gigs.", nil)
 		return
 	}
 
-	if sub.ExpiresAt.Before(time.Now()) {
+	if time.Now().After(sub.ExpiresAt) {
 		utils.RespondError(c, http.StatusForbidden, "ERR_SUBSCRIPTION_EXPIRED", "Your subscription has expired. Please renew to continue.", nil)
 		return
 	}
 
-	var plan employer.SubscriptionPlanMeta
-	if err := h.db.Where("id = ?", sub.PlanID).First(&plan).Error; err == nil {
+	type planRow struct {
+		MaxGigs int
+		Name    string
+	}
+	var plan planRow
+	if err := h.db.Table("shiftley.subscription_plans").Where("id = ?", sub.PlanID).First(&plan).Error; err == nil {
 		var gigCount int64
 		h.db.Table("shiftley.gigs").Where("employer_id = ? AND created_at >= ?", userID, sub.StartsAt).Count(&gigCount)
 		if int(gigCount) >= plan.MaxGigs {
@@ -94,6 +106,13 @@ func (h *Handler) PostGig(c *gin.Context) {
 		}
 	}
 	// ----------------------------------
+
+	// --- WORKERS PER GIG LIMIT ---
+	if req.WorkersNeeded > 10 {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Maximum 10 workers are allowed per gig post. Contact support for bulk hiring.", nil)
+		return
+	}
+	// ------------------------------
 
 	// 2. Calculate Escrow Amount
 	totalEscrow := req.WagePerWorker * int64(req.WorkersNeeded)

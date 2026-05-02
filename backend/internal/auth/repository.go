@@ -10,12 +10,14 @@ import (
 )
 
 type Repository interface {
+	GetUserByIdentifier(ctx context.Context, identifier string) (*User, error)
 	GetUserByPhone(ctx context.Context, phone string) (*User, error)
 	CreateUser(ctx context.Context, user *User) error
 	CreateOTP(ctx context.Context, otp *OTP) error
 	GetLatestOTP(ctx context.Context, userID uuid.UUID, channel string) (*OTP, error)
 	MarkOTUsed(ctx context.Context, otpID uuid.UUID) error
 	StoreSession(ctx context.Context, userID string, token string, expiration time.Duration) error
+	BlacklistUser(ctx context.Context, userID string, expiration time.Duration) error
 }
 
 type repository struct {
@@ -25,6 +27,15 @@ type repository struct {
 
 func NewRepository(db *gorm.DB, redis *redis.Client) Repository {
 	return &repository{db: db, redis: redis}
+}
+
+func (r *repository) GetUserByIdentifier(ctx context.Context, identifier string) (*User, error) {
+	var user User
+	err := r.db.WithContext(ctx).Where("email = ? OR phone_number = ?", identifier, identifier).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *repository) GetUserByPhone(ctx context.Context, phone string) (*User, error) {
@@ -62,4 +73,8 @@ func (r *repository) MarkOTUsed(ctx context.Context, otpID uuid.UUID) error {
 
 func (r *repository) StoreSession(ctx context.Context, userID string, token string, expiration time.Duration) error {
 	return r.redis.Set(ctx, "session:"+userID, token, expiration).Err()
+}
+
+func (r *repository) BlacklistUser(ctx context.Context, userID string, expiration time.Duration) error {
+	return r.redis.Set(ctx, "blacklist:"+userID, "revoked", expiration).Err()
 }

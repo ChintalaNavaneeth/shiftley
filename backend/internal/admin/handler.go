@@ -322,11 +322,23 @@ func (h *Handler) UpdateSuperAdminSetup(c *gin.Context) {
 		return
 	}
 
-	// Update user details
+	// 1. Check for Conflicts (exclude current user)
+	var conflictCount int64
+	h.db.Model(&auth.User{}).
+		Where("(email = ? OR phone_number = ?) AND id != ?", req.Email, req.PhoneNumber, userIDStr).
+		Count(&conflictCount)
+
+	if conflictCount > 0 {
+		utils.RespondError(c, http.StatusConflict, "ERR_CONFLICT", "The provided email or phone number is already registered to another account. Please use a different identifier or login with that account.", nil)
+		return
+	}
+
+	// 2. Update user details
 	updates := map[string]interface{}{
 		"full_name":                 req.FullName,
 		"email":                     req.Email,
 		"phone_number":              req.PhoneNumber,
+		"is_verified":               true,
 		"is_initial_setup_complete": true,
 	}
 

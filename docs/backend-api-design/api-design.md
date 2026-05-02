@@ -138,6 +138,15 @@ Verifies the 6-digit code. This endpoint acts as the universal **Login** for pub
 ```
 *   `400 Bad Request`: "Invalid or expired OTP."
 
+#### 1.3 Logout User
+Invalidates the current session by blacklisting the user in the Redis store.
+
+**Endpoint:** `POST /api/v1/auth/logout`
+**Headers:** `Authorization: Bearer <session_token>`
+**Responses:**
+*   `200 OK`: "Logged out successfully"
+*   `401 Unauthorized`: Session missing or already invalidated.
+
 #### 1.3 Onboard Employer (Multipart Form)
 Finalizes the Employer account creation. Due to heavy file uploads, this endpoint explicitly consumes `multipart/form-data`.
 
@@ -1403,11 +1412,13 @@ Activates a subscription tier for the employer.
 
 To prevent platform abuse and ensure fair resource allocation, gig posting is rate-limited based on the active plan:
 
-| Plan Tier | Duration | Max Gigs |
-| :--- | :--- | :--- |
-| **Daily Access** | 24 Hours | 5 Gigs |
-| **Weekly Unlimited** | 7 Days | 40 Gigs |
-| **Monthly Premium** | 30 Days | 200 Gigs |
+| Plan Tier | Duration | Max Gigs | Max Workers per Gig |
+| :--- | :--- | :--- | :--- |
+| **Daily Access** | 24 Hours | 5 Gigs | 10 |
+| **Weekly Unlimited** | 7 Days | 40 Gigs | 10 |
+| **Monthly Premium** | 30 Days | 200 Gigs | 10 |
+
+> **Note:** The 10-worker cap is a platform-wide hard limit applied at the API level. Employers needing bulk hiring (10+ workers) must contact support for enterprise access.
 
 #### 2.1 Enforcement Logic
 The `POST /api/v1/gigs` endpoint performs a three-way check:

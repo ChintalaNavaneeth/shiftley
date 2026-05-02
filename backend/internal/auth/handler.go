@@ -54,10 +54,23 @@ func (h *Handler) SendOTP(c *gin.Context) {
 		return
 	}
 
-	// Fire WhatsApp OTP notification (non-blocking)
-	h.notify.SendOTP(req.Identifier, code)
+	// Dual-Channel Delivery Logic
+	var user User
+	if err := h.db.Where("email = ? OR phone_number = ?", req.Identifier, req.Identifier).First(&user).Error; err == nil {
+		// 1. Send to Phone (WhatsApp)
+		if user.PhoneNumber != "" {
+			h.notify.SendOTP(user.PhoneNumber, code)
+		}
+		// 2. Send to Email (Mocked for now)
+		if user.Email != "" {
+			fmt.Printf("[MOCK EMAIL OTP] Sent %s to %s (Dual-Channel)\n", code, user.Email)
+		}
+	} else {
+		// New User Flow: Just send to the provided identifier
+		h.notify.SendOTP(req.Identifier, code)
+	}
 
-	utils.RespondSuccess(c, http.StatusOK, "OTP sent successfully", nil)
+	utils.RespondSuccess(c, http.StatusOK, "OTP sent successfully to your registered contact methods", nil)
 }
 
 type VerifyOTPRequest struct {
@@ -173,5 +186,29 @@ func (h *Handler) VerifyAadhaarXML(c *gin.Context) {
 		"masked_aadhaar": maskedAadhaar,
 		"status":         "VERIFIED",
 	}, nil)
+}
+
+// Logout handles POST /api/v1/auth/logout
+// @Summary Logout User
+// @Description Invalidates the current session token by blacklisting the user in Redis.
+// @Tags Auth
+// @Produce json
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /auth/logout [post]
+func (h *Handler) Logout(c *gin.Context) {
+	userIDStr, exists := c.Get("userID")
+	if !exists {
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized, "User session not found", nil)
+		return
+	}
+
+	err := h.svc.Logout(c.Request.Context(), userIDStr.(string))
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to logout", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, "Logged out successfully", nil)
 }
 

@@ -16,6 +16,31 @@ import (
 	"gorm.io/gorm"
 )
 
+// OnboardEmployerRequest represents the multipart/form-data for employer onboarding.
+type OnboardEmployerRequest struct {
+	FullName            string `form:"full_name" binding:"required"`
+	Email               string `form:"email" binding:"required"`
+	BusinessName        string `form:"business_name" binding:"required"`
+	BusinessType        string `form:"business_type" binding:"required"`
+	Location            string `form:"location" binding:"required" example:"{\"lat\":12.9716,\"lng\":77.5946}"`
+	BusinessAddress     string `form:"business_address" binding:"required"`
+	GSTNumber           string `form:"gst_number"`
+	BusinessPhone       string `form:"business_phone_number" binding:"required"`
+	EmployerPhone       string `form:"employer_phone_number" binding:"required"`
+	AadhaarNumber       string `form:"aadhaar_number" binding:"required"`
+}
+
+// OnboardEmployeeRequest represents the multipart/form-data for employee onboarding.
+type OnboardEmployeeRequest struct {
+	FullName       string `form:"full_name" binding:"required"`
+	Email          string `form:"email" binding:"required"`
+	PhoneNumber    string `form:"phone_number" binding:"required"`
+	SkillIDs       string `form:"skill_ids" binding:"required" example:"[\"uuid-1\",\"uuid-2\"]"`
+	Degree         string `form:"degree"`
+	Specialization string `form:"specialization"`
+	PassingYear    string `form:"passing_year"`
+}
+
 type Handler struct {
 	db             *gorm.DB
 	storage        storage.Storage
@@ -42,6 +67,28 @@ type Location struct {
 }
 
 // OnboardEmployer handles POST /api/v1/onboarding/employer
+// @Summary Onboard Employer
+// @Description Submits employer registration details and documents. Requires a registration token. Uses multipart/form-data.
+// @Tags Onboarding
+// @Accept multipart/form-data
+// @Produce json
+// @Param full_name formData string true "Full Name"
+// @Param email formData string true "Email"
+// @Param business_name formData string true "Business Name"
+// @Param business_type formData string true "Business Type"
+// @Param location formData string true "Location as JSON: {\"lat\":12.97,\"lng\":77.59}"
+// @Param business_address formData string true "Business Address"
+// @Param gst_number formData string false "GST Number"
+// @Param business_phone_number formData string true "Business Phone Number"
+// @Param employer_phone_number formData string true "Employer Phone Number"
+// @Param aadhaar_number formData string true "Aadhaar Number"
+// @Param aadhaar_pdf formData file true "Aadhaar PDF"
+// @Param business_photo_1 formData file true "Business Photo 1"
+// @Param business_photo_2 formData file true "Business Photo 2"
+// @Param business_photo_3 formData file true "Business Photo 3"
+// @Success 201 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /onboarding/employer [post]
 func (h *Handler) OnboardEmployer(c *gin.Context) {
 	userIDStr, _ := c.Get("userID")
 	userID, err := uuid.Parse(userIDStr.(string))
@@ -160,6 +207,23 @@ func (h *Handler) OnboardEmployer(c *gin.Context) {
 }
 
 // OnboardEmployee handles POST /api/v1/onboarding/employee
+// @Summary Onboard Employee (Worker)
+// @Description Submits worker registration details, profile picture, and Aadhaar document. Requires a registration token. Uses multipart/form-data.
+// @Tags Onboarding
+// @Accept multipart/form-data
+// @Produce json
+// @Param full_name formData string true "Full Name"
+// @Param email formData string true "Email"
+// @Param phone_number formData string true "Phone Number"
+// @Param skill_ids formData string true "Skill UUIDs as JSON array: [\"uuid-1\",\"uuid-2\"]"
+// @Param degree formData string false "Degree (Optional)"
+// @Param specialization formData string false "Specialization (Optional)"
+// @Param passing_year formData string false "Passing Year (Optional)"
+// @Param profile_picture formData file true "Profile Picture"
+// @Param aadhaar_pdf formData file true "Aadhaar PDF"
+// @Success 201 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /onboarding/employee [post]
 func (h *Handler) OnboardEmployee(c *gin.Context) {
 	userIDStr, _ := c.Get("userID")
 	userID, err := uuid.Parse(userIDStr.(string))
@@ -183,9 +247,12 @@ func (h *Handler) OnboardEmployee(c *gin.Context) {
 		return
 	}
 
-	// 3. Parse Skill IDs
+	// 3. Parse Skill IDs (UUIDs)
 	var skillIds []string
-	json.Unmarshal([]byte(skillIdsStr), &skillIds)
+	if err := json.Unmarshal([]byte(skillIdsStr), &skillIds); err != nil || len(skillIds) == 0 {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "skill_ids must be a valid JSON array of UUIDs", nil)
+		return
+	}
 
 	// 4. Parse Passing Year (Optional)
 	var passingYear int

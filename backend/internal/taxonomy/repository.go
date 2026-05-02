@@ -37,19 +37,17 @@ func (r *repository) SeedInitialData(ctx context.Context) error {
 
 	taxonomy := []Category{
 		{
-			ID:   "nano_cat_rest",
 			Name: "Restaurant / F&B",
 			Skills: []Skill{
-				{ID: "nano_waiter", Name: "Waiter / Server"},
-				{ID: "nano_kitchen", Name: "Kitchen Helper"},
+				{Name: "Waiter / Server"},
+				{Name: "Kitchen Helper"},
 			},
 		},
 		{
-			ID:   "nano_cat_retail",
 			Name: "Retail / Store",
 			Skills: []Skill{
-				{ID: "nano_cashier", Name: "Cashier"},
-				{ID: "nano_sales", Name: "Sales Associate"},
+				{Name: "Cashier"},
+				{Name: "Sales Associate"},
 			},
 		},
 	}

@@ -3125,3 +3125,14 @@ This is the most sensitive part of the system—the "front door"—so I'll be de
 2.  **Primary Identifier:** For the local pitch, are you okay staying with **Email OTP**? It makes testing on your terminal much easier than simulating SMS.
 
 Please review the **Implementation Plan**! Once you approve, I will begin generating the deep-dive specifications for these first 4 critical endpoints.
+
+---
+
+### User Input
+Implement Subscription logic and Logout API.
+
+### Planner Response
+I have implemented the **Background Subscription Worker**, **Gig Rate Limits**, and a **Logout API** with Redis-based session revocation.
+- **Worker**: Every 1 hour scan for expired plans.
+- **Limits**: 10 workers/gig cap and 5/40/200 gig post limits.
+- **Logout**: `POST /api/v1/auth/logout` blacklists the user in Redis.

@@ -60,7 +60,7 @@ func main() {
 	// 2. Initialize Database
 	var db *gorm.DB
 	var err error
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable search_path=shiftley",
 		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort)
 
 	for i := 0; i < 10; i++ {
@@ -78,17 +78,25 @@ func main() {
 	}
 
 	// Auto Migrate Models
-	db.Exec("CREATE SCHEMA IF NOT EXISTS shiftley")
-	db.AutoMigrate(
+	fmt.Println("Initializing database schema and migrations...")
+	if err := db.Exec("CREATE SCHEMA IF NOT EXISTS shiftley").Error; err != nil {
+		log.Fatalf("Failed to create schema: %v", err)
+	}
+
+	err = db.AutoMigrate(
 		&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &auth.WorkerProfile{}, &auth.EmployerProfile{},
-		&taxonomy.Category{}, &taxonomy.Skill{}, 
-		&config.PlatformConfig{}, 
-		&verifier.VerificationAudit{}, 
-		&employer.Subscription{}, &employer.SubscriptionPlanMeta{}, 
+		&taxonomy.Category{}, &taxonomy.Skill{},
+		&config.PlatformConfig{},
+		&verifier.VerificationAudit{},
+		&employer.Subscription{}, &employer.SubscriptionPlanMeta{},
 		&gig.Gig{}, &gig.GigApplication{}, &gig.GigAttendance{}, &gig.GigReview{}, &gig.SupportTicket{},
-		&analytics.Expenditure{}, 
+		&analytics.Expenditure{},
 		&cs.AccountNote{},
 	)
+	if err != nil {
+		log.Fatalf("Database migration failed: %v", err)
+	}
+	fmt.Println("Database migrations completed successfully.")
 
 	// 3. Initialize Redis
 	rdb := redis.NewClient(&redis.Options{
@@ -190,6 +198,9 @@ func main() {
 			{
 				kycGroup.POST("/aadhaar-xml", authHandler.VerifyAadhaarXML)
 			}
+
+			// Logout - Protected by Session Token
+			authGroup.POST("/logout", middleware.RequireAuth(cfg.JWTSecret, rdb), authHandler.Logout)
 		}
 
 		// Onboarding - Strictly for users with a registration token

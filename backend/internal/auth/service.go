@@ -15,6 +15,7 @@ import (
 type Service interface {
 	SendOTP(ctx context.Context, identifier string, channel string, role string) (string, error)
 	VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, bool, *User, error)
+	Logout(ctx context.Context, userID string) error
 }
 
 type service struct {
@@ -27,15 +28,19 @@ func NewService(repo Repository, jwtSecret string) Service {
 }
 
 func (s *service) SendOTP(ctx context.Context, identifier string, channel string, role string) (string, error) {
-	// 1. Check if user exists, if not create a placeholder or just use the intent
-	user, err := s.repo.GetUserByPhone(ctx, identifier)
+	// 1. Check if user exists by either phone or email
+	user, err := s.repo.GetUserByIdentifier(ctx, identifier)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return "", err
 	}
 
 	if user == nil {
+		// Public signup is ONLY allowed for Workers and Employers
+		if role != string(RoleWorker) && role != string(RoleEmployer) {
+			return "", fmt.Errorf("unauthorized: %s accounts must be created by an administrator", role)
+		}
+
 		// New User Intent - we don't create the user yet, just a placeholder or tracking
-		// For now, let's create a minimal user with status unverified
 		user = &User{
 			PhoneNumber: identifier,
 			Email:       fmt.Sprintf("%s@temp.shiftley.in", identifier), // Placeholder
@@ -78,7 +83,7 @@ func (s *service) SendOTP(ctx context.Context, identifier string, channel string
 }
 
 func (s *service) VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, bool, *User, error) {
-	user, err := s.repo.GetUserByPhone(ctx, identifier)
+	user, err := s.repo.GetUserByIdentifier(ctx, identifier)
 	if err != nil {
 		return "", false, nil, err
 	}
@@ -122,4 +127,9 @@ func (s *service) VerifyOTP(ctx context.Context, identifier string, channel stri
 	}
 
 	return tokenString, isNewUser, user, nil
+}
+
+func (s *service) Logout(ctx context.Context, userID string) error {
+	// Blacklist for 24 hours (token default expiry)
+	return s.repo.BlacklistUser(ctx, userID, 24*time.Hour)
 }

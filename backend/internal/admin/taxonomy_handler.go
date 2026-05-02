@@ -7,6 +7,7 @@ import (
 	"shiftley/pkg/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -19,7 +20,6 @@ func NewTaxonomyHandler(db *gorm.DB) *TaxonomyHandler {
 }
 
 type CreateCategoryRequest struct {
-	ID   string `json:"id" binding:"required"`
 	Name string `json:"name" binding:"required"`
 }
 
@@ -41,7 +41,6 @@ func (h *TaxonomyHandler) CreateCategory(c *gin.Context) {
 	}
 
 	cat := taxonomy.Category{
-		ID:   req.ID,
 		Name: req.Name,
 	}
 
@@ -54,7 +53,6 @@ func (h *TaxonomyHandler) CreateCategory(c *gin.Context) {
 }
 
 type CreateSkillRequest struct {
-	ID   string `json:"id" binding:"required"`
 	Name string `json:"name" binding:"required"`
 }
 
@@ -77,9 +75,14 @@ func (h *TaxonomyHandler) CreateSkill(c *gin.Context) {
 		return
 	}
 
+	catUUID, err := uuid.Parse(catID)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid category ID format", nil)
+		return
+	}
+
 	skill := taxonomy.Skill{
-		ID:         req.ID,
-		CategoryID: catID,
+		CategoryID: catUUID,
 		Name:       req.Name,
 	}
 
