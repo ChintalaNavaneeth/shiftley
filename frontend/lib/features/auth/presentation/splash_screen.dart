@@ -15,7 +15,7 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<int> _charCountAnim;
   late Animation<double> _opacityAnim;
   
-  final String _fullText = 'Shiftley';
+  final String _fullText = 'Shiftley.';
 
   @override
   void initState() {

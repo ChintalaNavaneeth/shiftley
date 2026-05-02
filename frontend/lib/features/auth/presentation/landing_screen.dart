@@ -34,10 +34,11 @@ class _LandingScreenState extends State<LandingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Hero Section (With Animated Snow Background) ─────────
+              // ── Hero Section (With Animated Wave Background) ─────────
               Stack(
                 children: [
-                  Positioned.fill(child: const _SnowBackground()),
+                  Positioned.fill(child: const _WaveBackground()),
+
                   Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 800),
@@ -228,7 +229,7 @@ class _LandingScreenState extends State<LandingScreen> {
                     child: Column(
                       children: [
                         const Text(
-                          'Shiftley',
+                          'Shiftley.',
                           style: TextStyle(
                             fontFamily: 'Figtree',
                             fontSize: 32,
@@ -237,6 +238,7 @@ class _LandingScreenState extends State<LandingScreen> {
                             letterSpacing: -1.0,
                           ),
                         ),
+
                         const SizedBox(height: ShiftleyTokens.spaceS),
                         Text(
                           'Built for India. Operating with transparency and speed.',
@@ -259,24 +261,27 @@ class _LandingScreenState extends State<LandingScreen> {
 
   PreferredSizeWidget _buildNavBar(BuildContext context) {
     return PreferredSize(
-      preferredSize: const Size.fromHeight(96), // Increased from 88 to 96
+      preferredSize: const Size.fromHeight(96), 
       child: Container(
+        height: 96,
         decoration: const BoxDecoration(
           color: ShiftleyTokens.background,
-          border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0)), // Increased to 2.0
+          border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0)), 
         ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceL),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+
               children: [
                 Flexible(
                   child: const Text(
-                    'Shiftley',
+                    'Shiftley.',
                     style: TextStyle(
                       fontFamily: 'Figtree',
-                      fontSize: 25,
+                      fontSize: 29,
                       fontWeight: FontWeight.w900,
                       color: ShiftleyTokens.inkBlack,
                       letterSpacing: -1.0,
@@ -284,6 +289,7 @@ class _LandingScreenState extends State<LandingScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+
                 SizedBox(
                   width: 120,
                   height: 36,
@@ -457,18 +463,17 @@ class _StepperItem extends StatelessWidget {
   }
 }
 
-// ── Background Snow Animation ──────────────────────────────────────────
+// ── Background Wave Animation ──────────────────────────────────────────
 
-class _SnowBackground extends StatefulWidget {
-  const _SnowBackground();
+class _WaveBackground extends StatefulWidget {
+  const _WaveBackground();
 
   @override
-  State<_SnowBackground> createState() => _SnowBackgroundState();
+  State<_WaveBackground> createState() => _WaveBackgroundState();
 }
 
-class _SnowBackgroundState extends State<_SnowBackground> with SingleTickerProviderStateMixin {
+class _WaveBackgroundState extends State<_WaveBackground> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  final List<_Particle> _particles = List.generate(40, (index) => _Particle());
 
   @override
   void initState() {
@@ -488,7 +493,7 @@ class _SnowBackgroundState extends State<_SnowBackground> with SingleTickerProvi
       animation: _controller,
       builder: (context, child) {
         return CustomPaint(
-          painter: _SnowPainter(_particles, _controller.value),
+          painter: _WavePainter(_controller.value),
           size: Size.infinite,
         );
       },
@@ -496,28 +501,47 @@ class _SnowBackgroundState extends State<_SnowBackground> with SingleTickerProvi
   }
 }
 
-class _Particle {
-  final double x = Random().nextDouble();
-  final double y = Random().nextDouble();
-  final double speed = 0.1 + Random().nextDouble() * 0.4;
-  final double size = 2 + Random().nextDouble() * 3;
-}
-
-class _SnowPainter extends CustomPainter {
-  final List<_Particle> particles;
+class _WavePainter extends CustomPainter {
   final double animationValue;
 
-  _SnowPainter(this.particles, this.animationValue);
+  _WavePainter(this.animationValue);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = ShiftleyTokens.inkBlack.withValues(alpha: 0.15);
-    for (var p in particles) {
-      final dy = (p.y + animationValue * p.speed) % 1.0;
-      canvas.drawCircle(Offset(p.x * size.width, dy * size.height), p.size, paint);
+    final paint = Paint()
+      ..color = ShiftleyTokens.inkBlack.withValues(alpha: 0.02)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    const numWaves = 13;
+    final List<Path> paths = List.generate(numWaves, (_) => Path());
+
+    for (double i = 0; i <= size.width; i++) {
+      final x = i;
+      
+      for (int w = 0; w < numWaves; w++) {
+        final yCenter = size.height * (0.1 + (0.8 * (w / (numWaves - 1))));
+        final freqMultiplier = 1.5 + (w % 3) * 0.5;
+        final phaseOffset = (w * pi / 4);
+        final amplitude = 20.0 + (w % 4) * 15.0;
+        
+        final y = yCenter + sin((i / size.width * freqMultiplier * pi) + (animationValue * 2 * pi + phaseOffset)) * amplitude;
+        
+        if (i == 0) {
+          paths[w].moveTo(x, y);
+        } else {
+          paths[w].lineTo(x, y);
+        }
+      }
+    }
+
+    for (final path in paths) {
+      canvas.drawPath(path, paint);
     }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
+
+

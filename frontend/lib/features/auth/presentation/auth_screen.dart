@@ -50,7 +50,7 @@ class _AuthScreenState extends State<AuthScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Shiftley',
+                  'Shiftley.',
                   style: TextStyle(
                     fontFamily: 'Figtree',
                     fontSize: 40,
