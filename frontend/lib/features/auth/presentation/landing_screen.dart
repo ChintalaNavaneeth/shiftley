@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
@@ -33,32 +34,36 @@ class _LandingScreenState extends State<LandingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Hero Section (Centered & Constrained) ───────────────────
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 800),
-                  child: Padding(
-                    padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: ShiftleyTokens.spaceXL),
-                        const Text(
-                          'Connecting reliable professionals with verified businesses. Seamlessly.',
-                          style: ShiftleyTokens.heroLarge,
-                          textAlign: TextAlign.left,
+              // ── Hero Section (With Animated Snow Background) ─────────
+              Stack(
+                children: [
+                  Positioned.fill(child: const _SnowBackground()),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 800),
+                      child: Padding(
+                        padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: ShiftleyTokens.spaceXL),
+                            const Text(
+                              'Connecting reliable employees with verified businesses. Seamlessly.',
+                              style: ShiftleyTokens.heroLarge,
+                              textAlign: TextAlign.left,
+                            ),
+                            const SizedBox(height: ShiftleyTokens.spaceM),
+                            Text(
+                              'We built Shiftley because finding gigs—and reliable people—shouldn\'t be complicated. No hidden fees. Complete transparency. Just a system that works.',
+                              style: ShiftleyTokens.bodyLarge.copyWith(height: 1.5, color: ShiftleyTokens.mutedText),
+                            ),
+                            const SizedBox(height: ShiftleyTokens.spaceXL),
+                          ],
                         ),
-
-                        const SizedBox(height: ShiftleyTokens.spaceM),
-                        Text(
-                          'We built Shiftley because finding gigs—and reliable people—shouldn\'t be complicated. No hidden fees. Complete transparency. Just a system that works.',
-                          style: ShiftleyTokens.bodyLarge.copyWith(height: 1.5, color: ShiftleyTokens.mutedText),
-                        ),
-                        const SizedBox(height: ShiftleyTokens.spaceXL),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
 
               // ── Animated Dotted Stepper (Full Width Container) ─────────
@@ -69,7 +74,6 @@ class _LandingScreenState extends State<LandingScreen> {
                   border: const Border(top: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0)),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceXL),
-
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 800),
@@ -91,7 +95,7 @@ class _LandingScreenState extends State<LandingScreen> {
                                 children: [
                                   Expanded(
                                     child: _ToggleButton(
-                                      label: 'For Professionals',
+                                      label: 'For Employees',
                                       isActive: _isWorkerFlow,
                                       onTap: () => setState(() => _isWorkerFlow = true),
                                     ),
@@ -103,7 +107,6 @@ class _LandingScreenState extends State<LandingScreen> {
                                       onTap: () => setState(() => _isWorkerFlow = false),
                                     ),
                                   ),
-
                                 ],
                               ),
                             ),
@@ -151,7 +154,6 @@ class _LandingScreenState extends State<LandingScreen> {
                   border: Border(top: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0)),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceXL),
-
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 800),
@@ -173,10 +175,9 @@ class _LandingScreenState extends State<LandingScreen> {
                           const SizedBox(height: ShiftleyTokens.spaceM),
 
                           Text(
-                            'When a gig is confirmed, the employer pays upfront into a secure Razorpay holding account. \n\nFor Professionals: You know the money is locked and waiting for you. No more chasing payments after a long day of work.\n\nFor Employers: You have the security of knowing the professional is committed. \n\nOnce the shift is completed, the funds are instantly released to the professional\'s bank account. Simple, secure, and fully automated.',
+                            'When a gig is confirmed, the employer pays upfront into a secure Razorpay holding account. \n\nFor Employees: You know the money is locked and waiting for you. No more chasing payments after a long day of work.\n\nFor Employers: You have the security of knowing the employee is committed. \n\nOnce the shift is completed, the funds are instantly released to the employee\'s bank account. Simple, secure, and fully automated.',
                             style: ShiftleyTokens.bodyLarge.copyWith(height: 1.5, color: ShiftleyTokens.mutedText),
                           ),
-
                         ],
                       ),
                     ),
@@ -192,7 +193,6 @@ class _LandingScreenState extends State<LandingScreen> {
                   border: const Border(top: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0)),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceXL),
-
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 800),
@@ -222,7 +222,6 @@ class _LandingScreenState extends State<LandingScreen> {
                   border: Border(top: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0)),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceXXL),
-
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 800),
@@ -260,12 +259,11 @@ class _LandingScreenState extends State<LandingScreen> {
 
   PreferredSizeWidget _buildNavBar(BuildContext context) {
     return PreferredSize(
-      preferredSize: const Size.fromHeight(88),
+      preferredSize: const Size.fromHeight(96), // Increased from 88 to 96
       child: Container(
-
         decoration: const BoxDecoration(
           color: ShiftleyTokens.background,
-          border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 1.0)),
+          border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0)), // Increased to 2.0
         ),
         child: SafeArea(
           child: Padding(
@@ -281,7 +279,6 @@ class _LandingScreenState extends State<LandingScreen> {
                       fontSize: 25,
                       fontWeight: FontWeight.w900,
                       color: ShiftleyTokens.inkBlack,
-
                       letterSpacing: -1.0,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -343,10 +340,9 @@ class _LandingScreenState extends State<LandingScreen> {
       children: [
         _StepperItem(
           title: 'Business Registration',
-          description: 'Provide your GST details. Our team verifies your physical location to build trust with professionals.',
+          description: 'Provide your GST details. Our team verifies your physical location to build trust with employees.',
           isLast: false,
         ),
-
         _StepperItem(
           title: 'Post Job Requirements',
           description: 'Pay a small flat subscription fee. Tell us what you need, when, and what it pays.',
@@ -359,15 +355,14 @@ class _LandingScreenState extends State<LandingScreen> {
         ),
         _StepperItem(
           title: 'Deposit Funds Securely',
-          description: 'Accept a professional and deposit their wage into a secure holding account. They know you are serious.',
+          description: 'Accept an employee and deposit their wage into a secure holding account. They know you are serious.',
           isLast: false,
         ),
         _StepperItem(
           title: 'Shift Completion',
-          description: 'Mark the shift complete, and the funds release automatically to the professional. Seamless.',
+          description: 'Mark the shift complete, and the funds release automatically to the employee. Seamless.',
           isLast: true,
         ),
-
       ],
     );
   }
@@ -388,14 +383,15 @@ class _ToggleButton extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceM),
         decoration: BoxDecoration(
-          color: isActive ? ShiftleyTokens.inkBlack : Colors.transparent,
+          color: isActive ? ShiftleyTokens.secondaryCyan : Colors.transparent, // Replaced inkBlack with light cyan for active
           borderRadius: BorderRadius.circular(50),
+          border: isActive ? ShiftleyTokens.primaryBorder : Border.all(color: Colors.transparent, width: 2),
         ),
         child: Center(
           child: Text(
             label,
             style: ShiftleyTokens.buttonLabel.copyWith(
-              color: isActive ? ShiftleyTokens.paperWhite : ShiftleyTokens.inkBlack,
+              color: ShiftleyTokens.inkBlack, // Text is always black now as requested
             ),
           ),
         ),
@@ -427,7 +423,7 @@ class _StepperItem extends StatelessWidget {
               width: 16,
               height: 16,
               margin: const EdgeInsets.only(top: ShiftleyTokens.spaceS),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: ShiftleyTokens.inkBlack,
                 shape: BoxShape.circle,
               ),
@@ -437,7 +433,7 @@ class _StepperItem extends StatelessWidget {
                 width: 2,
                 height: 80,
                 margin: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceXS),
-                color: ShiftleyTokens.inkBlack.withValues(alpha: 0.2), // Faux dotted look via low opacity solid line
+                color: ShiftleyTokens.inkBlack.withValues(alpha: 0.2), 
               ),
           ],
         ),
@@ -459,4 +455,69 @@ class _StepperItem extends StatelessWidget {
       ],
     );
   }
+}
+
+// ── Background Snow Animation ──────────────────────────────────────────
+
+class _SnowBackground extends StatefulWidget {
+  const _SnowBackground();
+
+  @override
+  State<_SnowBackground> createState() => _SnowBackgroundState();
+}
+
+class _SnowBackgroundState extends State<_SnowBackground> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final List<_Particle> _particles = List.generate(40, (index) => _Particle());
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 15))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: _SnowPainter(_particles, _controller.value),
+          size: Size.infinite,
+        );
+      },
+    );
+  }
+}
+
+class _Particle {
+  final double x = Random().nextDouble();
+  final double y = Random().nextDouble();
+  final double speed = 0.1 + Random().nextDouble() * 0.4;
+  final double size = 2 + Random().nextDouble() * 3;
+}
+
+class _SnowPainter extends CustomPainter {
+  final List<_Particle> particles;
+  final double animationValue;
+
+  _SnowPainter(this.particles, this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = ShiftleyTokens.inkBlack.withValues(alpha: 0.15);
+    for (var p in particles) {
+      final dy = (p.y + animationValue * p.speed) % 1.0;
+      canvas.drawCircle(Offset(p.x * size.width, dy * size.height), p.size, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
