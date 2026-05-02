@@ -91,7 +91,7 @@ func main() {
 		&employer.Subscription{}, &employer.SubscriptionPlanMeta{},
 		&gig.Gig{}, &gig.GigApplication{}, &gig.GigAttendance{}, &gig.GigReview{}, &gig.SupportTicket{},
 		&analytics.Expenditure{},
-		&cs.AccountNote{},
+		&cs.AccountNote{}, &cs.DisputeResolutionRequest{},
 	)
 	if err != nil {
 		log.Fatalf("Database migration failed: %v", err)
@@ -246,6 +246,14 @@ func main() {
 
 			// Platform Config
 			adminGroup.PATCH("/config/fees", middleware.RequireRoles(string(auth.RoleSuperAdmin)), adminHandler.UpdatePlatformConfig)
+
+			// Dispute Resolution (Super Admin only for now)
+			disputeGroup := adminGroup.Group("/disputes")
+			disputeGroup.Use(middleware.RequireRoles(string(auth.RoleSuperAdmin)))
+			{
+				disputeGroup.GET("/pending", adminHandler.GetPendingDisputes)
+				disputeGroup.POST("/:id/resolve", adminHandler.ResolveDispute)
+			}
 		}
 
 		// Analytics
@@ -273,7 +281,7 @@ func main() {
 			csGroup.POST("/users/:userId/notes", csHandler.AddNote)
 			csGroup.GET("/users/:userId/notes", csHandler.GetNotes)
 			csGroup.GET("/gigs/:gigId", csHandler.GetGigDetails)
-			csGroup.POST("/gigs/:gigId/employees/:empId/force-release", csHandler.ForceEscrowRelease)
+			csGroup.POST("/gigs/:gigId/employees/:empId/recommend", csHandler.RecommendResolution)
 		}
 
 		// HR Admin

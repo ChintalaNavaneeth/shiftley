@@ -116,48 +116,47 @@ func (h *Handler) GetGigDetails(c *gin.Context) {
 	}, nil)
 }
 
-// ForceEscrowRelease handles POST /api/v1/cs/gigs/:gigId/employees/:empId/force-release
-func (h *Handler) ForceEscrowRelease(c *gin.Context) {
-	gigID := c.Param("gigId")
-	empID := c.Param("empId")
+// RecommendResolution handles POST /api/v1/cs/gigs/:gigId/employees/:empId/recommend
+func (h *Handler) RecommendResolution(c *gin.Context) {
+	gigID, _ := uuid.Parse(c.Param("gigId"))
+	empID, _ := uuid.Parse(c.Param("empId"))
 	agentIDStr, _ := c.Get("userID")
 	agentID, _ := uuid.Parse(agentIDStr.(string))
 
 	var req struct {
-		Reason      string `json:"reason" binding:"required"`
-		AmountPaise int64  `json:"amount_paise" binding:"required"`
+		Recommendation string `json:"recommendation" binding:"required"` // REFUND_EMPLOYER, PAY_WORKER
+		Reason         string `json:"reason" binding:"required"`
+		AmountPaise    int64  `json:"amount_paise" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Reason and Amount required", nil)
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Recommendation, Reason and Amount required", nil)
 		return
 	}
 
-	// 1. Audit check: > ₹5,000 requires Super Admin (Mock role check)
-	userRole, _ := c.Get("role")
-	if req.AmountPaise > 500000 && userRole != string(auth.RoleSuperAdmin) {
-		utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden, "Amounts > ₹5,000 require Super Admin approval", nil)
+	// Create resolution request for Admin approval
+	resReq := DisputeResolutionRequest{
+		GigID:          gigID,
+		EmployeeID:     empID,
+		CSAgentID:      agentID,
+		Recommendation: req.Recommendation,
+		Reason:         req.Reason,
+		AmountPaise:    req.AmountPaise,
+		Status:         StatusPending,
+	}
+
+	if err := h.db.Create(&resReq).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to submit recommendation", nil)
 		return
 	}
 
-	// 2. Process Release (Mock)
-	fmt.Printf("[CS FORCE RELEASE] Agent %s released %d paise for Gig %s Employee %s. Reason: %s\n", agentID, req.AmountPaise, gigID, empID, req.Reason)
-
-	// 3. Log Note
+	// Log a note as well
 	note := AccountNote{
-		UserID:   uuid.MustParse(empID),
+		UserID:   empID,
 		AgentID:  agentID,
-		Category: "FORCE_RELEASE",
-		Note:     fmt.Sprintf("Force Release triggered for Gig %s. Reason: %s", gigID, req.Reason),
+		Category: "RESOLUTION_RECOMMENDED",
+		Note:     fmt.Sprintf("Recommended %s for Gig %s. Reason: %s", req.Recommendation, gigID, req.Reason),
 	}
 	h.db.Create(&note)
 
-	// 4. Notify Worker
-	var worker auth.User
-	if err := h.db.First(&worker, "id = ?", empID).Error; err == nil {
-		var gData gig.Gig
-		h.db.First(&gData, "id = ?", gigID)
-		h.notify.SendPaymentReleased(worker.PhoneNumber, worker.FullName, fmt.Sprintf("%.2f", float64(req.AmountPaise)/100.0), gData.Title)
-	}
-
-	utils.RespondSuccess(c, http.StatusOK, "Escrow payout triggered successfully", nil)
+	utils.RespondSuccess(c, http.StatusOK, resReq, "Recommendation submitted for Admin review")
 }

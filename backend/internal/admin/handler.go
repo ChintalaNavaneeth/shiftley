@@ -352,4 +352,56 @@ func (h *Handler) UpdateSuperAdminSetup(c *gin.Context) {
 		"is_initial_setup_complete": true,
 	}, nil)
 }
+// GetPendingDisputes handles GET /api/v1/admin/disputes/pending
+func (h *Handler) GetPendingDisputes(c *gin.Context) {
+	var requests []cs.DisputeResolutionRequest
+	if err := h.db.Where("status = ?", cs.StatusPending).Order("created_at ASC").Find(&requests).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to fetch pending disputes", nil)
+		return
+	}
+	utils.RespondSuccess(c, http.StatusOK, requests, nil)
+}
 
+// ResolveDispute handles POST /api/v1/admin/disputes/:id/resolve
+func (h *Handler) ResolveDispute(c *gin.Context) {
+	id := c.Param("id")
+	adminIDVal, _ := c.Get("userID")
+	adminID, _ := uuid.Parse(adminIDVal.(string))
+
+	var req struct {
+		Action string `json:"action" binding:"required"` // APPROVE, REJECT
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Action (APPROVE/REJECT) required", nil)
+		return
+	}
+
+	var resReq cs.DisputeResolutionRequest
+	if err := h.db.First(&resReq, "id = ?", id).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Dispute request not found", nil)
+		return
+	}
+
+	if resReq.Status != cs.StatusPending {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Request is already processed", nil)
+		return
+	}
+
+	// Process based on action
+	if req.Action == "APPROVE" {
+		resReq.Status = cs.StatusApproved
+		// In a real scenario, this would trigger the Razorpay Route release or refund
+		fmt.Printf("[ADMIN APPROVAL] Admin %s approved resolution for Request %s. Executing %s for %d paise\n",
+			adminID, id, resReq.Recommendation, resReq.AmountPaise)
+	} else {
+		resReq.Status = cs.StatusRejected
+	}
+
+	resReq.AdminID = &adminID
+	if err := h.db.Save(&resReq).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to save resolution", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, resReq, "Dispute resolved successfully")
+}
