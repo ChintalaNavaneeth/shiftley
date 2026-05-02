@@ -1,0 +1,61 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import 'features/auth/presentation/splash_screen.dart';
+import 'features/auth/presentation/landing_screen.dart';
+import 'features/auth/presentation/auth_screen.dart';
+import 'features/auth/presentation/otp_screen.dart';
+
+
+final _router = GoRouter(
+  initialLocation: '/',
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: '/landing',
+      builder: (context, state) => const LandingScreen(),
+    ),
+    GoRoute(
+      path: '/auth',
+      builder: (context, state) => const AuthScreen(),
+    ),
+    GoRoute(
+
+      path: '/otp',
+      builder: (context, state) {
+        final phone = state.extra as String? ?? '';
+        return OtpScreen(phoneNumber: phone);
+      },
+    ),
+  ],
+);
+
+void main() {
+  runApp(const ProviderScope(child: ShiftleyApp()));
+}
+
+class ShiftleyApp extends StatelessWidget {
+  const ShiftleyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: 'Shiftley',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+        fontFamily: 'Figtree',
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFFF0000),
+          surface: const Color(0xFFF5F5F5),
+        ),
+      ),
+      routerConfig: _router,
+    );
+  }
+}
