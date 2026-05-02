@@ -133,6 +133,7 @@ func (h *Handler) PostGig(c *gin.Context) {
 		SkillID:       req.SkillID,
 		Lat:           profile.Lat,
 		Lng:           profile.Lng,
+		Location:      fmt.Sprintf("POINT(%f %f)", profile.Lng, profile.Lat), // WKT for PostGIS
 		Address:       profile.BusinessAddress,
 		StartTime:     req.StartTime,
 		EndTime:       req.EndTime,
@@ -242,10 +243,13 @@ func (h *Handler) ApproveApplication(c *gin.Context) {
 	var g Gig
 	h.db.First(&g, "id = ?", app.GigID)
 
-	if req.Status == "APPROVED" {
+	if req.Status == string(AppApproved) {
 		h.notify.SendApplicationAccepted(worker.PhoneNumber, worker.FullName, g.Title, "Employer")
-	} else if req.Status == "REJECTED" {
+	} else if req.Status == string(AppRejected) {
 		h.notify.SendApplicationRejected(worker.PhoneNumber, worker.FullName, g.Title)
+	} else if req.Status == string(AppShortlisted) {
+		// Silent state - no notification per user instruction
+		fmt.Printf("[GIG] Worker %s shortlisted for Gig %s. No notification sent.\n", worker.FullName, g.ID)
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"application_id": appID, "status": req.Status}, nil)
@@ -557,12 +561,12 @@ func (h *Handler) SearchGigs(c *gin.Context) {
 
 	var results []SearchResult
 
-	// PostGIS Query using ST_DWithin and ST_Distance
+	// PostGIS Query using indexed geography column
 	query := `
-		SELECT *, ST_Distance(ST_MakePoint(lng, lat)::geography, ST_MakePoint(?, ?)::geography) as distance_meters
+		SELECT *, ST_Distance(location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) as distance_meters
 		FROM shiftley.gigs
 		WHERE status = 'OPEN' 
-		AND ST_DWithin(ST_MakePoint(lng, lat)::geography, ST_MakePoint(?, ?)::geography, ?)
+		AND ST_DWithin(location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)
 		ORDER BY distance_meters ASC
 	`
 

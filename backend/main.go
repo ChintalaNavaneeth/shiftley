@@ -82,6 +82,9 @@ func main() {
 	if err := db.Exec("CREATE SCHEMA IF NOT EXISTS shiftley").Error; err != nil {
 		log.Fatalf("Failed to create schema: %v", err)
 	}
+	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS postgis").Error; err != nil {
+		log.Fatalf("Failed to create postgis extension: %v", err)
+	}
 
 	err = db.AutoMigrate(
 		&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &auth.WorkerProfile{}, &auth.EmployerProfile{},

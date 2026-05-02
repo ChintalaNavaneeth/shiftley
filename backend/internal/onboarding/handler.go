@@ -184,6 +184,7 @@ func (h *Handler) OnboardEmployer(c *gin.Context) {
 		BusinessAddress: businessAddress,
 		Lat:             loc.Lat,
 		Lng:             loc.Lng,
+		Location:        fmt.Sprintf("POINT(%f %f)", loc.Lng, loc.Lat),
 		AadhaarLast4:    aadhaarNumber[len(aadhaarNumber)-4:],
 		AadhaarURL:      uploadedUrls["aadhaar_pdf"],
 		PhotoURLs: []string{
@@ -219,6 +220,7 @@ func (h *Handler) OnboardEmployer(c *gin.Context) {
 // @Param degree formData string false "Degree (Optional)"
 // @Param specialization formData string false "Specialization (Optional)"
 // @Param passing_year formData string false "Passing Year (Optional)"
+// @Param location formData string true "Location as JSON: {\"lat\":12.97,\"lng\":77.59}"
 // @Param profile_picture formData file true "Profile Picture"
 // @Param aadhaar_pdf formData file true "Aadhaar PDF"
 // @Success 201 {object} utils.SuccessResponse
@@ -240,9 +242,10 @@ func (h *Handler) OnboardEmployee(c *gin.Context) {
 	degree := c.PostForm("degree")
 	specialization := c.PostForm("specialization")
 	passingYearStr := c.PostForm("passing_year")
+	locationStr := c.PostForm("location")
 
 	// 2. Validate Required Fields
-	if fullName == "" || email == "" || phoneNumber == "" || skillIdsStr == "" {
+	if fullName == "" || email == "" || phoneNumber == "" || skillIdsStr == "" || locationStr == "" {
 		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Missing required text fields", nil)
 		return
 	}
@@ -260,7 +263,14 @@ func (h *Handler) OnboardEmployee(c *gin.Context) {
 		passingYear, _ = strconv.Atoi(passingYearStr)
 	}
 
-	// 5. Handle File Uploads
+	// 5. Parse Location
+	var loc Location
+	if err := json.Unmarshal([]byte(locationStr), &loc); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid location format", nil)
+		return
+	}
+
+	// 6. Handle File Uploads
 	filesToUpload := []struct {
 		fieldName string
 		bucket    string
@@ -312,6 +322,9 @@ func (h *Handler) OnboardEmployee(c *gin.Context) {
 
 	workerProfile := auth.WorkerProfile{
 		UserID:          userID,
+		Lat:             loc.Lat,
+		Lng:             loc.Lng,
+		Location:        fmt.Sprintf("POINT(%f %f)", loc.Lng, loc.Lat),
 		ProfilePhotoURL: uploadedUrls["profile_picture"],
 		Degree:          degree,
 		Specialization:  specialization,

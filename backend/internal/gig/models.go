@@ -27,6 +27,7 @@ type Gig struct {
 	SkillID        string         `gorm:"not null;index" json:"skill_id"`
 	Lat            float64        `gorm:"type:decimal(10,8)" json:"lat"`
 	Lng            float64        `gorm:"type:decimal(11,8)" json:"lng"`
+	Location       string         `gorm:"type:geography(Point, 4326)" json:"-"`
 	Address        string         `gorm:"type:text" json:"address"`
 	StartTime      time.Time      `gorm:"not null" json:"start_time"`
 	EndTime        time.Time      `gorm:"not null" json:"end_time"`
@@ -103,10 +104,11 @@ func (SupportTicket) TableName() string {
 type ApplicationStatus string
 
 const (
-	AppApplied  ApplicationStatus = "APPLIED"
-	AppApproved ApplicationStatus = "APPROVED"
-	AppRejected ApplicationStatus = "REJECTED"
-	AppNoShow   ApplicationStatus = "NO_SHOW"
+	AppApplied     ApplicationStatus = "APPLIED"
+	AppShortlisted ApplicationStatus = "SHORTLISTED"
+	AppApproved    ApplicationStatus = "APPROVED"
+	AppRejected    ApplicationStatus = "REJECTED"
+	AppNoShow      ApplicationStatus = "NO_SHOW"
 )
 
 type GigApplication struct {

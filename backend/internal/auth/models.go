@@ -80,8 +80,12 @@ type WorkerProfile struct {
 	UserID            uuid.UUID      `gorm:"type:uuid;not null;unique;index" json:"user_id"`
 	Lat               float64        `gorm:"type:decimal(10,8)" json:"lat"`
 	Lng               float64        `gorm:"type:decimal(11,8)" json:"lng"`
+	Location          string         `gorm:"type:geography(Point, 4326)" json:"-"` // Internal PostGIS field
 	SearchRadiusKM    int            `gorm:"default:10" json:"search_radius_km"`
 	ReliabilityScore  int            `gorm:"default:100" json:"reliability_score"`
+	TotalGigs         int            `gorm:"default:0" json:"total_gigs"`
+	TotalNoShows      int            `gorm:"default:0" json:"total_no_shows"`
+	LastNoShowAt      *time.Time     `json:"last_no_show_at"`
 	ProfilePhotoURL   string         `json:"profile_photo_url"`
 	Degree            string         `json:"degree"`
 	Specialization    string         `json:"specialization"`
@@ -105,6 +109,7 @@ type EmployerProfile struct {
 	BusinessAddress   string         `gorm:"type:text;not null" json:"business_address"`
 	Lat               float64        `gorm:"type:decimal(10,8)" json:"lat"`
 	Lng               float64        `gorm:"type:decimal(11,8)" json:"lng"`
+	Location          string         `gorm:"type:geography(Point, 4326)" json:"-"`
 	VerificationStatus string         `gorm:"default:'PENDING'" json:"verification_status"`
 	AadhaarLast4      string         `json:"aadhaar_last_4"`
 	AadhaarURL        string         `json:"aadhaar_url"`
