@@ -515,9 +515,11 @@ class _WaveBackgroundState extends State<_WaveBackground> with SingleTickerProvi
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return CustomPaint(
-          painter: _WavePainter(_controller.value),
-          size: Size.infinite,
+        return ClipRect( // Added ClipRect to prevent overflow
+          child: CustomPaint(
+            painter: _WavePainter(_controller.value),
+            size: Size.infinite,
+          ),
         );
       },
     );
@@ -540,7 +542,7 @@ class _WavePainter extends CustomPainter {
       ShiftleyTokens.inkBlack,
     ];
 
-    const numWaves = 12; // More waves for a richer feel
+    const numWaves = 9; // Balanced count
     for (int w = 0; w < numWaves; w++) {
       final path = Path();
       final colorIndex = w % baseColors.length;
@@ -548,12 +550,12 @@ class _WavePainter extends CustomPainter {
       
       final paint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.5 // Thinner lines
+        ..strokeWidth = 0.5
         ..shader = LinearGradient(
           colors: [
             baseColor.withValues(alpha: 0.0),
-            baseColor.withValues(alpha: 0.15), // Lighter colors
-            baseColor.withValues(alpha: 0.3),  // Lighter peak
+            baseColor.withValues(alpha: 0.15),
+            baseColor.withValues(alpha: 0.3),
             baseColor.withValues(alpha: 0.15),
             baseColor.withValues(alpha: 0.0),
           ],
@@ -563,8 +565,8 @@ class _WavePainter extends CustomPainter {
           transform: GradientRotation(animationValue * 2 * pi + w), 
         ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
-      // Increase randomness for an organic look
-      final yCenter = size.height * (0.1 + (0.8 * (w / (numWaves - 1))));
+      // Balanced vertical range to spread waves across the hero section
+      final yCenter = size.height * (0.15 + (0.6 * (w / (numWaves - 1))));
       final freqMultiplier = 0.8 + sin(w * 1.4) * 0.5 + (w * 0.1);
       final phaseOffset = (w * pi / 3) + cos(w * 0.8) * pi;
       final amplitude = 30.0 + sin(w * 2.1) * 20.0 + (w * 5.0);
