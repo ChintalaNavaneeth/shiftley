@@ -181,12 +181,12 @@ class _LandingScreenState extends State<LandingScreen> {
                               children: [
                                 const TextSpan(text: 'When a gig is confirmed, the employer pays upfront into a secure Razorpay holding account. \n\n'),
                                 TextSpan(
-                                  text: 'To Work: ',
+                                  text: 'For Employees: ',
                                   style: TextStyle(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.bold),
                                 ),
                                 const TextSpan(text: 'You know the money is locked and waiting for you. No more chasing payments after a long day of work.\n\n'),
                                 TextSpan(
-                                  text: 'To Hire: ',
+                                  text: 'For Employers: ',
                                   style: TextStyle(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.bold),
                                 ),
                                 const TextSpan(text: 'You have the security of knowing the professional is committed. \n\nOnce the shift is completed, the funds are instantly released to the bank account. Simple, secure, and fully automated.'),
