@@ -27,6 +27,11 @@ class _LandingScreenState extends State<LandingScreen> {
         },
         backgroundColor: ShiftleyTokens.inkBlack,
         shape: const CircleBorder(),
+        elevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        disabledElevation: 0,
+        highlightElevation: 0,
         child: const Icon(Icons.chat_bubble_outline, color: ShiftleyTokens.paperWhite),
       ),
       body: SafeArea(
@@ -283,37 +288,41 @@ class _LandingScreenState extends State<LandingScreen> {
           border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0)), 
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceL),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-
-              children: [
-                Flexible(
-                  child: const Text(
-                    'Shiftley.',
-                    style: TextStyle(
-                      fontFamily: 'Figtree',
-                      fontSize: 29,
-                      fontWeight: FontWeight.w900,
-                      color: ShiftleyTokens.inkBlack,
-                      letterSpacing: -1.0,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceL),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: const Text(
+                        'Shiftley.',
+                        style: TextStyle(
+                          fontFamily: 'Figtree',
+                          fontSize: 29,
+                          fontWeight: FontWeight.w900,
+                          color: ShiftleyTokens.inkBlack,
+                          letterSpacing: -1.0,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
 
-                SizedBox(
-                  width: 120,
-                  height: 36,
-                  child: SButton(
-                    text: 'Sign In / Up',
-                    type: SButtonType.primary,
-                    onPressed: () => context.push('/auth'),
-                  ),
+                    SizedBox(
+                      width: 120,
+                      height: 36,
+                      child: SButton(
+                        text: 'Sign In / Up',
+                        type: SButtonType.primary,
+                        onPressed: () => context.push('/auth'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

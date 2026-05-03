@@ -25,7 +25,6 @@ class SButton extends StatefulWidget {
 }
 
 class _SButtonState extends State<SButton> {
-  bool _isPressed = false;
 
   Color get _bgColor {
     if (widget.onPressed == null) return ShiftleyTokens.utilityGrey;
@@ -44,18 +43,8 @@ class _SButtonState extends State<SButton> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp:   (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
       onTap: widget.isLoading ? null : widget.onPressed,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 60),
-        // Neo-brutalism "sinking" effect
-        transform: Matrix4.translationValues(
-          _isPressed ? 3 : 0,
-          _isPressed ? 3 : 0,
-          0,
-        ),
+      child: Container(
         width: widget.width ?? double.infinity,
         height: 56,
         decoration: BoxDecoration(

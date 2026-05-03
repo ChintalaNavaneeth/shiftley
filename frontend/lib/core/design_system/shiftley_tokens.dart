@@ -32,6 +32,16 @@ class ShiftleyTokens {
   static Border get thinBorder =>
       Border.all(color: inkBlack, width: 1.0);
 
+  static InputBorder get primaryInputBorder => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(borderRadiusVal),
+        borderSide: const BorderSide(color: inkBlack, width: borderWidth),
+      );
+
+  static InputBorder get focusInputBorder => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(borderRadiusVal),
+        borderSide: const BorderSide(color: primaryRed, width: borderWidth),
+      );
+
   // ─── Typography ───────────────────────────────────────────
   // Uses locally bundled fonts declared in pubspec.yaml
 

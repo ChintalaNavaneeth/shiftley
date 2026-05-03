@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
+import 'package:shiftley_frontend/core/utils/responsive_layout.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -42,123 +43,123 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Shiftley.',
-                  style: TextStyle(
-                    fontFamily: 'Figtree',
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
-                    color: ShiftleyTokens.inkBlack,
-                    letterSpacing: -1.0,
-                  ),
-                ),
-
-                const SizedBox(height: ShiftleyTokens.spaceXL),
-
-                // ── Sign In / Sign Up Toggle ───────────────────────
-                Container(
-                  decoration: BoxDecoration(
-                    border: ShiftleyTokens.primaryBorder,
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: Row(
-                    children: [
-                      _TabButton(
-                        label: 'Sign In',
-                        isActive: !_isSignUp,
-                        onTap: () => setState(() => _isSignUp = false),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Shiftley.',
+                      style: TextStyle(
+                        fontFamily: 'Figtree',
+                        fontSize: 40,
+                        fontWeight: FontWeight.w900,
+                        color: ShiftleyTokens.inkBlack,
+                        letterSpacing: -1.0,
                       ),
-                      _TabButton(
-                        label: 'Sign Up',
-                        isActive: _isSignUp,
-                        onTap: () => setState(() => _isSignUp = true),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: ShiftleyTokens.spaceXL),
-
-                // ── Role Picker (Sign Up only) ────────────────────
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (child, animation) {
-                    return SizeTransition(
-                      sizeFactor: animation,
-                      axisAlignment: -1,
-                      child: FadeTransition(opacity: animation, child: child),
-                    );
-                  },
-                  child: _isSignUp
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          key: const ValueKey('signup_roles'),
-                          children: [
-                            const Text('I want to', style: ShiftleyTokens.h2),
-                            const SizedBox(height: ShiftleyTokens.spaceM),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: SButton(
-                                    text: 'Work',
-                                    type: _isWorker ? SButtonType.primary : SButtonType.secondary,
-                                    onPressed: () => setState(() => _isWorker = true),
-                                  ),
-                                ),
-                                const SizedBox(width: ShiftleyTokens.spaceM),
-                                Expanded(
-                                  child: SButton(
-                                    text: 'Hire',
-                                    type: !_isWorker ? SButtonType.primary : SButtonType.secondary,
-                                    onPressed: () => setState(() => _isWorker = false),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: ShiftleyTokens.spaceXL),
-                          ],
-                        )
-                      : const SizedBox.shrink(key: ValueKey('empty')),
-                ),
-
-                // ── Phone Input ───────────────────────────────────
-                const Text('Phone Number', style: ShiftleyTokens.bodyLarge),
-                const SizedBox(height: ShiftleyTokens.spaceS),
-                STextField(
-                  hint: '9876543210',
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  maxLength: 10,
-                  prefix: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: ShiftleyTokens.spaceM,
-                      vertical: ShiftleyTokens.spaceM,
                     ),
-                    child: const Text('+91', style: ShiftleyTokens.bodyMedium),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.length != 10) {
-                      return 'Enter a valid 10-digit phone number';
-                    }
-                    return null;
-                  },
+                    const SizedBox(height: ShiftleyTokens.spaceXL),
+                    
+                    // Toggle
+                    Container(
+                      decoration: BoxDecoration(
+                        border: ShiftleyTokens.primaryBorder,
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: Row(
+                        children: [
+                          _TabButton(
+                            label: 'Sign In',
+                            isActive: !_isSignUp,
+                            onTap: () => setState(() => _isSignUp = false),
+                          ),
+                          _TabButton(
+                            label: 'Sign Up',
+                            isActive: _isSignUp,
+                            onTap: () => setState(() => _isSignUp = true),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: ShiftleyTokens.spaceXL),
+                    
+                    // Role Picker
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, animation) {
+                        return SizeTransition(
+                          sizeFactor: animation,
+                          axisAlignment: -1,
+                          child: FadeTransition(opacity: animation, child: child),
+                        );
+                      },
+                      child: _isSignUp
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              key: const ValueKey('signup_roles'),
+                              children: [
+                                const Text('I want to', style: ShiftleyTokens.h2),
+                                const SizedBox(height: ShiftleyTokens.spaceM),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: SButton(
+                                        text: 'Work',
+                                        type: _isWorker ? SButtonType.primary : SButtonType.secondary,
+                                        onPressed: () => setState(() => _isWorker = true),
+                                      ),
+                                    ),
+                                    const SizedBox(width: ShiftleyTokens.spaceM),
+                                    Expanded(
+                                      child: SButton(
+                                        text: 'Hire',
+                                        type: !_isWorker ? SButtonType.primary : SButtonType.secondary,
+                                        onPressed: () => setState(() => _isWorker = false),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: ShiftleyTokens.spaceXL),
+                              ],
+                            )
+                          : const SizedBox.shrink(key: ValueKey('empty')),
+                    ),
+                    
+                    // Input
+                    const Text('Phone Number', style: ShiftleyTokens.bodyLarge),
+                    const SizedBox(height: ShiftleyTokens.spaceS),
+                    STextField(
+                      hint: '9876543210',
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 10,
+                      prefix: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: ShiftleyTokens.spaceM,
+                          vertical: ShiftleyTokens.spaceM,
+                        ),
+                        child: const Text('+91', style: ShiftleyTokens.bodyMedium),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.length != 10) {
+                          return 'Enter a valid 10-digit phone number';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: ShiftleyTokens.spaceXL),
+                    SButton(
+                      text: 'Get OTP →',
+                      onPressed: _onGetOtp,
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: ShiftleyTokens.spaceXL),
-
-                // ── CTA Button ────────────────────────────────────
-                SButton(
-                  text: 'Get OTP →',
-                  onPressed: _onGetOtp,
-                ),
-              ],
+              ),
             ),
           ),
         ),

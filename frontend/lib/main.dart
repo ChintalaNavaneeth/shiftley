@@ -6,11 +6,18 @@ import 'features/auth/presentation/splash_screen.dart';
 import 'features/auth/presentation/landing_screen.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/otp_screen.dart';
+import 'features/admin/presentation/super_admin_screen.dart';
+import 'features/verifier/presentation/verifier_screen.dart';
+import 'features/debug/presentation/dev_navigation_screen.dart';
 
 
 final _router = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/dev', // Temporary dev entry point
   routes: [
+    GoRoute(
+      path: '/dev',
+      builder: (context, state) => const DevNavigationScreen(),
+    ),
     GoRoute(
       path: '/',
       builder: (context, state) => const SplashScreen(),
@@ -24,12 +31,19 @@ final _router = GoRouter(
       builder: (context, state) => const AuthScreen(),
     ),
     GoRoute(
-
       path: '/otp',
       builder: (context, state) {
         final phone = state.extra as String? ?? '';
         return OtpScreen(phoneNumber: phone);
       },
+    ),
+    GoRoute(
+      path: '/admin',
+      builder: (context, state) => const SuperAdminScreen(),
+    ),
+    GoRoute(
+      path: '/verifier',
+      builder: (context, state) => const VerifierScreen(),
     ),
   ],
 );
@@ -50,6 +64,12 @@ class ShiftleyApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF5F5F5),
         fontFamily: 'Figtree',
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(elevation: 0),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(elevation: 0),
+        ),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFFF0000),
           surface: const Color(0xFFF5F5F5),
