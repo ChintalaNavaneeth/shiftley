@@ -73,7 +73,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
       case AdminTab.disputes:
         return 'Disputes';
       case AdminTab.analytics:
-        return 'Analytics';
+        return 'Insights';
     }
   }
 
