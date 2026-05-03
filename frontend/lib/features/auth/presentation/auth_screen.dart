@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
-import 'package:shiftley_frontend/core/utils/responsive_layout.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
