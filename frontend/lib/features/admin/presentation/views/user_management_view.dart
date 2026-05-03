@@ -28,7 +28,7 @@ class UserManagementView extends StatelessWidget {
                 const SizedBox(height: ShiftleyTokens.spaceM),
                 _buildDialogField('Phone Number', 'e.g. 9876543210'),
                 const SizedBox(height: ShiftleyTokens.spaceM),
-                _buildDialogDropdown('Assign Role', ['Verifier', 'Business Admin', 'Customer Support', 'Data Analytics']),
+                _buildDialogDropdown('Assign Role', ['Verifier', 'Business Admin', 'Customer Support', 'Insights']),
               ],
             ),
           ),
@@ -137,7 +137,7 @@ class UserManagementView extends StatelessWidget {
                     const SizedBox(height: 4),
                     TextField(
                       decoration: InputDecoration(
-                        hintText: 'Name or phone number...',
+                        hintText: 'Name / Phone Number...',
                         prefixIcon: const Icon(Icons.search, size: 20),
                         filled: true,
                         fillColor: ShiftleyTokens.paperWhite,

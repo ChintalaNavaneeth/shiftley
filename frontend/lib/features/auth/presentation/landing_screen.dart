@@ -531,40 +531,60 @@ class _WavePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = ShiftleyTokens.inkBlack.withValues(alpha: 0.02)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+    final List<Color> baseColors = [
+      ShiftleyTokens.primaryRed,
+      ShiftleyTokens.secondaryCyan,
+      const Color(0xFF6366F1),
+      const Color(0xFFEC4899),
+      const Color(0xFF8B5CF6),
+      ShiftleyTokens.inkBlack,
+    ];
 
-    const numWaves = 13;
-    final List<Path> paths = List.generate(numWaves, (_) => Path());
-
-    for (double i = 0; i <= size.width; i++) {
-      final x = i;
+    const numWaves = 12; // More waves for a richer feel
+    for (int w = 0; w < numWaves; w++) {
+      final path = Path();
+      final colorIndex = w % baseColors.length;
+      final baseColor = baseColors[colorIndex];
       
-      for (int w = 0; w < numWaves; w++) {
-        final yCenter = size.height * (0.1 + (0.8 * (w / (numWaves - 1))));
-        final freqMultiplier = 1.5 + (w % 3) * 0.5;
-        final phaseOffset = (w * pi / 4);
-        final amplitude = 20.0 + (w % 4) * 15.0;
-        
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.5 // Thinner lines
+        ..shader = LinearGradient(
+          colors: [
+            baseColor.withValues(alpha: 0.0),
+            baseColor.withValues(alpha: 0.15), // Lighter colors
+            baseColor.withValues(alpha: 0.3),  // Lighter peak
+            baseColor.withValues(alpha: 0.15),
+            baseColor.withValues(alpha: 0.0),
+          ],
+          stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          transform: GradientRotation(animationValue * 2 * pi + w), 
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+      // Increase randomness for an organic look
+      final yCenter = size.height * (0.1 + (0.8 * (w / (numWaves - 1))));
+      final freqMultiplier = 0.8 + sin(w * 1.4) * 0.5 + (w * 0.1);
+      final phaseOffset = (w * pi / 3) + cos(w * 0.8) * pi;
+      final amplitude = 30.0 + sin(w * 2.1) * 20.0 + (w * 5.0);
+
+      for (double i = 0; i <= size.width; i += 3) {
+        final x = i;
         final y = yCenter + sin((i / size.width * freqMultiplier * pi) + (animationValue * 2 * pi + phaseOffset)) * amplitude;
         
         if (i == 0) {
-          paths[w].moveTo(x, y);
+          path.moveTo(x, y);
         } else {
-          paths[w].lineTo(x, y);
+          path.lineTo(x, y);
         }
       }
-    }
-
-    for (final path in paths) {
       canvas.drawPath(path, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _WavePainter oldDelegate) => oldDelegate.animationValue != animationValue;
 }
 
 

@@ -79,7 +79,7 @@ class AdminSidebar extends StatelessWidget {
           ),
           _SidebarItem(
             icon: Icons.analytics_outlined,
-            label: 'Data Analytics',
+            label: 'Insights',
             isActive: activeTab == AdminTab.analytics,
             onTap: () => onTabChanged(AdminTab.analytics),
           ),
