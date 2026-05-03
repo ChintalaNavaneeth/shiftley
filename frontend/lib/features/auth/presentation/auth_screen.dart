@@ -107,7 +107,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               children: [
                                 Expanded(
                                   child: SButton(
-                                    text: 'Employee',
+                                    text: 'Work',
                                     type: _isWorker ? SButtonType.primary : SButtonType.secondary,
                                     onPressed: () => setState(() => _isWorker = true),
                                   ),

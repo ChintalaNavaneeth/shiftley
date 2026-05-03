@@ -96,14 +96,14 @@ class _LandingScreenState extends State<LandingScreen> {
                                 children: [
                                   Expanded(
                                     child: _ToggleButton(
-                                      label: 'For Employees',
+                                      label: 'To Work',
                                       isActive: _isWorkerFlow,
                                       onTap: () => setState(() => _isWorkerFlow = true),
                                     ),
                                   ),
                                   Expanded(
                                     child: _ToggleButton(
-                                      label: 'For Employers',
+                                      label: 'To Hire',
                                       isActive: !_isWorkerFlow,
                                       onTap: () => setState(() => _isWorkerFlow = false),
                                     ),
@@ -175,9 +175,23 @@ class _LandingScreenState extends State<LandingScreen> {
 
                           const SizedBox(height: ShiftleyTokens.spaceM),
 
-                          Text(
-                            'When a gig is confirmed, the employer pays upfront into a secure Razorpay holding account. \n\nFor Employees: You know the money is locked and waiting for you. No more chasing payments after a long day of work.\n\nFor Employers: You have the security of knowing the employee is committed. \n\nOnce the shift is completed, the funds are instantly released to the employee\'s bank account. Simple, secure, and fully automated.',
-                            style: ShiftleyTokens.bodyLarge.copyWith(height: 1.5, color: ShiftleyTokens.mutedText),
+                          RichText(
+                            text: TextSpan(
+                              style: ShiftleyTokens.bodyLarge.copyWith(height: 1.5, color: ShiftleyTokens.mutedText, fontFamily: 'Figtree'),
+                              children: [
+                                const TextSpan(text: 'When a gig is confirmed, the employer pays upfront into a secure Razorpay holding account. \n\n'),
+                                TextSpan(
+                                  text: 'To Work: ',
+                                  style: TextStyle(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.bold),
+                                ),
+                                const TextSpan(text: 'You know the money is locked and waiting for you. No more chasing payments after a long day of work.\n\n'),
+                                TextSpan(
+                                  text: 'To Hire: ',
+                                  style: TextStyle(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.bold),
+                                ),
+                                const TextSpan(text: 'You have the security of knowing the professional is committed. \n\nOnce the shift is completed, the funds are instantly released to the bank account. Simple, secure, and fully automated.'),
+                              ],
+                            ),
                           ),
                         ],
                       ),
