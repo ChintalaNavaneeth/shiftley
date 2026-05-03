@@ -27,7 +27,7 @@ class SButton extends StatefulWidget {
 class _SButtonState extends State<SButton> {
 
   Color get _bgColor {
-    if (widget.onPressed == null) return ShiftleyTokens.utilityGrey;
+    if (widget.onPressed == null) return const Color(0xFFEEEEEE);
     switch (widget.type) {
       case SButtonType.primary:   return ShiftleyTokens.primaryRed;
       case SButtonType.secondary: return ShiftleyTokens.secondaryCyan;
@@ -35,10 +35,12 @@ class _SButtonState extends State<SButton> {
     }
   }
 
-  Color get _textColor =>
-      widget.type == SButtonType.primary
-          ? ShiftleyTokens.paperWhite
-          : ShiftleyTokens.inkBlack;
+  Color get _textColor {
+    if (widget.onPressed == null) return ShiftleyTokens.mutedText;
+    return widget.type == SButtonType.primary
+        ? ShiftleyTokens.paperWhite
+        : ShiftleyTokens.inkBlack;
+  }
 
   @override
   Widget build(BuildContext context) {
