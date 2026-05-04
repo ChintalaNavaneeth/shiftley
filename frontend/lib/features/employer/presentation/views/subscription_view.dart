@@ -7,50 +7,53 @@ class SubscriptionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Manage your subscription and usage limits.', style: ShiftleyTokens.bodyMedium),
-        const SizedBox(height: ShiftleyTokens.spaceXL),
-
-        // Current Plan Card
-        _buildCurrentPlanCard(),
-
-        const SizedBox(height: ShiftleyTokens.spaceXL),
-
-        const Text('Plan Details', style: ShiftleyTokens.h2),
-        const SizedBox(height: ShiftleyTokens.spaceM),
-        _buildDetailRow('Active Since', '24 April, 2026'),
-        _buildDetailRow('Auto-renewal', 'Enabled (May 24, 2026)'),
-        _buildDetailRow('Last Payment', '₹ 4,999 (Processed)'),
-        
-        const SizedBox(height: ShiftleyTokens.spaceXL),
-
-        const Text('Plan Benefits', style: ShiftleyTokens.h2),
-        const SizedBox(height: ShiftleyTokens.spaceM),
-        _buildBenefitItem('Up to 50 active shift postings per month'),
-        _buildBenefitItem('Priority listing in Professional search results'),
-        _buildBenefitItem('Detailed performance analytics'),
-        _buildBenefitItem('Dedicated account manager support'),
-
-        const SizedBox(height: ShiftleyTokens.spaceXXL),
-
-        // Plan Options (Placeholders)
-        const Text('Available Plans', style: ShiftleyTokens.h2),
-        const SizedBox(height: ShiftleyTokens.spaceM),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _buildPlanOption('DAILY', '₹ 499', '5 Shifts', false),
-              const SizedBox(width: ShiftleyTokens.spaceM),
-              _buildPlanOption('WEEKLY', '₹ 1,999', '20 Shifts', false),
-              const SizedBox(width: ShiftleyTokens.spaceM),
-              _buildPlanOption('MONTHLY', '₹ 4,999', '50 Shifts', true),
-            ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Manage your subscription and usage limits.', style: ShiftleyTokens.bodyMedium),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+  
+          // Current Plan Card
+          _buildCurrentPlanCard(),
+  
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+  
+          const Text('Plan Details', style: ShiftleyTokens.h2),
+          const SizedBox(height: ShiftleyTokens.spaceM),
+          _buildDetailRow('Active Since', '24 April, 2026'),
+          _buildDetailRow('Auto-renewal', 'Enabled (May 24, 2026)'),
+          _buildDetailRow('Last Payment', '₹ 4,999 (Processed)'),
+          
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+  
+          const Text('Plan Benefits', style: ShiftleyTokens.h2),
+          const SizedBox(height: ShiftleyTokens.spaceM),
+          _buildBenefitItem('Up to 50 active shift postings per month'),
+          _buildBenefitItem('Priority listing in Professional search results'),
+          _buildBenefitItem('Detailed performance analytics'),
+          _buildBenefitItem('Dedicated account manager support'),
+  
+          const SizedBox(height: ShiftleyTokens.spaceXXL),
+  
+          // Plan Options (Placeholders)
+          const Text('Available Plans', style: ShiftleyTokens.h2),
+          const SizedBox(height: ShiftleyTokens.spaceM),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildPlanOption('DAILY', '₹ 499', '5 Shifts', false),
+                const SizedBox(width: ShiftleyTokens.spaceM),
+                _buildPlanOption('WEEKLY', '₹ 1,999', '20 Shifts', false),
+                const SizedBox(width: ShiftleyTokens.spaceM),
+                _buildPlanOption('MONTHLY', '₹ 4,999', '50 Shifts', true),
+              ],
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 100), // Safety bottom padding
+        ],
+      ),
     );
   }
 

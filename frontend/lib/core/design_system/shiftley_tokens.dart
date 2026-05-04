@@ -32,6 +32,9 @@ class ShiftleyTokens {
   static Border get thinBorder =>
       Border.all(color: inkBlack, width: 1.0);
 
+  static BorderSide get thinBorderSide =>
+      const BorderSide(color: inkBlack, width: 1.0);
+
   static BorderSide get primaryBorderSide =>
       const BorderSide(color: inkBlack, width: borderWidth);
 

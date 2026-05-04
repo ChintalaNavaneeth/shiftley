@@ -23,6 +23,7 @@ class _EmployerScreenState extends State<EmployerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ShiftleyTokens.background,
+      resizeToAvoidBottomInset: false,
       appBar: _buildAppBar(),
       drawer: EmployerSidebar(
         activeTab: _activeTab,
@@ -84,7 +85,7 @@ class _EmployerScreenState extends State<EmployerScreen> {
       case EmployerTab.overview:
         return const OverviewView();
       case EmployerTab.shifts:
-        return const ManageShiftsView();
+        return const ManageGigsView();
       case EmployerTab.post:
         return PostGigView(
           onPublished: () => setState(() => _activeTab = EmployerTab.shifts),
