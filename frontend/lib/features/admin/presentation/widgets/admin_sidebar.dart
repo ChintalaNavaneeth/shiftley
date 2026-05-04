@@ -74,7 +74,7 @@ class AdminSidebar extends StatelessWidget {
           ),
           _SidebarItem(
             icon: Icons.category_outlined,
-            label: 'Categories & Subcats',
+            label: 'Taxonomy',
             isActive: activeTab == AdminTab.taxonomy,
             onTap: () => onTabChanged(AdminTab.taxonomy),
           ),

@@ -12,7 +12,13 @@ class _TaxonomyViewState extends State<TaxonomyView> {
   String _searchQuery = '';
   final Set<String> _expandedCategories = {};
 
-  // Mock data for UI development - In a real app, this would come from a Riverpod provider
+  // Font Size Adjustments
+  static const double _headerFontSize = 15.0;
+  static const double _bodyFontSize = 16.0;
+  static const double _subcatFontSize = 14.0;
+  static const double _statusFontSize = 11.0;
+
+  // Mock data for UI development
   final List<Map<String, dynamic>> _categories = [
     {
       'id': '1',
@@ -22,7 +28,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
         {'id': 's1', 'name': 'Waiter / Server', 'is_active': true},
         {'id': 's2', 'name': 'Kitchen Helper', 'is_active': true},
         {'id': 's3', 'name': 'Dishwasher', 'is_active': false},
-      ]
+      ],
     },
     {
       'id': '2',
@@ -31,7 +37,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
       'subcategories': [
         {'id': 's4', 'name': 'Cashier', 'is_active': true},
         {'id': 's5', 'name': 'Sales Associate', 'is_active': true},
-      ]
+      ],
     },
     {
       'id': '3',
@@ -39,110 +45,210 @@ class _TaxonomyViewState extends State<TaxonomyView> {
       'is_active': false,
       'subcategories': [
         {'id': 's6', 'name': 'Delivery Partner', 'is_active': true},
-      ]
+      ],
     },
   ];
 
   @override
   Widget build(BuildContext context) {
     final filteredCategories = _categories.where((cat) {
-      final matchesCat = cat['name'].toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesSub = (cat['subcategories'] as List).any((sub) => sub['name'].toLowerCase().contains(_searchQuery.toLowerCase()));
+      final matchesCat = cat['name'].toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          );
+      final matchesSub = (cat['subcategories'] as List).any(
+        (sub) => sub['name'].toLowerCase().contains(_searchQuery.toLowerCase()),
+      );
       return matchesCat || matchesSub;
     }).toList();
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Action Bar
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            const Text('Taxonomy Management', style: ShiftleyTokens.h2),
             ElevatedButton.icon(
-              onPressed: () => _showCategoryDialog(),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add Category'),
+              onPressed: () => _showTaxonomyDialog(),
+              icon: const Icon(Icons.add, size: 20),
+              label: Text(
+                'Add Taxonomy',
+                style: ShiftleyTokens.buttonLabel.copyWith(fontSize: 16),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ShiftleyTokens.inkBlack,
                 foregroundColor: ShiftleyTokens.paperWhite,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: ShiftleyTokens.spaceL,
+                  vertical: ShiftleyTokens.spaceM,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    ShiftleyTokens.borderRadiusVal,
+                  ),
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: ShiftleyTokens.spaceL),
+
+        // Search Bar
         _buildSearchBar(),
-        const SizedBox(height: ShiftleyTokens.spaceL),
-        _buildTable(filteredCategories),
+
+        const SizedBox(height: ShiftleyTokens.spaceXL),
+
+        // Horizontal Scrollable Table
+        LayoutBuilder(
+          builder: (context, constraints) {
+            double tableWidth = constraints.maxWidth > 900
+                ? constraints.maxWidth
+                : 900;
+            return Scrollbar(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: tableWidth,
+                  child: _buildTable(filteredCategories),
+                ),
+              ),
+            );
+          },
+        ),
       ],
     );
   }
 
   Widget _buildSearchBar() {
     return Container(
-      decoration: BoxDecoration(
-        color: ShiftleyTokens.paperWhite,
-        border: ShiftleyTokens.primaryBorder,
-        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0),
+        ),
       ),
       child: TextField(
         onChanged: (val) => setState(() => _searchQuery = val),
-        style: ShiftleyTokens.bodyMedium,
+        style: ShiftleyTokens.bodyMedium.copyWith(fontSize: _bodyFontSize),
         decoration: const InputDecoration(
-          hintText: 'Search categories or subcategories...',
-          prefixIcon: Icon(Icons.search, color: ShiftleyTokens.inkBlack),
+          hintText: 'Search taxonomy...',
+          prefixIcon: Icon(
+            Icons.search,
+            color: ShiftleyTokens.inkBlack,
+            size: 22,
+          ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceM, vertical: ShiftleyTokens.spaceM),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: ShiftleyTokens.spaceS,
+            vertical: ShiftleyTokens.spaceM,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildTable(List<Map<String, dynamic>> categories) {
-    return Container(
-      decoration: BoxDecoration(
-        color: ShiftleyTokens.paperWhite,
-        border: ShiftleyTokens.primaryBorder,
-        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-        child: Column(
-          children: [
-            // Header
-            _buildTableHeader(),
-            const Divider(height: 1, thickness: 2, color: ShiftleyTokens.inkBlack),
-            // Rows
-            if (categories.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(ShiftleyTokens.spaceXL),
-                child: Text('No categories found.', style: ShiftleyTokens.bodyMedium),
-              )
-            else
-              ...categories.expand((cat) => [
-                _buildCategoryRow(cat),
-                if (_expandedCategories.contains(cat['id'])) _buildSubcategoryList(cat),
-                const Divider(height: 1, thickness: 1, color: ShiftleyTokens.utilityGrey),
-              ]),
-          ],
-        ),
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildTableHeader(),
+        if (categories.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(ShiftleyTokens.spaceXL),
+            child: Text('No entries found.', style: ShiftleyTokens.bodyMedium),
+          )
+        else
+          ...categories.expand(
+            (cat) => [
+              _buildCategoryRow(cat),
+              if (_expandedCategories.contains(cat['id']))
+                _buildSubcategoryList(cat),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: ShiftleyTokens.utilityGrey,
+              ),
+            ],
+          ),
+      ],
     );
   }
 
   Widget _buildTableHeader() {
     return Container(
-      padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-      color: ShiftleyTokens.secondaryCyan,
+      padding: const EdgeInsets.symmetric(
+        vertical: ShiftleyTokens.spaceS,
+        horizontal: ShiftleyTokens.spaceXS,
+      ),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0),
+        ),
+      ),
       child: Row(
-        children: const [
-          SizedBox(width: 40), // Expansion icon space
-          Expanded(flex: 3, child: Text('CATEGORY NAME', style: ShiftleyTokens.buttonLabel)),
-          Expanded(flex: 1, child: Text('SUBCATS', style: ShiftleyTokens.buttonLabel)),
-          Expanded(flex: 1, child: Text('STATUS', style: ShiftleyTokens.buttonLabel)),
-          Expanded(flex: 1, child: Text('ACTIONS', style: ShiftleyTokens.buttonLabel)),
+        children: [
+          const SizedBox(width: 30),
+          _vDivider(),
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                'CATEGORY',
+                style: ShiftleyTokens.buttonLabel.copyWith(
+                  fontSize: _headerFontSize,
+                ),
+              ),
+            ),
+          ),
+          _vDivider(),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                'SUB - CATEGORY',
+                style: ShiftleyTokens.buttonLabel.copyWith(
+                  fontSize: _headerFontSize,
+                ),
+              ),
+            ),
+          ),
+          _vDivider(),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                'STATUS',
+                style: ShiftleyTokens.buttonLabel.copyWith(
+                  fontSize: _headerFontSize,
+                ),
+              ),
+            ),
+          ),
+          _vDivider(),
+          Expanded(
+            flex: 1, // Decreased from 2 to 1
+            child: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                'ACTIONS',
+                style: ShiftleyTokens.buttonLabel.copyWith(
+                  fontSize: _headerFontSize,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _vDivider() {
+    return Container(
+      height: 18,
+      width: 1,
+      color: ShiftleyTokens.inkBlack.withOpacity(0.1),
     );
   }
 
@@ -161,35 +267,77 @@ class _TaxonomyViewState extends State<TaxonomyView> {
         });
       },
       child: Padding(
-        padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+        padding: const EdgeInsets.symmetric(
+          vertical: ShiftleyTokens.spaceS,
+          horizontal: ShiftleyTokens.spaceXS,
+        ),
         child: Row(
           children: [
-            Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 20),
-            const SizedBox(width: 20),
-            Expanded(flex: 3, child: Text(cat['name'], style: ShiftleyTokens.bodyLarge)),
-            Expanded(flex: 1, child: Text('${cat['subcategories'].length}', style: ShiftleyTokens.bodyMedium)),
-            Expanded(
-              flex: 1,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _buildStatusChip(isActive),
+            SizedBox(
+              width: 30,
+              child: Icon(
+                isExpanded ? Icons.expand_less : Icons.expand_more,
+                size: 20,
               ),
             ),
+            _vDivider(),
             Expanded(
-              flex: 1,
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 20, color: ShiftleyTokens.inkBlack),
-                    onPressed: () => _showCategoryDialog(cat: cat),
-                    tooltip: 'Edit Category',
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Text(
+                  cat['name'],
+                  style: ShiftleyTokens.bodyLarge.copyWith(
+                    fontSize: _bodyFontSize,
+                    fontWeight: FontWeight.bold,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, size: 20, color: ShiftleyTokens.inkBlack),
-                    onPressed: () => _showSubcategoryDialog(catID: cat['id']),
-                    tooltip: 'Add Subcategory',
+                ),
+              ),
+            ),
+            _vDivider(),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Text(
+                  '${cat['subcategories'].length}',
+                  style: ShiftleyTokens.bodyMedium.copyWith(
+                    fontSize: _bodyFontSize,
                   ),
-                ],
+                ),
+              ),
+            ),
+            _vDivider(),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildStatusChip(isActive),
+                ),
+              ),
+            ),
+            _vDivider(),
+            Expanded(
+              flex: 1, // Decreased from 2 to 1
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        size: 20,
+                        color: ShiftleyTokens.inkBlack,
+                      ),
+                      onPressed: () => _showTaxonomyDialog(cat: cat),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Edit Category',
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -201,28 +349,73 @@ class _TaxonomyViewState extends State<TaxonomyView> {
   Widget _buildSubcategoryList(Map<String, dynamic> cat) {
     final List subcats = cat['subcategories'];
     return Container(
-      color: ShiftleyTokens.background.withOpacity(0.5),
-      padding: const EdgeInsets.only(left: 60, right: ShiftleyTokens.spaceM, top: ShiftleyTokens.spaceS, bottom: ShiftleyTokens.spaceS),
+      color: ShiftleyTokens.background.withOpacity(0.3),
+      padding: const EdgeInsets.only(
+        left: 45,
+        right: ShiftleyTokens.spaceXS,
+        top: 4,
+        bottom: 4,
+      ),
       child: Column(
         children: [
-          ...subcats.map((sub) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceXS),
-            child: Row(
-              children: [
-                const Icon(Icons.subdirectory_arrow_right, size: 16, color: ShiftleyTokens.mutedText),
-                const SizedBox(width: ShiftleyTokens.spaceM),
-                Expanded(child: Text(sub['name'], style: ShiftleyTokens.bodyMedium)),
-                const SizedBox(width: ShiftleyTokens.spaceM),
-                _buildStatusChip(sub['is_active'], small: true),
-                const SizedBox(width: ShiftleyTokens.spaceXL),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 18, color: ShiftleyTokens.mutedText),
-                  onPressed: () => _showSubcategoryDialog(catID: cat['id'], sub: sub),
-                ),
-                const SizedBox(width: ShiftleyTokens.spaceXXL), // Align with actions column
-              ],
+          ...subcats.map(
+            (sub) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.subdirectory_arrow_right,
+                    size: 16,
+                    color: ShiftleyTokens.mutedText,
+                  ),
+                  const SizedBox(width: ShiftleyTokens.spaceS),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      sub['name'],
+                      style: ShiftleyTokens.bodyMedium.copyWith(
+                        fontSize: _subcatFontSize,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: ShiftleyTokens.spaceM),
+                  _vDivider(),
+                  Expanded(
+                    flex: 2,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: _buildStatusChip(sub['is_active'], small: true),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: ShiftleyTokens.spaceM),
+                  _vDivider(),
+                  Expanded(
+                    flex: 1, // Decreased from 2 to 1
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: ShiftleyTokens.mutedText,
+                          ),
+                          onPressed: () =>
+                              _showTaxonomyDialog(cat: cat, sub: sub),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -230,76 +423,224 @@ class _TaxonomyViewState extends State<TaxonomyView> {
 
   Widget _buildStatusChip(bool isActive, {bool small = false}) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: small ? ShiftleyTokens.spaceS : ShiftleyTokens.spaceM,
-        vertical: 4,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: small ? 8 : 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isActive ? Colors.green : Colors.red, width: 1.5),
+        color: isActive
+            ? Colors.green.withOpacity(0.1)
+            : Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4.0),
+        border: Border.all(
+          color: isActive ? Colors.green : Colors.red,
+          width: 1.0,
+        ),
       ),
       child: Text(
         isActive ? 'Active' : 'Disabled',
         style: ShiftleyTokens.caption.copyWith(
           color: isActive ? Colors.green[700] : Colors.red[700],
-          fontWeight: FontWeight.w900,
-          fontSize: small ? 9 : 10,
-          letterSpacing: 0.5,
+          fontWeight: FontWeight.w700,
+          fontSize: small ? _statusFontSize : _statusFontSize + 1,
         ),
       ),
     );
   }
 
-  void _showCategoryDialog({Map<String, dynamic>? cat}) {
-    final controller = TextEditingController(text: cat?['name'] ?? '');
-    bool isActive = cat?['is_active'] ?? true;
+  void _showTaxonomyDialog({
+    Map<String, dynamic>? cat,
+    Map<String, dynamic>? sub,
+  }) {
+    final nameController = TextEditingController(
+      text: sub != null ? sub['name'] : (cat != null ? cat['name'] : ''),
+    );
+    final subNameController = TextEditingController();
+    bool isActive = sub != null
+        ? sub['is_active']
+        : (cat != null ? cat['is_active'] : true);
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: ShiftleyTokens.paperWhite,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 20,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
             side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2),
           ),
-          title: Text(cat == null ? 'Add New Category' : 'Edit Category', style: ShiftleyTokens.h2),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                style: ShiftleyTokens.bodyLarge,
-                decoration: InputDecoration(
-                  labelText: 'Category Name',
-                  labelStyle: ShiftleyTokens.caption,
-                  border: ShiftleyTokens.primaryInputBorder,
-                  focusedBorder: ShiftleyTokens.focusInputBorder,
-                ),
-              ),
-              const SizedBox(height: ShiftleyTokens.spaceM),
-              Container(
-                decoration: BoxDecoration(
-                  border: ShiftleyTokens.thinBorder,
-                  borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-                ),
-                child: SwitchListTile(
-                  title: const Text('Status (Active)', style: ShiftleyTokens.bodyMedium),
-                  value: isActive,
-                  onChanged: (val) => setDialogState(() => isActive = val),
-                  activeColor: ShiftleyTokens.primaryRed,
-                ),
-              ),
-              if (cat != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: ShiftleyTokens.spaceM),
-                  child: Text(
-                    'Note: Deleting is not permitted. Disable to hide.',
-                    style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.errorRed, fontWeight: FontWeight.bold),
+          title: Text(
+            sub != null
+                ? 'Edit Subcategory'
+                : (cat != null ? 'Edit Category' : 'Add New Taxonomy'),
+            style: ShiftleyTokens.h2,
+          ),
+          content: SizedBox(
+            width: 500,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (sub == null) ...[
+                    Text('Category Name', style: ShiftleyTokens.bodyLarge),
+                    const SizedBox(height: ShiftleyTokens.spaceS),
+                    TextField(
+                      controller: nameController,
+                      enabled: cat == null,
+                      style: ShiftleyTokens.bodyLarge.copyWith(
+                        color: cat == null
+                            ? ShiftleyTokens.inkBlack
+                            : ShiftleyTokens.mutedText,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Enter category name',
+                        filled: cat != null,
+                        fillColor: cat != null
+                            ? ShiftleyTokens.background
+                            : Colors.transparent,
+                        border: ShiftleyTokens.primaryInputBorder,
+                        focusedBorder: ShiftleyTokens.focusInputBorder,
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      'Editing Subcategory under: ${cat!['name']}',
+                      style: ShiftleyTokens.caption,
+                    ),
+                    const SizedBox(height: ShiftleyTokens.spaceM),
+                    Text('Subcategory Name', style: ShiftleyTokens.bodyLarge),
+                    const SizedBox(height: ShiftleyTokens.spaceS),
+                    TextField(
+                      controller: nameController,
+                      style: ShiftleyTokens.bodyLarge,
+                      decoration: InputDecoration(
+                        hintText: 'Enter subcategory name',
+                        border: ShiftleyTokens.primaryInputBorder,
+                        focusedBorder: ShiftleyTokens.focusInputBorder,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: ShiftleyTokens.spaceL),
+
+                  Container(
+                    decoration: BoxDecoration(
+                      border: ShiftleyTokens.thinBorder,
+                      borderRadius: BorderRadius.circular(
+                        ShiftleyTokens.borderRadiusVal,
+                      ),
+                    ),
+                    child: SwitchListTile(
+                      title: const Text(
+                        'Status (Active)',
+                        style: ShiftleyTokens.bodyMedium,
+                      ),
+                      value: isActive,
+                      onChanged: (val) => setDialogState(() => isActive = val),
+                      activeColor: ShiftleyTokens.primaryRed,
+                    ),
                   ),
-                ),
-            ],
+
+                  if (sub == null && cat != null) ...[
+                    const SizedBox(height: ShiftleyTokens.spaceXL),
+                    const Divider(color: ShiftleyTokens.inkBlack, thickness: 1),
+                    const SizedBox(height: ShiftleyTokens.spaceM),
+                    const Text(
+                      'Manage Subcategories',
+                      style: ShiftleyTokens.h2,
+                    ),
+                    const SizedBox(height: ShiftleyTokens.spaceM),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: subNameController,
+                            decoration: InputDecoration(
+                              hintText: 'Add Subcategory...',
+                              border: ShiftleyTokens.primaryInputBorder,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: ShiftleyTokens.spaceM,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: ShiftleyTokens.spaceM),
+                        ElevatedButton(
+                          onPressed: () {
+                            if (subNameController.text.isNotEmpty) {
+                              setDialogState(() {
+                                subNameController.clear();
+                              });
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ShiftleyTokens.inkBlack,
+                            foregroundColor: ShiftleyTokens.paperWhite,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                ShiftleyTokens.borderRadiusVal,
+                              ),
+                            ),
+                          ),
+                          child: const Text('ADD'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: ShiftleyTokens.spaceM),
+
+                    ...(cat['subcategories'] as List).map(
+                      (s) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Container(
+                          padding: const EdgeInsets.all(ShiftleyTokens.spaceS),
+                          decoration: BoxDecoration(
+                            color: ShiftleyTokens.background,
+                            borderRadius: BorderRadius.circular(
+                              ShiftleyTokens.borderRadiusVal,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.subdirectory_arrow_right,
+                                size: 14,
+                              ),
+                              const SizedBox(width: ShiftleyTokens.spaceM),
+                              Expanded(
+                                child: Text(
+                                  s['name'],
+                                  style: ShiftleyTokens.bodyMedium,
+                                ),
+                              ),
+                              _buildStatusChip(s['is_active'], small: true),
+                              const SizedBox(width: ShiftleyTokens.spaceS),
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 16),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _showTaxonomyDialog(cat: cat, sub: s);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: ShiftleyTokens.spaceL),
+                  Text(
+                    'Note: Deletion is not permitted. Disable to hide.',
+                    style: ShiftleyTokens.caption.copyWith(
+                      color: ShiftleyTokens.errorRed,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           actions: [
             TextButton(
@@ -308,88 +649,21 @@ class _TaxonomyViewState extends State<TaxonomyView> {
             ),
             ElevatedButton(
               onPressed: () {
-                // Implement API Call here
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: ShiftleyTokens.inkBlack,
                 foregroundColor: ShiftleyTokens.paperWhite,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
-              ),
-              child: const Text('SAVE CHANGES', style: ShiftleyTokens.buttonLabel),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSubcategoryDialog({required String catID, Map<String, dynamic>? sub}) {
-    final controller = TextEditingController(text: sub?['name'] ?? '');
-    bool isActive = sub?['is_active'] ?? true;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: ShiftleyTokens.paperWhite,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-            side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2),
-          ),
-          title: Text(sub == null ? 'Add Subcategory' : 'Edit Subcategory', style: ShiftleyTokens.h2),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                style: ShiftleyTokens.bodyLarge,
-                decoration: InputDecoration(
-                  labelText: 'Subcategory Name',
-                  labelStyle: ShiftleyTokens.caption,
-                  border: ShiftleyTokens.primaryInputBorder,
-                  focusedBorder: ShiftleyTokens.focusInputBorder,
-                ),
-              ),
-              const SizedBox(height: ShiftleyTokens.spaceM),
-              Container(
-                decoration: BoxDecoration(
-                  border: ShiftleyTokens.thinBorder,
-                  borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-                ),
-                child: SwitchListTile(
-                  title: const Text('Status (Active)', style: ShiftleyTokens.bodyMedium),
-                  value: isActive,
-                  onChanged: (val) => setDialogState(() => isActive = val),
-                  activeColor: ShiftleyTokens.primaryRed,
-                ),
-              ),
-              if (sub != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: ShiftleyTokens.spaceM),
-                  child: Text(
-                    'Note: Deleting is not permitted. Disable to hide.',
-                    style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.errorRed, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    ShiftleyTokens.borderRadiusVal,
                   ),
                 ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('CANCEL', style: ShiftleyTokens.buttonLabel),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Implement API Call here
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ShiftleyTokens.inkBlack,
-                foregroundColor: ShiftleyTokens.paperWhite,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
               ),
-              child: const Text('SAVE CHANGES', style: ShiftleyTokens.buttonLabel),
+              child: const Text(
+                'SAVE CHANGES',
+                style: ShiftleyTokens.buttonLabel,
+              ),
             ),
           ],
         ),

@@ -72,7 +72,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
       case AdminTab.config:
         return 'Config';
       case AdminTab.taxonomy:
-        return 'Categories & Subcats';
+        return 'Taxonomy';
       case AdminTab.disputes:
         return 'Disputes';
       case AdminTab.analytics:
