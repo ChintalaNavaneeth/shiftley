@@ -255,7 +255,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
     return Container(
       height: 18,
       width: 1,
-      color: ShiftleyTokens.inkBlack.withOpacity(0.1),
+      color: ShiftleyTokens.inkBlack.withValues(alpha: 0.1),
     );
   }
 
@@ -356,7 +356,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
   Widget _buildSubcategoryList(Map<String, dynamic> cat) {
     final List subcats = cat['subcategories'];
     return Container(
-      color: ShiftleyTokens.background.withOpacity(0.3),
+      color: ShiftleyTokens.background.withValues(alpha: 0.3),
       padding: const EdgeInsets.only(
         left: 45,
         right: ShiftleyTokens.spaceM,
@@ -433,8 +433,8 @@ class _TaxonomyViewState extends State<TaxonomyView> {
       padding: EdgeInsets.symmetric(horizontal: small ? 8 : 10, vertical: 4),
       decoration: BoxDecoration(
         color: isActive
-            ? Colors.green.withOpacity(0.1)
-            : Colors.red.withOpacity(0.1),
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4.0),
         border: Border.all(
           color: isActive ? Colors.green : Colors.red,
@@ -545,7 +545,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                       ),
                       value: isActive,
                       onChanged: (val) => setDialogState(() => isActive = val),
-                      activeColor: ShiftleyTokens.primaryRed,
+                      activeThumbColor: ShiftleyTokens.primaryRed,
                     ),
                   ),
 

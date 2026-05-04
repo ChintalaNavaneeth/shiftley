@@ -113,7 +113,7 @@ class _DisputeViewState extends State<DisputeView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: resolution == 'Approved' ? Colors.green.withOpacity(0.1) : ShiftleyTokens.primaryRed.withOpacity(0.1),
+                        color: resolution == 'Approved' ? Colors.green.withValues(alpha: 0.1) : ShiftleyTokens.primaryRed.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(

@@ -277,7 +277,7 @@ class _AnalyticsViewState extends State<AnalyticsView> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: categories.length,
-            separatorBuilder: (_, __) => const SizedBox(height: ShiftleyTokens.spaceM),
+            separatorBuilder: (_, _) => const SizedBox(height: ShiftleyTokens.spaceM),
             itemBuilder: (context, index) {
               final item = categories[index];
               return Row(
@@ -327,7 +327,7 @@ class _ChartPainter extends CustomPainter {
     final chartHeight = size.height - bottomPadding - topPadding;
     final incomePaint = Paint()..color = ShiftleyTokens.primaryRed..style = PaintingStyle.stroke..strokeWidth = 3.0..strokeCap = StrokeCap.round;
     final expenditurePaint = Paint()..color = ShiftleyTokens.inkBlack..style = PaintingStyle.stroke..strokeWidth = 3.0..strokeCap = StrokeCap.round;
-    final gridPaint = Paint()..color = ShiftleyTokens.utilityGrey.withOpacity(0.1)..strokeWidth = 1.0;
+    final gridPaint = Paint()..color = ShiftleyTokens.utilityGrey.withValues(alpha: 0.1)..strokeWidth = 1.0;
     for (int i = 0; i <= 5; i++) {
       final y = topPadding + chartHeight * (1 - i / 5);
       canvas.drawLine(Offset(leftPadding, y), Offset(size.width, y), gridPaint);
@@ -361,7 +361,11 @@ class _ChartPainter extends CustomPainter {
     for (int i = 0; i < points.length; i++) {
       final x = origin.dx + i * stepX;
       final y = origin.dy + size.height * (1 - points[i]);
-      if (i == 0) path.moveTo(x, y); else path.lineTo(x, y);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
     }
     canvas.drawPath(path, paint);
     final dotPaint = Paint()..color = paint.color;

@@ -185,7 +185,7 @@ class UserManagementView extends StatelessWidget {
           Text(label, style: ShiftleyTokens.caption),
           const SizedBox(height: 4),
           DropdownButtonFormField<String>(
-            value: options[0],
+            initialValue: options[0],
             items: options.map((e) => DropdownMenuItem(value: e, child: Text(e, style: ShiftleyTokens.bodyMedium))).toList(),
             onChanged: (v) {},
             decoration: InputDecoration(

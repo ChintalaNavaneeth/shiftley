@@ -357,7 +357,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   Widget _buildProfileMeta(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: ShiftleyTokens.paperWhite.withOpacity(0.6)),
+        Icon(icon, size: 14, color: ShiftleyTokens.paperWhite.withValues(alpha: 0.6)),
         const SizedBox(width: 8),
         Text(text, style: const TextStyle(color: ShiftleyTokens.paperWhite, fontSize: 12, fontWeight: FontWeight.w500)),
       ],
