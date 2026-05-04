@@ -76,6 +76,18 @@ class EmployerSidebar extends StatelessWidget {
             isActive: activeTab == EmployerTab.profile,
             onTap: () => onTabChanged(EmployerTab.profile),
           ),
+          _SidebarItem(
+            icon: Icons.support_agent_outlined,
+            label: 'Customer Support',
+            isActive: activeTab == EmployerTab.support,
+            onTap: () => onTabChanged(EmployerTab.support),
+          ),
+          _SidebarItem(
+            icon: Icons.help_outline,
+            label: 'Help & FAQ',
+            isActive: activeTab == EmployerTab.faq,
+            onTap: () => onTabChanged(EmployerTab.faq),
+          ),
           
           const Spacer(),
           

@@ -6,8 +6,10 @@ import 'views/manage_shifts_view.dart';
 import 'views/post_shift_view.dart';
 import 'views/subscription_view.dart';
 import 'views/profile_view.dart';
+import 'views/support_view.dart';
+import 'views/faq_view.dart';
 
-enum EmployerTab { overview, shifts, post, subscription, profile }
+enum EmployerTab { overview, shifts, post, subscription, profile, support, faq }
 
 class EmployerScreen extends StatefulWidget {
   const EmployerScreen({super.key});
@@ -79,6 +81,10 @@ class _EmployerScreenState extends State<EmployerScreen> {
         return 'Subscription';
       case EmployerTab.profile:
         return 'Business Profile';
+      case EmployerTab.support:
+        return 'Customer Support';
+      case EmployerTab.faq:
+        return 'Help & FAQ';
     }
   }
 
@@ -96,6 +102,10 @@ class _EmployerScreenState extends State<EmployerScreen> {
         return const SubscriptionView();
       case EmployerTab.profile:
         return const ProfileView();
+      case EmployerTab.support:
+        return const SupportView();
+      case EmployerTab.faq:
+        return const FAQView();
     }
   }
 }
