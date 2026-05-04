@@ -5,6 +5,7 @@ enum AdminTab {
   overview,
   users,
   config,
+  taxonomy,
   disputes,
   analytics,
 }
@@ -70,6 +71,12 @@ class AdminSidebar extends StatelessWidget {
             label: 'Fees & Config',
             isActive: activeTab == AdminTab.config,
             onTap: () => onTabChanged(AdminTab.config),
+          ),
+          _SidebarItem(
+            icon: Icons.category_outlined,
+            label: 'Categories & Subcats',
+            isActive: activeTab == AdminTab.taxonomy,
+            onTap: () => onTabChanged(AdminTab.taxonomy),
           ),
           _SidebarItem(
             icon: Icons.gavel_outlined,

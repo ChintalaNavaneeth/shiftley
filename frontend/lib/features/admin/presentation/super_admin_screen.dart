@@ -6,6 +6,7 @@ import 'views/user_management_view.dart';
 import 'views/config_view.dart';
 import 'views/dispute_view.dart';
 import 'views/analytics_view.dart';
+import 'views/taxonomy_view.dart';
 
 class SuperAdminScreen extends StatefulWidget {
   const SuperAdminScreen({super.key});
@@ -70,6 +71,8 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
         return 'Users';
       case AdminTab.config:
         return 'Config';
+      case AdminTab.taxonomy:
+        return 'Categories & Subcats';
       case AdminTab.disputes:
         return 'Disputes';
       case AdminTab.analytics:
@@ -85,6 +88,8 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
         return const UserManagementView();
       case AdminTab.config:
         return const ConfigView();
+      case AdminTab.taxonomy:
+        return const TaxonomyView();
       case AdminTab.disputes:
         return const DisputeView();
       case AdminTab.analytics:

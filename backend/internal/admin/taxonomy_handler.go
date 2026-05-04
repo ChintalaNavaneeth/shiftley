@@ -19,8 +19,26 @@ func NewTaxonomyHandler(db *gorm.DB) *TaxonomyHandler {
 	return &TaxonomyHandler{db: db}
 }
 
-type CreateCategoryRequest struct {
-	Name string `json:"name" binding:"required"`
+type UpdateTaxonomyRequest struct {
+	Name     *string `json:"name"`
+	IsActive *bool   `json:"is_active"`
+}
+
+// GetAdminTaxonomy handles GET /api/v1/admin/taxonomy/categories
+// @Summary Get All Taxonomy (Admin)
+// @Description Returns all categories and skills, including inactive ones.
+// @Tags Admin
+// @Produce json
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /admin/taxonomy/categories [get]
+func (h *TaxonomyHandler) GetAdminTaxonomy(c *gin.Context) {
+	var categories []taxonomy.Category
+	if err := h.db.Preload("Skills").Find(&categories).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to fetch taxonomy", nil)
+		return
+	}
+	utils.RespondSuccess(c, http.StatusOK, categories, nil)
 }
 
 // CreateCategory handles POST /api/v1/admin/taxonomy/categories
@@ -50,6 +68,41 @@ func (h *TaxonomyHandler) CreateCategory(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, http.StatusCreated, cat, nil)
+}
+
+// UpdateCategory handles PATCH /api/v1/admin/taxonomy/categories/:id
+// @Summary Update Taxonomy Category
+// @Description Updates name or active state of a category.
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param id path string true "Category ID"
+// @Param request body UpdateTaxonomyRequest true "Update Details"
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /admin/taxonomy/categories/{id} [patch]
+func (h *TaxonomyHandler) UpdateCategory(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateTaxonomyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid request payload", nil)
+		return
+	}
+
+	updates := make(map[string]interface{})
+	if req.Name != nil {
+		updates["name"] = *req.Name
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
+
+	if err := h.db.Model(&taxonomy.Category{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update category", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{"id": id, "updates": updates}, nil)
 }
 
 type CreateSkillRequest struct {
@@ -94,33 +147,37 @@ func (h *TaxonomyHandler) CreateSkill(c *gin.Context) {
 	utils.RespondSuccess(c, http.StatusCreated, skill, nil)
 }
 
-type ToggleStateRequest struct {
-	IsActive bool `json:"is_active"`
-}
-
-// ToggleSkillState handles PATCH /api/v1/admin/taxonomy/skills/{id}
-// @Summary Toggle Taxonomy State
-// @Description Safely disables a skill so it no longer appears in public dropdowns.
+// UpdateSkill handles PATCH /api/v1/admin/taxonomy/skills/:id
+// @Summary Update Taxonomy Skill
+// @Description Updates name or active state of a skill.
 // @Tags Admin
 // @Accept json
 // @Produce json
 // @Param id path string true "Skill ID"
-// @Param request body ToggleStateRequest true "Toggle State"
+// @Param request body UpdateTaxonomyRequest true "Update Details"
 // @Success 200 {object} utils.SuccessResponse
 // @Security ApiKeyAuth
 // @Router /admin/taxonomy/skills/{id} [patch]
-func (h *TaxonomyHandler) ToggleSkillState(c *gin.Context) {
+func (h *TaxonomyHandler) UpdateSkill(c *gin.Context) {
 	id := c.Param("id")
-	var req ToggleStateRequest
+	var req UpdateTaxonomyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid request payload", nil)
 		return
 	}
 
-	if err := h.db.Model(&taxonomy.Skill{}).Where("id = ?", id).Update("is_active", req.IsActive).Error; err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update skill state", nil)
+	updates := make(map[string]interface{})
+	if req.Name != nil {
+		updates["name"] = *req.Name
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
+
+	if err := h.db.Model(&taxonomy.Skill{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update skill", nil)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{"id": id, "is_active": req.IsActive}, nil)
+	utils.RespondSuccess(c, http.StatusOK, gin.H{"id": id, "updates": updates}, nil)
 }

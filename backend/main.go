@@ -242,9 +242,11 @@ func main() {
 			taxGroup := adminGroup.Group("/taxonomy")
 			taxGroup.Use(middleware.RequireRoles(string(auth.RoleSuperAdmin)))
 			{
+				taxGroup.GET("/categories", taxonomyAdminHandler.GetAdminTaxonomy)
 				taxGroup.POST("/categories", taxonomyAdminHandler.CreateCategory)
+				taxGroup.PATCH("/categories/:id", taxonomyAdminHandler.UpdateCategory)
 				taxGroup.POST("/categories/:categoryId/skills", taxonomyAdminHandler.CreateSkill)
-				taxGroup.PATCH("/skills/:id", taxonomyAdminHandler.ToggleSkillState)
+				taxGroup.PATCH("/skills/:id", taxonomyAdminHandler.UpdateSkill)
 			}
 
 			// Platform Config
