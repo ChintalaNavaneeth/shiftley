@@ -32,14 +32,20 @@ class ShiftleyTokens {
   static Border get thinBorder =>
       Border.all(color: inkBlack, width: 1.0);
 
+  static BorderSide get primaryBorderSide =>
+      const BorderSide(color: inkBlack, width: borderWidth);
+
+  static BorderSide get focusBorderSide =>
+      const BorderSide(color: primaryRed, width: borderWidth);
+
   static InputBorder get primaryInputBorder => OutlineInputBorder(
         borderRadius: BorderRadius.circular(borderRadiusVal),
-        borderSide: const BorderSide(color: inkBlack, width: borderWidth),
+        borderSide: primaryBorderSide,
       );
 
   static InputBorder get focusInputBorder => OutlineInputBorder(
         borderRadius: BorderRadius.circular(borderRadiusVal),
-        borderSide: const BorderSide(color: primaryRed, width: borderWidth),
+        borderSide: focusBorderSide,
       );
 
   // ─── Typography ───────────────────────────────────────────

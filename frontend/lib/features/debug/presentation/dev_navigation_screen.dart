@@ -70,6 +70,12 @@ class DevNavigationScreen extends StatelessWidget {
                   icon: Icons.verified_user_outlined,
                   color: ShiftleyTokens.secondaryCyan,
                 ),
+                _DevButton(
+                  label: 'Employer Dashboard',
+                  path: '/employer',
+                  icon: Icons.business_center_outlined,
+                  color: ShiftleyTokens.secondaryCyan,
+                ),
                 const SizedBox(height: ShiftleyTokens.spaceXXL),
                 Text(
                   'Current Environment: Development',

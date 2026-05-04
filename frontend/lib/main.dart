@@ -8,6 +8,7 @@ import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/otp_screen.dart';
 import 'features/admin/presentation/super_admin_screen.dart';
 import 'features/verifier/presentation/verifier_screen.dart';
+import 'features/employer/presentation/employer_screen.dart';
 import 'features/debug/presentation/dev_navigation_screen.dart';
 
 
@@ -44,6 +45,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/verifier',
       builder: (context, state) => const VerifierScreen(),
+    ),
+    GoRoute(
+      path: '/employer',
+      builder: (context, state) => const EmployerScreen(),
     ),
   ],
 );

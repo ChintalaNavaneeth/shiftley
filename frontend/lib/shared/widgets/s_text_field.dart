@@ -19,8 +19,13 @@ class STextField extends StatefulWidget {
     this.prefix,
     this.maxLength,
     this.enabled = true,
+    this.readOnly = false,
+    this.onTap,
     this.validator,
   });
+
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   @override
   State<STextField> createState() => _STextFieldState();
@@ -46,6 +51,8 @@ class _STextFieldState extends State<STextField> {
           keyboardType: widget.keyboardType,
           maxLength: widget.maxLength,
           enabled: widget.enabled,
+          readOnly: widget.readOnly,
+          onTap: widget.onTap,
           validator: widget.validator,
           style: ShiftleyTokens.bodyMedium,
           decoration: InputDecoration(

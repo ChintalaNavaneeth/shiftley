@@ -56,11 +56,16 @@ class ShiftleyButton extends StatelessWidget {
               Icon(icon, size: iconSize, color: textColor),
               const SizedBox(width: ShiftleyTokens.spaceS),
             ],
-            Text(
-              label.toUpperCase(),
-              style: ShiftleyTokens.buttonLabel.copyWith(
-                color: textColor,
-                fontSize: fontSize,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label.toUpperCase(),
+                  style: ShiftleyTokens.buttonLabel.copyWith(
+                    color: textColor,
+                    fontSize: fontSize,
+                  ),
+                ),
               ),
             ),
           ],
