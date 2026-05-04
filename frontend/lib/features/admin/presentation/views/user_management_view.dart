@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 
 class UserManagementView extends StatelessWidget {
   const UserManagementView({super.key});
@@ -9,16 +10,16 @@ class UserManagementView extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ShiftleyTokens.paperWhite,
-        elevation: 0, // Removed shadow
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24), // Allows wider dialog
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2),
           borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
         ),
         title: const Text('Invite New Staff', style: ShiftleyTokens.h2),
         content: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.7, // Increased width by ~20% (relative to previous)
-          child: SingleChildScrollView( // Prevents keyboard overflow
+          width: MediaQuery.of(context).size.width * 0.7,
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -34,19 +35,17 @@ class UserManagementView extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(
+          ShiftleyButton(
+            label: 'Cancel',
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: ShiftleyTokens.mutedText)),
+            isPrimary: false,
+            size: ShiftleyButtonSize.small,
           ),
-          ElevatedButton(
+          const SizedBox(width: ShiftleyTokens.spaceS),
+          ShiftleyButton(
+            label: 'Send Invite',
             onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ShiftleyTokens.inkBlack,
-              foregroundColor: ShiftleyTokens.paperWhite,
-              elevation: 0, // Removed shadow
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Send Invite'),
+            size: ShiftleyButtonSize.small,
           ),
         ],
       ),
@@ -65,6 +64,7 @@ class UserManagementView extends StatelessWidget {
             filled: true,
             fillColor: ShiftleyTokens.background,
             border: ShiftleyTokens.primaryInputBorder,
+            focusedBorder: ShiftleyTokens.focusInputBorder,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
           ),
         ),
@@ -86,6 +86,7 @@ class UserManagementView extends StatelessWidget {
             filled: true,
             fillColor: ShiftleyTokens.background,
             border: ShiftleyTokens.primaryInputBorder,
+            focusedBorder: ShiftleyTokens.focusInputBorder,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             isDense: true,
           ),
@@ -99,31 +100,20 @@ class UserManagementView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Header & Invite ──────────────────────────────────────────
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Manage Users', style: ShiftleyTokens.h2),
-            ElevatedButton.icon(
+            ShiftleyButton(
               onPressed: () => _showInviteDialog(context),
-              icon: const Icon(Icons.add, size: 20),
-              label: const Text('Invite Staff'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ShiftleyTokens.inkBlack,
-                foregroundColor: ShiftleyTokens.paperWhite,
-                padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceL, vertical: ShiftleyTokens.spaceM),
-                shape: RoundedRectangleBorder(
-                  side: const BorderSide(color: ShiftleyTokens.inkBlack),
-                  borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-                ),
-                elevation: 0, // Removed shadow as requested
-              ),
+              icon: Icons.add,
+              label: 'Invite Staff',
+              size: ShiftleyButtonSize.medium,
             ),
           ],
         ),
         const SizedBox(height: ShiftleyTokens.spaceXL),
 
-        // ── Search & Reset (Row 1) ──────────────────────────────────
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -133,7 +123,7 @@ class UserManagementView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Search', style: ShiftleyTokens.caption),
+                    const Text('Search by', style: ShiftleyTokens.caption),
                     const SizedBox(height: 4),
                     TextField(
                       decoration: InputDecoration(
@@ -142,6 +132,7 @@ class UserManagementView extends StatelessWidget {
                         filled: true,
                         fillColor: ShiftleyTokens.paperWhite,
                         border: ShiftleyTokens.primaryInputBorder,
+                        focusedBorder: ShiftleyTokens.focusInputBorder,
                         contentPadding: EdgeInsets.zero,
                       ),
                     ),
@@ -151,27 +142,18 @@ class UserManagementView extends StatelessWidget {
             ),
             const SizedBox(width: ShiftleyTokens.spaceM),
             
-            // Reset Filter Button
-            SizedBox(
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.filter_list_off, size: 18, color: ShiftleyTokens.primaryRed),
-                label: const Text('Reset', style: TextStyle(color: ShiftleyTokens.primaryRed)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: ShiftleyTokens.primaryRed, width: 1.5),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
-                  elevation: 0,
-                ),
-              ),
+            ShiftleyButton(
+              onPressed: () {},
+              icon: Icons.filter_list_off,
+              label: '',
+              isPrimary: false,
+              size: ShiftleyButtonSize.medium,
             ),
           ],
         ),
         
         const SizedBox(height: ShiftleyTokens.spaceL),
 
-        // ── Filters (Row 2) ──────────────────────────────────────────
         Wrap(
           spacing: ShiftleyTokens.spaceM,
           runSpacing: ShiftleyTokens.spaceM,
@@ -183,7 +165,6 @@ class UserManagementView extends StatelessWidget {
 
         const SizedBox(height: ShiftleyTokens.spaceXL),
 
-        // ── Table Wrapper ────────────────────────────────────────────
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SizedBox(
@@ -211,6 +192,7 @@ class UserManagementView extends StatelessWidget {
               filled: true,
               fillColor: ShiftleyTokens.paperWhite,
               border: ShiftleyTokens.primaryInputBorder,
+              focusedBorder: ShiftleyTokens.focusInputBorder,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             ),
           ),
@@ -260,8 +242,8 @@ class UserManagementView extends StatelessWidget {
 
   Widget _buildUserRow(String name, String role, String status, String phone) {
     final isSuspended = status == 'Suspended';
-    const double increasedFontSizeBody = 16.5; // ~10% increase from 15
-    const double increasedFontSizeMedium = 15.4; // ~10% increase from 14
+    const double increasedFontSizeBody = 16.5; 
+    const double increasedFontSizeMedium = 15.4; 
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceM, vertical: ShiftleyTokens.spaceL),
@@ -286,9 +268,7 @@ class UserManagementView extends StatelessWidget {
           Expanded(flex: 2, child: Text(phone, style: ShiftleyTokens.bodyMedium.copyWith(fontSize: increasedFontSizeMedium))),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 20),
-            onSelected: (value) {
-              // Handle Edit/Action
-            },
+            onSelected: (value) {},
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'edit', child: Text('Edit User')),
               const PopupMenuItem(value: 'suspend', child: Text('Suspend')),

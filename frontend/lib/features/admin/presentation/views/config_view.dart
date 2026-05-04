@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 
 class ConfigView extends StatelessWidget {
   const ConfigView({super.key});
@@ -84,14 +85,10 @@ class ConfigView extends StatelessWidget {
           const SizedBox(height: ShiftleyTokens.spaceL),
           Align(
             alignment: Alignment.centerRight,
-            child: ElevatedButton(
+            child: ShiftleyButton(
+              label: 'Save Changes',
               onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ShiftleyTokens.inkBlack,
-                foregroundColor: ShiftleyTokens.paperWhite,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
-              ),
-              child: const Text('Save Changes'),
+              size: ShiftleyButtonSize.medium,
             ),
           ),
         ],

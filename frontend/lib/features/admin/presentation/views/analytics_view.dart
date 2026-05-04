@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 
 class AnalyticsView extends StatefulWidget {
   const AnalyticsView({super.key});
@@ -9,8 +10,6 @@ class AnalyticsView extends StatefulWidget {
 }
 
 class _AnalyticsViewState extends State<AnalyticsView> {
-  bool _isHovered = false;
-
   // Reduced font size by 15%
   double get _tableFontSizeSmall => (ShiftleyTokens.bodyMedium.fontSize ?? 14.0) * 0.85;
   double get _tableFontSizeLarge => (ShiftleyTokens.bodyLarge.fontSize ?? 16.0) * 0.85;
@@ -112,7 +111,6 @@ class _AnalyticsViewState extends State<AnalyticsView> {
         _buildTableRow('Total Expenditure', '₹ 2,15,400', '+4.2%', false),
         _buildTableRow('Tax Deductions', '₹ 45,200', '+1.1%', false),
         const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.0, height: 1),
-        // Entire Total Row
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
@@ -215,6 +213,7 @@ class _AnalyticsViewState extends State<AnalyticsView> {
       onSelected: (value) {},
       color: ShiftleyTokens.paperWhite,
       elevation: 4,
+      offset: const Offset(0, 50),
       itemBuilder: (context) => [
         const PopupMenuItem(
           value: 'pdf',
@@ -231,26 +230,13 @@ class _AnalyticsViewState extends State<AnalyticsView> {
           ),
         ),
       ],
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: _isHovered ? Colors.blue : ShiftleyTokens.paperWhite,
-            border: Border.all(color: ShiftleyTokens.inkBlack, width: 1.5),
-            borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.download_outlined, color: _isHovered ? Colors.white : ShiftleyTokens.inkBlack, size: 18),
-              const SizedBox(width: 8),
-              Text('Download Report', style: TextStyle(color: _isHovered ? Colors.white : ShiftleyTokens.inkBlack, fontWeight: FontWeight.bold, fontSize: 13)),
-              const SizedBox(width: 4),
-              Icon(Icons.keyboard_arrow_down, color: _isHovered ? Colors.white : ShiftleyTokens.inkBlack, size: 18),
-            ],
-          ),
+      child: IgnorePointer(
+        child: ShiftleyButton(
+          label: 'Download Report',
+          icon: Icons.download_outlined,
+          onPressed: () {},
+          isPrimary: false,
+          size: ShiftleyButtonSize.medium,
         ),
       ),
     );
@@ -341,7 +327,7 @@ class _ChartPainter extends CustomPainter {
     final chartHeight = size.height - bottomPadding - topPadding;
     final incomePaint = Paint()..color = ShiftleyTokens.primaryRed..style = PaintingStyle.stroke..strokeWidth = 3.0..strokeCap = StrokeCap.round;
     final expenditurePaint = Paint()..color = ShiftleyTokens.inkBlack..style = PaintingStyle.stroke..strokeWidth = 3.0..strokeCap = StrokeCap.round;
-    final gridPaint = Paint()..color = ShiftleyTokens.utilityGrey.withValues(alpha: 0.1)..strokeWidth = 1.0;
+    final gridPaint = Paint()..color = ShiftleyTokens.utilityGrey.withOpacity(0.1)..strokeWidth = 1.0;
     for (int i = 0; i <= 5; i++) {
       final y = topPadding + chartHeight * (1 - i / 5);
       canvas.drawLine(Offset(leftPadding, y), Offset(size.width, y), gridPaint);

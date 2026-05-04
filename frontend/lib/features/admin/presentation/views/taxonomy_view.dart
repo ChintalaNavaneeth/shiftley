@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 
 class TaxonomyView extends StatefulWidget {
   const TaxonomyView({super.key});
@@ -13,7 +14,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
   final Set<String> _expandedCategories = {};
 
   // Font Size Adjustments
-  static const double _headerFontSize = 15.0;
+  static const double _headerFontSize = 12.5;
   static const double _bodyFontSize = 16.0;
   static const double _subcatFontSize = 14.0;
   static const double _statusFontSize = 11.0;
@@ -68,26 +69,11 @@ class _TaxonomyViewState extends State<TaxonomyView> {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            ElevatedButton.icon(
+            ShiftleyButton(
+              label: 'Add Taxonomy',
+              icon: Icons.add,
               onPressed: () => _showTaxonomyDialog(),
-              icon: const Icon(Icons.add, size: 20),
-              label: Text(
-                'Add Taxonomy',
-                style: ShiftleyTokens.buttonLabel.copyWith(fontSize: 16),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ShiftleyTokens.inkBlack,
-                foregroundColor: ShiftleyTokens.paperWhite,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: ShiftleyTokens.spaceL,
-                  vertical: ShiftleyTokens.spaceM,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    ShiftleyTokens.borderRadiusVal,
-                  ),
-                ),
-              ),
+              size: ShiftleyButtonSize.medium,
             ),
           ],
         ),
@@ -137,6 +123,9 @@ class _TaxonomyViewState extends State<TaxonomyView> {
             size: 22,
           ),
           border: InputBorder.none,
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: ShiftleyTokens.primaryRed, width: 2.0),
+          ),
           contentPadding: EdgeInsets.symmetric(
             horizontal: ShiftleyTokens.spaceS,
             vertical: ShiftleyTokens.spaceM,
@@ -147,41 +136,47 @@ class _TaxonomyViewState extends State<TaxonomyView> {
   }
 
   Widget _buildTable(List<Map<String, dynamic>> categories) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildTableHeader(),
-        if (categories.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(ShiftleyTokens.spaceXL),
-            child: Text('No entries found.', style: ShiftleyTokens.bodyMedium),
-          )
-        else
-          ...categories.expand(
-            (cat) => [
-              _buildCategoryRow(cat),
-              if (_expandedCategories.contains(cat['id']))
-                _buildSubcategoryList(cat),
-              const Divider(
-                height: 1,
-                thickness: 1,
-                color: ShiftleyTokens.utilityGrey,
-              ),
-            ],
-          ),
-      ],
+    return Container(
+      decoration: BoxDecoration(
+        color: ShiftleyTokens.paperWhite,
+        border: ShiftleyTokens.primaryBorder,
+        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildTableHeader(),
+          if (categories.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(ShiftleyTokens.spaceXL),
+              child: Text('No entries found.', style: ShiftleyTokens.bodyMedium),
+            )
+          else
+            ...categories.expand(
+              (cat) => [
+                _buildCategoryRow(cat),
+                if (_expandedCategories.contains(cat['id']))
+                  _buildSubcategoryList(cat),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: ShiftleyTokens.background,
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildTableHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        vertical: ShiftleyTokens.spaceS,
-        horizontal: ShiftleyTokens.spaceXS,
-      ),
+      padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
       decoration: const BoxDecoration(
+        color: ShiftleyTokens.secondaryCyan,
         border: Border(
-          bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0),
+          bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 1.0),
         ),
       ),
       child: Row(
@@ -194,8 +189,11 @@ class _TaxonomyViewState extends State<TaxonomyView> {
               padding: const EdgeInsets.only(left: 12),
               child: Text(
                 'CATEGORY',
-                style: ShiftleyTokens.buttonLabel.copyWith(
+                style: TextStyle(
                   fontSize: _headerFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: ShiftleyTokens.mutedText,
+                  fontFamily: 'Figtree',
                 ),
               ),
             ),
@@ -207,8 +205,11 @@ class _TaxonomyViewState extends State<TaxonomyView> {
               padding: const EdgeInsets.only(left: 12),
               child: Text(
                 'SUB - CATEGORY',
-                style: ShiftleyTokens.buttonLabel.copyWith(
+                style: TextStyle(
                   fontSize: _headerFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: ShiftleyTokens.mutedText,
+                  fontFamily: 'Figtree',
                 ),
               ),
             ),
@@ -220,21 +221,27 @@ class _TaxonomyViewState extends State<TaxonomyView> {
               padding: const EdgeInsets.only(left: 12),
               child: Text(
                 'STATUS',
-                style: ShiftleyTokens.buttonLabel.copyWith(
+                style: TextStyle(
                   fontSize: _headerFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: ShiftleyTokens.mutedText,
+                  fontFamily: 'Figtree',
                 ),
               ),
             ),
           ),
           _vDivider(),
           Expanded(
-            flex: 1, // Decreased from 2 to 1
+            flex: 1,
             child: Padding(
               padding: const EdgeInsets.only(left: 12),
               child: Text(
                 'ACTIONS',
-                style: ShiftleyTokens.buttonLabel.copyWith(
+                style: TextStyle(
                   fontSize: _headerFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: ShiftleyTokens.mutedText,
+                  fontFamily: 'Figtree',
                 ),
               ),
             ),
@@ -268,8 +275,8 @@ class _TaxonomyViewState extends State<TaxonomyView> {
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          vertical: ShiftleyTokens.spaceS,
-          horizontal: ShiftleyTokens.spaceXS,
+          vertical: ShiftleyTokens.spaceL,
+          horizontal: ShiftleyTokens.spaceM,
         ),
         child: Row(
           children: [
@@ -320,7 +327,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
             ),
             _vDivider(),
             Expanded(
-              flex: 1, // Decreased from 2 to 1
+              flex: 1,
               child: Padding(
                 padding: const EdgeInsets.only(left: 12),
                 child: Row(
@@ -352,7 +359,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
       color: ShiftleyTokens.background.withOpacity(0.3),
       padding: const EdgeInsets.only(
         left: 45,
-        right: ShiftleyTokens.spaceXS,
+        right: ShiftleyTokens.spaceM,
         top: 4,
         bottom: 4,
       ),
@@ -393,7 +400,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                   const SizedBox(width: ShiftleyTokens.spaceM),
                   _vDivider(),
                   Expanded(
-                    flex: 1, // Decreased from 2 to 1
+                    flex: 1,
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Padding(
@@ -560,6 +567,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                             decoration: InputDecoration(
                               hintText: 'Add Subcategory...',
                               border: ShiftleyTokens.primaryInputBorder,
+                              focusedBorder: ShiftleyTokens.focusInputBorder,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: ShiftleyTokens.spaceM,
                               ),
@@ -567,7 +575,8 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                           ),
                         ),
                         const SizedBox(width: ShiftleyTokens.spaceM),
-                        ElevatedButton(
+                        ShiftleyButton(
+                          label: 'ADD',
                           onPressed: () {
                             if (subNameController.text.isNotEmpty) {
                               setDialogState(() {
@@ -575,16 +584,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                               });
                             }
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: ShiftleyTokens.inkBlack,
-                            foregroundColor: ShiftleyTokens.paperWhite,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                ShiftleyTokens.borderRadiusVal,
-                              ),
-                            ),
-                          ),
-                          child: const Text('ADD'),
+                          size: ShiftleyButtonSize.small,
                         ),
                       ],
                     ),
@@ -643,27 +643,17 @@ class _TaxonomyViewState extends State<TaxonomyView> {
             ),
           ),
           actions: [
-            TextButton(
+            ShiftleyButton(
+              label: 'CANCEL',
               onPressed: () => Navigator.pop(context),
-              child: const Text('CANCEL', style: ShiftleyTokens.buttonLabel),
+              isPrimary: false,
+              size: ShiftleyButtonSize.small,
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ShiftleyTokens.inkBlack,
-                foregroundColor: ShiftleyTokens.paperWhite,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    ShiftleyTokens.borderRadiusVal,
-                  ),
-                ),
-              ),
-              child: const Text(
-                'SAVE CHANGES',
-                style: ShiftleyTokens.buttonLabel,
-              ),
+            const SizedBox(width: ShiftleyTokens.spaceS),
+            ShiftleyButton(
+              label: 'SAVE CHANGES',
+              onPressed: () => Navigator.pop(context),
+              size: ShiftleyButtonSize.small,
             ),
           ],
         ),

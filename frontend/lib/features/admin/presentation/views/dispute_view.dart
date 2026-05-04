@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 
 class DisputeView extends StatefulWidget {
   const DisputeView({super.key});
@@ -23,15 +24,12 @@ class _DisputeViewState extends State<DisputeView> {
               _showClosed ? 'Closed Disputes' : 'Pending Disputes',
               style: ShiftleyTokens.h2,
             ),
-            OutlinedButton.icon(
+            ShiftleyButton(
               onPressed: () => setState(() => _showClosed = !_showClosed),
-              icon: Icon(_showClosed ? Icons.pending_actions : Icons.history),
-              label: Text(_showClosed ? 'View Pending' : 'View History'),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: ShiftleyTokens.inkBlack),
-                foregroundColor: ShiftleyTokens.inkBlack,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
-              ),
+              icon: _showClosed ? Icons.pending_actions : Icons.history,
+              label: _showClosed ? 'View Pending' : 'View History',
+              isPrimary: false,
+              size: ShiftleyButtonSize.small,
             ),
           ],
         ),
@@ -115,7 +113,7 @@ class _DisputeViewState extends State<DisputeView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: resolution == 'Approved' ? Colors.green.withValues(alpha: 0.1) : ShiftleyTokens.primaryRed.withValues(alpha: 0.1),
+                        color: resolution == 'Approved' ? Colors.green.withOpacity(0.1) : ShiftleyTokens.primaryRed.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -161,18 +159,34 @@ class _DisputeViewState extends State<DisputeView> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildButton(label: 'Reject Request', isPrimary: false),
+                      ShiftleyButton(
+                        label: 'Reject Request',
+                        isPrimary: false,
+                        onPressed: () {},
+                        isFullWidth: true,
+                      ),
                       const SizedBox(height: ShiftleyTokens.spaceM),
-                      _buildButton(label: 'Approve Resolution', isPrimary: true),
+                      ShiftleyButton(
+                        label: 'Approve Resolution',
+                        onPressed: () {},
+                        isFullWidth: true,
+                      ),
                     ],
                   )
                 else
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      _buildButton(label: 'Reject Request', isPrimary: false),
+                      ShiftleyButton(
+                        label: 'Reject Request',
+                        isPrimary: false,
+                        onPressed: () {},
+                      ),
                       const SizedBox(width: ShiftleyTokens.spaceM),
-                      _buildButton(label: 'Approve Resolution', isPrimary: true),
+                      ShiftleyButton(
+                        label: 'Approve Resolution',
+                        onPressed: () {},
+                      ),
                     ],
                   )
               else
@@ -187,31 +201,6 @@ class _DisputeViewState extends State<DisputeView> {
         );
       },
     );
-  }
-
-  Widget _buildButton({required String label, required bool isPrimary}) {
-    return isPrimary
-        ? ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ShiftleyTokens.inkBlack,
-              foregroundColor: ShiftleyTokens.paperWhite,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceL, vertical: ShiftleyTokens.spaceM),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
-            ),
-            child: Text(label),
-          )
-        : OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: ShiftleyTokens.inkBlack),
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceL, vertical: ShiftleyTokens.spaceM),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
-            ),
-            child: Text(label, style: const TextStyle(color: ShiftleyTokens.inkBlack)),
-          );
   }
 
   Widget _buildEntityInfo(String label, String value) {
