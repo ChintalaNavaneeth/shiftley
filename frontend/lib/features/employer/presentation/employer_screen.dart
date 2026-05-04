@@ -21,21 +21,23 @@ class _EmployerScreenState extends State<EmployerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ShiftleyTokens.background,
-      resizeToAvoidBottomInset: false,
-      appBar: _buildAppBar(),
-      drawer: EmployerSidebar(
-        activeTab: _activeTab,
-        onTabChanged: (tab) {
-          setState(() => _activeTab = tab);
-          Navigator.pop(context); // Close drawer on selection
-        },
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-          child: _buildActiveView(),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: ShiftleyTokens.background,
+        appBar: _buildAppBar(),
+        drawer: EmployerSidebar(
+          activeTab: _activeTab,
+          onTabChanged: (tab) {
+            setState(() => _activeTab = tab);
+            Navigator.pop(context); // Close drawer on selection
+          },
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+            child: _buildActiveView(),
+          ),
         ),
       ),
     );

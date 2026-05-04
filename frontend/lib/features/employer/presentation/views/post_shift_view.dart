@@ -264,7 +264,12 @@ class _PostGigViewState extends State<PostGigView> {
         ),
         const SizedBox(height: ShiftleyTokens.spaceM),
         _buildLabel('Description'),
-        STextField(hint: 'Describe the roles and responsibilities...', controller: _descController, maxLength: 500),
+        STextField(
+          hint: 'Describe the roles and responsibilities...', 
+          controller: _descController, 
+          maxLength: 500,
+          maxLines: 5,
+        ),
       ],
     );
   }

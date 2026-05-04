@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 
-
 class STextField extends StatefulWidget {
   final String hint;
   final TextEditingController controller;
   final TextInputType keyboardType;
   final Widget? prefix;
   final int? maxLength;
+  final int? maxLines;
   final bool enabled;
+  final bool readOnly;
+  final VoidCallback? onTap;
   final String? Function(String?)? validator;
 
   const STextField({
@@ -18,14 +20,12 @@ class STextField extends StatefulWidget {
     this.keyboardType = TextInputType.text,
     this.prefix,
     this.maxLength,
+    this.maxLines = 1,
     this.enabled = true,
     this.readOnly = false,
     this.onTap,
     this.validator,
   });
-
-  final bool readOnly;
-  final VoidCallback? onTap;
 
   @override
   State<STextField> createState() => _STextFieldState();
@@ -40,7 +40,7 @@ class _STextFieldState extends State<STextField> {
       onFocusChange: (v) => setState(() => _isFocused = v),
       child: Container(
         decoration: BoxDecoration(
-          color: ShiftleyTokens.paperWhite,
+          color: widget.enabled ? ShiftleyTokens.paperWhite : ShiftleyTokens.background,
           border: _isFocused
               ? ShiftleyTokens.focusBorder
               : ShiftleyTokens.primaryBorder,
@@ -50,11 +50,13 @@ class _STextFieldState extends State<STextField> {
           controller: widget.controller,
           keyboardType: widget.keyboardType,
           maxLength: widget.maxLength,
+          maxLines: widget.maxLines,
           enabled: widget.enabled,
           readOnly: widget.readOnly,
           onTap: widget.onTap,
           validator: widget.validator,
           style: ShiftleyTokens.bodyMedium,
+          scrollPadding: const EdgeInsets.all(100), // Ensures field is visible above keyboard
           decoration: InputDecoration(
             hintText: widget.hint,
             hintStyle: ShiftleyTokens.bodyMedium.copyWith(
