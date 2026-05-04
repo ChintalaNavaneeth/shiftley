@@ -27,7 +27,7 @@ class _PostGigViewState extends State<PostGigView> {
   final TextEditingController _endTimeController = TextEditingController();
   final TextEditingController _categoryController = TextEditingController(text: 'Hospitality');
 
-  String? _selectedCategory = 'Hospitality';
+  final String _selectedCategory = 'Hospitality';
   String? _selectedSubCategory;
 
   final Map<String, List<String>> _categories = {
@@ -432,7 +432,7 @@ class _PostGigViewState extends State<PostGigView> {
         const Text('Double check everything before payment.', style: ShiftleyTokens.bodyMedium),
         const SizedBox(height: ShiftleyTokens.spaceXL),
         _buildReviewItem('Title', _titleController.text.isEmpty ? 'Waitstaff' : _titleController.text),
-        _buildReviewItem('Category', '${_selectedCategory ?? '---'} / ${_selectedSubCategory ?? '---'}'),
+        _buildReviewItem('Category', '$_selectedCategory / ${_selectedSubCategory ?? '---'}'),
         _buildReviewItem('Schedule', '${_dateController.text} | 09:00 AM - 05:00 PM'),
         _buildReviewItem('Location', 'Taj Banjara, Hyderabad'),
         _buildReviewItem('Total Payout', '₹ ${_totalAmount.toStringAsFixed(0)} for ${_workersController.text} Workers'),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
-import 'attendance_view.dart';
 
 enum ManageGigSubView { list, applications, details, profile }
 
@@ -544,7 +543,7 @@ class _ManageGigsViewState extends State<ManageGigsView> {
       decoration: BoxDecoration(
         color: ShiftleyTokens.background,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: ShiftleyTokens.inkBlack.withOpacity(0.1)),
+        border: Border.all(color: ShiftleyTokens.inkBlack.withValues(alpha: 0.1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -569,7 +568,7 @@ class _ManageGigsViewState extends State<ManageGigsView> {
       decoration: BoxDecoration(
         color: ShiftleyTokens.paperWhite,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: ShiftleyTokens.inkBlack.withOpacity(0.1)),
+        border: Border.all(color: ShiftleyTokens.inkBlack.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
