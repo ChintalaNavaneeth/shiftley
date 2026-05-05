@@ -109,7 +109,7 @@ class _SettingsViewState extends State<SettingsView> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: isWarning ? ShiftleyTokens.primaryRed : ShiftleyTokens.secondaryCyan,
+            activeThumbColor: isWarning ? ShiftleyTokens.primaryRed : ShiftleyTokens.secondaryCyan,
             activeTrackColor: ShiftleyTokens.inkBlack,
           ),
         ],

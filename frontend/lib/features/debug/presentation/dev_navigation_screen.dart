@@ -85,6 +85,12 @@ class DevNavigationScreen extends StatelessWidget {
                     icon: Icons.person_outline,
                     color: ShiftleyTokens.secondaryCyan,
                   ),
+                  _DevButton(
+                    label: 'Support Dashboard (CS)',
+                    path: '/support',
+                    icon: Icons.support_agent_outlined,
+                    color: ShiftleyTokens.secondaryCyan,
+                  ),
                   const SizedBox(height: ShiftleyTokens.spaceXXL),
                   Text(
                     'Current Environment: Development',

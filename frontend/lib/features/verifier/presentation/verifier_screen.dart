@@ -498,7 +498,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
               ],
             ),
           ),
-          Switch(value: val, onChanged: (v) {}, activeColor: ShiftleyTokens.secondaryCyan, activeTrackColor: ShiftleyTokens.inkBlack),
+          Switch(value: val, onChanged: (v) {}, activeThumbColor: ShiftleyTokens.secondaryCyan, activeTrackColor: ShiftleyTokens.inkBlack),
         ],
       ),
     );

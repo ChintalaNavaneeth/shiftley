@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 
-class SettingsView extends StatefulWidget {
-  const SettingsView({super.key});
+class AgentSettingsView extends StatefulWidget {
+  const AgentSettingsView({super.key});
 
   @override
-  State<SettingsView> createState() => _SettingsViewState();
+  State<AgentSettingsView> createState() => _AgentSettingsViewState();
 }
 
-class _SettingsViewState extends State<SettingsView> {
-  bool _pushNotifications = true;
-  bool _emailAlerts = true;
-  bool _whatsappAlerts = true;
+class _AgentSettingsViewState extends State<AgentSettingsView> {
+  bool _isOnline = true;
+  bool _autoAssign = true;
+  bool _desktopNotifications = true;
 
   @override
   Widget build(BuildContext context) {
@@ -19,25 +19,30 @@ class _SettingsViewState extends State<SettingsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Notifications'),
+          _buildSectionHeader('Agent Availability'),
           _buildToggleItem(
-            'Push Notifications',
-            'Receive real-time alerts for gig approvals',
-            _pushNotifications,
-            (v) => setState(() => _pushNotifications = v),
+            'Go Online',
+            'Start receiving new support tickets',
+            _isOnline,
+            (v) => setState(() => _isOnline = v),
           ),
           _buildToggleItem(
-            'Email Alerts',
-            'Get shift summaries and payment receipts',
-            _emailAlerts,
-            (v) => setState(() => _emailAlerts = v),
+            'Auto-Assign Tickets',
+            'Automatically pick up new tickets from queue',
+            _autoAssign,
+            (v) => setState(() => _autoAssign = v),
           ),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+
+          _buildSectionHeader('Alerts & Notifications'),
           _buildToggleItem(
-            'WhatsApp Alerts',
-            'Receive urgent shift updates and gig links on WhatsApp',
-            _whatsappAlerts,
-            (v) => setState(() => _whatsappAlerts = v),
+            'System Desktop Alerts',
+            'Browser notifications for new messages',
+            _desktopNotifications,
+            (v) => setState(() => _desktopNotifications = v),
           ),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+
           const SizedBox(height: ShiftleyTokens.spaceXXL),
         ],
       ),
@@ -50,7 +55,7 @@ class _SettingsViewState extends State<SettingsView> {
       children: [
         Text(title, style: ShiftleyTokens.h2),
         const SizedBox(height: ShiftleyTokens.spaceS),
-        const Divider(color: ShiftleyTokens.inkBlack, thickness: 1),
+        const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5),
         const SizedBox(height: ShiftleyTokens.spaceM),
       ],
     );
@@ -86,6 +91,5 @@ class _SettingsViewState extends State<SettingsView> {
       ),
     );
   }
-
 
 }
