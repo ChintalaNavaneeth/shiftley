@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:shiftley_frontend/shared/widgets/s_guidance.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
@@ -40,7 +40,6 @@ class _PostGigViewState extends State<PostGigView> {
   double _totalAmount = 500.0;
   bool _isPaymentProcessing = false;
   bool _isPaymentSuccess = false;
-  bool _isShowingGuidance = false;
 
   @override
   void initState() {
@@ -238,35 +237,14 @@ class _PostGigViewState extends State<PostGigView> {
         STextField(hint: 'e.g. Waiter for Banquet Event', controller: _titleController),
         const SizedBox(height: ShiftleyTokens.spaceL),
         _buildLabel('Category'),
-        GestureDetector(
-          onTap: () {
-            if (!_isShowingGuidance) {
-              setState(() => _isShowingGuidance = true);
-              HapticFeedback.vibrate();
-              ScaffoldMessenger.of(context).removeCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Job category is read-only.'),
-                  duration: const Duration(seconds: 3),
-                  onVisible: () {
-                    Future.delayed(const Duration(seconds: 3), () {
-                      if (mounted) setState(() => _isShowingGuidance = false);
-                    });
-                  },
-                ),
-              );
-            }
-          },
-          child: Opacity(
-            opacity: 0.6,
-            child: AbsorbPointer(
-              child: STextField(
-                hint: 'Hospitality', 
-                controller: _categoryController, 
-                readOnly: true,
-                prefix: const Icon(Icons.category_outlined, size: 20),
-              ),
-            ),
+        ShiftleyGuidance(
+          message: 'Job category is read-only.',
+          isTranslucent: true,
+          child: STextField(
+            hint: 'Hospitality', 
+            controller: _categoryController, 
+            readOnly: true,
+            prefix: const Icon(Icons.category_outlined, size: 20),
           ),
         ),
         const SizedBox(height: ShiftleyTokens.spaceL),

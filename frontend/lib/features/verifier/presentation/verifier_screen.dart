@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
+import 'package:shiftley_frontend/shared/widgets/s_guidance.dart';
 
-enum VerifierView { queue, details, history, rejection, verifyFlow, success }
+import 'views/faq_view.dart';
+import 'views/support_view.dart';
+
+enum VerifierView { queue, details, history, rejection, verifyFlow, success, support, faq }
 
 class VerifierScreen extends StatefulWidget {
   const VerifierScreen({super.key});
@@ -21,7 +25,6 @@ class _VerifierScreenState extends State<VerifierScreen> {
   bool _isVerifying = false;
   bool _isGpsCaptured = false;
   bool _isGpsValid = false;
-  bool _isShowingGuidance = false; // Prevents snackbar queuing
 
   // History Filters
   DateTime? _fromDate;
@@ -61,6 +64,8 @@ class _VerifierScreenState extends State<VerifierScreen> {
     setState(() {
       if (_currentView == VerifierView.rejection || _currentView == VerifierView.verifyFlow) {
         _currentView = VerifierView.details;
+      } else if (_currentView == VerifierView.support || _currentView == VerifierView.faq) {
+        _currentView = VerifierView.queue;
       } else {
         _currentView = VerifierView.queue;
       }
@@ -75,6 +80,8 @@ class _VerifierScreenState extends State<VerifierScreen> {
       case VerifierView.rejection: return 'Reject Onboarding';
       case VerifierView.verifyFlow: return 'On-Site Verification';
       case VerifierView.success: return 'Verification Complete';
+      case VerifierView.support: return 'Auditor Support';
+      case VerifierView.faq: return 'Auditor Help & FAQ';
     }
   }
 
@@ -86,6 +93,8 @@ class _VerifierScreenState extends State<VerifierScreen> {
       case VerifierView.rejection: return _buildRejectionView();
       case VerifierView.verifyFlow: return _buildVerifyFlow();
       case VerifierView.success: return _buildSuccessView();
+      case VerifierView.support: return const Padding(padding: EdgeInsets.all(16), child: SupportView());
+      case VerifierView.faq: return const Padding(padding: EdgeInsets.all(16), child: FAQView());
     }
   }
 
@@ -155,45 +164,26 @@ class _VerifierScreenState extends State<VerifierScreen> {
           if (_isVerifying)
             const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed))
           else
-            GestureDetector(
-              onTap: () async {
-                if (!canProceed && !_isShowingGuidance) {
-                  setState(() => _isShowingGuidance = true);
-                  HapticFeedback.vibrate();
-                  
-                  // Clear existing snackbars and show new one
-                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Please capture and verify GPS location first.'),
-                      duration: const Duration(seconds: 3),
-                      onVisible: () {
-                        // Resets ability to show guidance after snackbar is done
-                        Future.delayed(const Duration(seconds: 3), () {
-                          if (mounted) setState(() => _isShowingGuidance = false);
-                        });
-                      },
-                    ),
-                  );
+            ShiftleyGuidance(
+            isActive: !canProceed,
+            message: 'Please capture and verify GPS location first.',
+            child: SButton(
+              text: _verifyStep < 3 ? 'Next Step' : 'Complete Verification',
+              type: SButtonType.primary,
+              onPressed: canProceed ? () async {
+                if (_verifyStep < 3) {
+                  setState(() => _verifyStep++);
+                } else {
+                  setState(() => _isVerifying = true);
+                  await Future.delayed(const Duration(seconds: 2)); 
+                  setState(() {
+                    _isVerifying = false;
+                    _currentView = VerifierView.success;
+                  });
                 }
-              },
-              child: SButton(
-                text: _verifyStep < 3 ? 'Next Step' : 'Complete Verification',
-                type: SButtonType.primary,
-                onPressed: canProceed ? () async {
-                  if (_verifyStep < 3) {
-                    setState(() => _verifyStep++);
-                  } else {
-                    setState(() => _isVerifying = true);
-                    await Future.delayed(const Duration(seconds: 2)); 
-                    setState(() {
-                      _isVerifying = false;
-                      _currentView = VerifierView.success;
-                    });
-                  }
-                } : null,
-              ),
+              } : null,
             ),
+          ),
           const SizedBox(height: ShiftleyTokens.spaceXL),
         ],
       ),
@@ -348,6 +338,8 @@ class _VerifierScreenState extends State<VerifierScreen> {
           const SizedBox(height: ShiftleyTokens.spaceXL),
           _buildDrawerItem(Icons.queue_outlined, 'Verification Queue', _currentView == VerifierView.queue, onTap: () { setState(() => _currentView = VerifierView.queue); Navigator.pop(context); }),
           _buildDrawerItem(Icons.history_outlined, 'History', _currentView == VerifierView.history, onTap: () { setState(() => _currentView = VerifierView.history); Navigator.pop(context); }),
+          _buildDrawerItem(Icons.support_agent_outlined, 'Support Hub', _currentView == VerifierView.support, onTap: () { setState(() => _currentView = VerifierView.support); Navigator.pop(context); }),
+          _buildDrawerItem(Icons.help_outline_rounded, 'Help & FAQ', _currentView == VerifierView.faq, onTap: () { setState(() => _currentView = VerifierView.faq); Navigator.pop(context); }),
           
           const Spacer(),
           const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5),

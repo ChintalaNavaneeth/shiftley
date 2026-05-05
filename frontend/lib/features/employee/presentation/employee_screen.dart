@@ -7,8 +7,9 @@ import 'views/my_gigs_view.dart';
 import 'views/transactions_view.dart';
 import 'views/profile_view.dart';
 import 'views/support_view.dart';
+import 'views/faq_view.dart';
 
-enum EmployeeTab { overview, explore, myGigs, transactions, profile, support }
+enum EmployeeTab { overview, explore, myGigs, transactions, profile, support, faq }
 
 class EmployeeScreen extends StatefulWidget {
   const EmployeeScreen({super.key});
@@ -83,6 +84,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
         return 'My Profile';
       case EmployeeTab.support:
         return 'Support Hub';
+      case EmployeeTab.faq:
+        return 'Help & FAQ';
     }
   }
 
@@ -100,6 +103,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
         return const ProfileView();
       case EmployeeTab.support:
         return const SupportView();
+      case EmployeeTab.faq:
+        return const FAQView();
     }
   }
 }
