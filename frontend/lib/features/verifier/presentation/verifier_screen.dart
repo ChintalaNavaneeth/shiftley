@@ -7,7 +7,7 @@ import 'package:shiftley_frontend/shared/widgets/s_guidance.dart';
 import 'views/faq_view.dart';
 import 'views/support_view.dart';
 
-enum VerifierView { queue, details, history, rejection, verifyFlow, success, support, faq }
+enum VerifierView { queue, details, history, rejection, verifyFlow, success, support, faq, settings }
 
 class VerifierScreen extends StatefulWidget {
   const VerifierScreen({super.key});
@@ -64,7 +64,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
     setState(() {
       if (_currentView == VerifierView.rejection || _currentView == VerifierView.verifyFlow) {
         _currentView = VerifierView.details;
-      } else if (_currentView == VerifierView.support || _currentView == VerifierView.faq) {
+      } else if (_currentView == VerifierView.support || _currentView == VerifierView.faq || _currentView == VerifierView.settings) {
         _currentView = VerifierView.queue;
       } else {
         _currentView = VerifierView.queue;
@@ -82,6 +82,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
       case VerifierView.success: return 'Verification Complete';
       case VerifierView.support: return 'Auditor Support';
       case VerifierView.faq: return 'Auditor Help & FAQ';
+      case VerifierView.settings: return 'Auditor Settings';
     }
   }
 
@@ -95,6 +96,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
       case VerifierView.success: return _buildSuccessView();
       case VerifierView.support: return const Padding(padding: EdgeInsets.all(16), child: SupportView());
       case VerifierView.faq: return const Padding(padding: EdgeInsets.all(16), child: FAQView());
+      case VerifierView.settings: return _buildSettingsView();
     }
   }
 
@@ -336,15 +338,22 @@ class _VerifierScreenState extends State<VerifierScreen> {
           ),
           
           const SizedBox(height: ShiftleyTokens.spaceXL),
-          _buildDrawerItem(Icons.queue_outlined, 'Verification Queue', _currentView == VerifierView.queue, onTap: () { setState(() => _currentView = VerifierView.queue); Navigator.pop(context); }),
-          _buildDrawerItem(Icons.history_outlined, 'History', _currentView == VerifierView.history, onTap: () { setState(() => _currentView = VerifierView.history); Navigator.pop(context); }),
-          _buildDrawerItem(Icons.support_agent_outlined, 'Support Hub', _currentView == VerifierView.support, onTap: () { setState(() => _currentView = VerifierView.support); Navigator.pop(context); }),
-          _buildDrawerItem(Icons.help_outline_rounded, 'Help & FAQ', _currentView == VerifierView.faq, onTap: () { setState(() => _currentView = VerifierView.faq); Navigator.pop(context); }),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildDrawerItem(Icons.queue_outlined, 'Verification Queue', _currentView == VerifierView.queue, onTap: () { setState(() => _currentView = VerifierView.queue); Navigator.pop(context); }),
+                _buildDrawerItem(Icons.history_outlined, 'History', _currentView == VerifierView.history, onTap: () { setState(() => _currentView = VerifierView.history); Navigator.pop(context); }),
+                _buildDrawerItem(Icons.support_agent_outlined, 'Support Hub', _currentView == VerifierView.support, onTap: () { setState(() => _currentView = VerifierView.support); Navigator.pop(context); }),
+                _buildDrawerItem(Icons.help_outline_rounded, 'Help & FAQ', _currentView == VerifierView.faq, onTap: () { setState(() => _currentView = VerifierView.faq); Navigator.pop(context); }),
+                _buildDrawerItem(Icons.settings_outlined, 'Settings', _currentView == VerifierView.settings, onTap: () { setState(() => _currentView = VerifierView.settings); Navigator.pop(context); }),
+              ],
+            ),
+          ),
           
-          const Spacer(),
-          const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5),
+          const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1),
           _buildDrawerItem(Icons.logout, 'Logout', false, isDestructive: true, onTap: () => Navigator.pop(context)),
-          const SizedBox(height: ShiftleyTokens.spaceL),
+          const SizedBox(height: ShiftleyTokens.spaceM),
         ],
       ),
     );
@@ -452,5 +461,61 @@ class _VerifierScreenState extends State<VerifierScreen> {
   Widget _buildDrawerItem(IconData icon, String label, bool isActive, {bool isDestructive = false, required VoidCallback onTap}) {
     final color = isDestructive ? ShiftleyTokens.primaryRed : ShiftleyTokens.inkBlack;
     return Padding(padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceM, vertical: 4), child: ListTile(leading: Icon(icon, color: color, size: 22), title: Text(label, style: TextStyle(color: color, fontWeight: isActive ? FontWeight.bold : FontWeight.w500, fontSize: 14)), tileColor: isActive ? ShiftleyTokens.secondaryCyan : Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal), side: isActive ? const BorderSide(color: ShiftleyTokens.inkBlack, width: 1.5) : BorderSide.none), onTap: onTap));
+  }
+
+  Widget _buildSettingsView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetailSection('Auditor Preferences', [
+            _buildToggleRow('System Notifications', 'Receive audit assignments and deadlines', true),
+            _buildToggleRow('WhatsApp Updates', 'Sync audit reports via WhatsApp', true),
+            _buildToggleRow('Offline Mode', 'Store audit data locally when offline', false),
+          ]),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+          _buildDetailSection('Account Management', [
+            _buildSettingsAction('Export My Audit Logs', 'Download your verification history', Icons.download_outlined, () {}),
+          ]),
+          const SizedBox(height: ShiftleyTokens.spaceXXL),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleRow(String title, String subtitle, bool val) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                Text(subtitle, style: ShiftleyTokens.caption),
+              ],
+            ),
+          ),
+          Switch(value: val, onChanged: (v) {}, activeColor: ShiftleyTokens.secondaryCyan, activeTrackColor: ShiftleyTokens.inkBlack),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsAction(String title, String subtitle, IconData icon, VoidCallback onTap, {bool isDanger = false}) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: isDanger ? Colors.red.withValues(alpha: 0.1) : ShiftleyTokens.secondaryCyan.withValues(alpha: 0.1), shape: BoxShape.circle),
+        child: Icon(icon, size: 20, color: isDanger ? Colors.red : ShiftleyTokens.inkBlack),
+      ),
+      title: Text(title, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: isDanger ? Colors.red : ShiftleyTokens.inkBlack)),
+      subtitle: Text(subtitle, style: ShiftleyTokens.caption),
+      trailing: const Icon(Icons.chevron_right, size: 16),
+      onTap: onTap,
+    );
   }
 }

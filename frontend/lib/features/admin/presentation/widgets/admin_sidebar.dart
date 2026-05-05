@@ -8,6 +8,7 @@ enum AdminTab {
   taxonomy,
   disputes,
   analytics,
+  settings,
 }
 
 class AdminSidebar extends StatelessWidget {
@@ -89,6 +90,12 @@ class AdminSidebar extends StatelessWidget {
             label: 'Insights',
             isActive: activeTab == AdminTab.analytics,
             onTap: () => onTabChanged(AdminTab.analytics),
+          ),
+          _SidebarItem(
+            icon: Icons.settings_outlined,
+            label: 'System Settings',
+            isActive: activeTab == AdminTab.settings,
+            onTap: () => onTabChanged(AdminTab.settings),
           ),
           const Spacer(),
           const Divider(color: ShiftleyTokens.inkBlack, thickness: 1),

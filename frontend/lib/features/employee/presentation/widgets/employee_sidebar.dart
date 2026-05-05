@@ -88,6 +88,18 @@ class EmployeeSidebar extends StatelessWidget {
             isActive: activeTab == EmployeeTab.faq,
             onTap: () => onTabChanged(EmployeeTab.faq),
           ),
+          _SidebarItem(
+            icon: Icons.notifications_none_outlined,
+            label: 'Notifications',
+            isActive: activeTab == EmployeeTab.notifications,
+            onTap: () => onTabChanged(EmployeeTab.notifications),
+          ),
+          _SidebarItem(
+            icon: Icons.settings_outlined,
+            label: 'Settings',
+            isActive: activeTab == EmployeeTab.settings,
+            onTap: () => onTabChanged(EmployeeTab.settings),
+          ),
           
           const Spacer(),
           

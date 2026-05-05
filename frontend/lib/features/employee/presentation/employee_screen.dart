@@ -8,8 +8,10 @@ import 'views/transactions_view.dart';
 import 'views/profile_view.dart';
 import 'views/support_view.dart';
 import 'views/faq_view.dart';
+import 'views/notifications_view.dart';
+import 'views/settings_view.dart';
 
-enum EmployeeTab { overview, explore, myGigs, transactions, profile, support, faq }
+enum EmployeeTab { overview, explore, myGigs, transactions, profile, support, faq, notifications, settings }
 
 class EmployeeScreen extends StatefulWidget {
   const EmployeeScreen({super.key});
@@ -58,8 +60,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.notifications_none),
-          onPressed: () {},
+          icon: Icon(_activeTab == EmployeeTab.notifications ? Icons.notifications : Icons.notifications_none),
+          onPressed: () => setState(() => _activeTab = EmployeeTab.notifications),
         ),
         const SizedBox(width: ShiftleyTokens.spaceM),
       ],
@@ -86,6 +88,10 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
         return 'Support Hub';
       case EmployeeTab.faq:
         return 'Help & FAQ';
+      case EmployeeTab.notifications:
+        return 'Notifications';
+      case EmployeeTab.settings:
+        return 'Settings';
     }
   }
 
@@ -105,6 +111,10 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
         return const SupportView();
       case EmployeeTab.faq:
         return const FAQView();
+      case EmployeeTab.notifications:
+        return const NotificationsView();
+      case EmployeeTab.settings:
+        return const SettingsView();
     }
   }
 }

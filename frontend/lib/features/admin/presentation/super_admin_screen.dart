@@ -7,6 +7,7 @@ import 'views/config_view.dart';
 import 'views/dispute_view.dart';
 import 'views/analytics_view.dart';
 import 'views/taxonomy_view.dart';
+import 'views/settings_view.dart';
 
 class SuperAdminScreen extends StatefulWidget {
   const SuperAdminScreen({super.key});
@@ -81,6 +82,8 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
         return 'Disputes';
       case AdminTab.analytics:
         return 'Insights';
+      case AdminTab.settings:
+        return 'System Settings';
     }
   }
 
@@ -98,6 +101,8 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
         return const DisputeView();
       case AdminTab.analytics:
         return const AnalyticsView();
+      case AdminTab.settings:
+        return const SettingsView();
     }
   }
 }
