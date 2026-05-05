@@ -9,6 +9,7 @@ import 'features/auth/presentation/otp_screen.dart';
 import 'features/admin/presentation/super_admin_screen.dart';
 import 'features/verifier/presentation/verifier_screen.dart';
 import 'features/employer/presentation/employer_screen.dart';
+import 'features/employee/presentation/employee_screen.dart';
 import 'features/debug/presentation/dev_navigation_screen.dart';
 
 
@@ -49,6 +50,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/employer',
       builder: (context, state) => const EmployerScreen(),
+    ),
+    GoRoute(
+      path: '/employee',
+      builder: (context, state) => const EmployeeScreen(),
     ),
   ],
 );
