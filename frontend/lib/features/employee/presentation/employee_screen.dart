@@ -73,7 +73,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
   String _getTabTitle(EmployeeTab tab) {
     switch (tab) {
       case EmployeeTab.overview:
-        return 'Professional Dashboard';
+        return 'Hey, Rahul';
       case EmployeeTab.explore:
         return 'Explore Gigs';
       case EmployeeTab.myGigs:

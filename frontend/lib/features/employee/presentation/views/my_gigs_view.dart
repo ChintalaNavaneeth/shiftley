@@ -88,6 +88,7 @@ class _MyGigsViewState extends State<MyGigsView> with SingleTickerProviderStateM
           'May 10, 10:00 PM',
           '₹750',
           'PENDING',
+          showActions: true,
         ),
         _buildGigItem(
           'Parking Attendant',
@@ -95,6 +96,7 @@ class _MyGigsViewState extends State<MyGigsView> with SingleTickerProviderStateM
           'May 11, 11:00 AM',
           '₹500',
           'PENDING',
+          showActions: true,
         ),
       ],
     );
@@ -159,26 +161,35 @@ class _MyGigsViewState extends State<MyGigsView> with SingleTickerProviderStateM
           
           if (showActions) ...[
             const SizedBox(height: ShiftleyTokens.spaceM),
-            Row(
-              children: [
-                Expanded(
-                  child: ShiftleyButton(
-                    label: 'Get Directions',
-                    onPressed: () {},
-                    isPrimary: false,
-                    size: ShiftleyButtonSize.small,
+            if (status == 'CONFIRMED')
+              Row(
+                children: [
+                  Expanded(
+                    child: ShiftleyButton(
+                      label: 'Get Directions',
+                      onPressed: () {},
+                      isPrimary: false,
+                      size: ShiftleyButtonSize.small,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ShiftleyButton(
-                    label: 'Check-In',
-                    onPressed: () {},
-                    size: ShiftleyButtonSize.small,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ShiftleyButton(
+                      label: 'Check-In',
+                      onPressed: () {},
+                      size: ShiftleyButtonSize.small,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+            else if (status == 'PENDING')
+              ShiftleyButton(
+                label: 'Revoke Application',
+                onPressed: () {},
+                isPrimary: false,
+                isFullWidth: true,
+                size: ShiftleyButtonSize.small,
+              ),
           ],
         ],
       ),

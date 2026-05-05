@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
-import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
-import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
 
 class TransactionsView extends StatefulWidget {
   const TransactionsView({super.key});
@@ -16,46 +14,6 @@ class _TransactionsViewState extends State<TransactionsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Payout Settings Summary
-        Container(
-          padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-          decoration: BoxDecoration(
-            color: ShiftleyTokens.inkBlack,
-            borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-            border: ShiftleyTokens.primaryBorder,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('PAYOUT METHOD', style: TextStyle(color: ShiftleyTokens.secondaryCyan, fontWeight: FontWeight.bold, fontSize: 10)),
-                  GestureDetector(
-                    onTap: _showPayoutSettingsDialog,
-                    child: const Text('EDIT', style: TextStyle(color: ShiftleyTokens.paperWhite, fontWeight: FontWeight.bold, fontSize: 10, decoration: TextDecoration.underline)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-                  const Row(
-                children: [
-                  Icon(Icons.account_balance_outlined, color: ShiftleyTokens.paperWhite, size: 20),
-                  SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('HDFC Bank', style: TextStyle(color: ShiftleyTokens.paperWhite, fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('Account ending in 4492', style: TextStyle(color: ShiftleyTokens.utilityGrey, fontSize: 12)),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: ShiftleyTokens.spaceXL),
-
         const Text('Transaction History', style: ShiftleyTokens.h2),
         const SizedBox(height: ShiftleyTokens.spaceM),
 
@@ -139,43 +97,6 @@ class _TransactionsViewState extends State<TransactionsView> {
               color: isCredit ? Colors.green : (isPayout ? ShiftleyTokens.inkBlack : Colors.red),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  void _showPayoutSettingsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: ShiftleyTokens.paperWhite,
-        shape: RoundedRectangleBorder(
-          side: ShiftleyTokens.primaryBorderSide,
-          borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-        ),
-        title: const Text('Payout Settings', style: ShiftleyTokens.h2),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('UPI ID (Recommended)', style: ShiftleyTokens.caption),
-            const SizedBox(height: 8),
-            STextField(hint: 'e.g. rahul@upi', controller: TextEditingController()),
-            const SizedBox(height: ShiftleyTokens.spaceM),
-            const Center(child: Text('OR', style: ShiftleyTokens.caption)),
-            const SizedBox(height: ShiftleyTokens.spaceM),
-            const Text('Bank Account Number', style: ShiftleyTokens.caption),
-            const SizedBox(height: 8),
-            STextField(hint: 'Account Number', controller: TextEditingController()),
-            const SizedBox(height: ShiftleyTokens.spaceS),
-            const Text('IFSC Code', style: ShiftleyTokens.caption),
-            const SizedBox(height: 8),
-            STextField(hint: 'IFSC Code', controller: TextEditingController()),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-          ShiftleyButton(label: 'Save Payout Info', onPressed: () => Navigator.pop(context), size: ShiftleyButtonSize.small),
         ],
       ),
     );

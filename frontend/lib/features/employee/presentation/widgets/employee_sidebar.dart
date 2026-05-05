@@ -91,9 +91,6 @@ class EmployeeSidebar extends StatelessWidget {
           
           const Spacer(),
           
-          // Reliability Score Widget in Sidebar
-          _buildReliabilityStatus(),
-
           const Divider(color: ShiftleyTokens.inkBlack, thickness: 1),
           _SidebarItem(
             icon: Icons.logout,
@@ -104,37 +101,6 @@ class EmployeeSidebar extends StatelessWidget {
             },
           ),
           const SizedBox(height: ShiftleyTokens.spaceL),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReliabilityStatus() {
-    return Container(
-      margin: const EdgeInsets.all(ShiftleyTokens.spaceM),
-      padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-      decoration: BoxDecoration(
-        color: ShiftleyTokens.inkBlack,
-        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('RELIABILITY', style: TextStyle(color: ShiftleyTokens.secondaryCyan, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.0)),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text('100 / 100', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-          const SizedBox(height: 4),
-          const Text('Top Rated Professional', style: TextStyle(color: ShiftleyTokens.utilityGrey, fontSize: 10)),
         ],
       ),
     );
