@@ -29,27 +29,31 @@ class _VerifierScreenState extends State<VerifierScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ShiftleyTokens.background,
-      appBar: AppBar(
-        title: Text(_getViewTitle(), style: ShiftleyTokens.h2),
-        backgroundColor: ShiftleyTokens.paperWhite,
-        elevation: 0,
-        centerTitle: false,
-        iconTheme: const IconThemeData(color: ShiftleyTokens.inkBlack),
-        leading: _currentView != VerifierView.queue && _currentView != VerifierView.success
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => _handleBack(),
-              )
-            : null,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: ShiftleyTokens.inkBlack, height: 1.5),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        backgroundColor: ShiftleyTokens.background,
+        appBar: AppBar(
+          title: Text(_getViewTitle(), style: ShiftleyTokens.h2),
+          backgroundColor: ShiftleyTokens.paperWhite,
+          elevation: 0,
+          centerTitle: false,
+          iconTheme: const IconThemeData(color: ShiftleyTokens.inkBlack),
+          leading: _currentView != VerifierView.queue && _currentView != VerifierView.success
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => _handleBack(),
+                )
+              : null,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1.0),
+            child: Container(color: ShiftleyTokens.inkBlack, height: 1.5),
+          ),
         ),
+        drawer: _currentView == VerifierView.queue ? _buildDrawer() : null,
+        body: _buildBody(),
       ),
-      drawer: _currentView == VerifierView.queue ? _buildDrawer() : null,
-      body: _buildBody(),
     );
   }
 
@@ -407,11 +411,11 @@ class _VerifierScreenState extends State<VerifierScreen> {
 
   Widget _buildRejectionView() {
     final suggestions = ['GST Number Mismatch', 'Invalid Address', 'Incomplete Documents', 'FSSAI License Expired', 'Mismatch in PAN details'];
-    return Padding(padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Why are you rejecting this onboarding?', style: ShiftleyTokens.bodyLarge), const SizedBox(height: ShiftleyTokens.spaceM), Wrap(spacing: 8, runSpacing: 8, children: suggestions.map((s) => ActionChip(label: Text(s, style: const TextStyle(fontSize: 12)), backgroundColor: ShiftleyTokens.paperWhite, side: const BorderSide(color: ShiftleyTokens.inkBlack), onPressed: () => setState(() => _rejectionReason = s))).toList()), const SizedBox(height: ShiftleyTokens.spaceXL), const Text('Additional Justification', style: ShiftleyTokens.caption), const SizedBox(height: 8), TextField(maxLines: 4, decoration: InputDecoration(border: ShiftleyTokens.primaryInputBorder, hintText: 'Provide detailed reason...', fillColor: ShiftleyTokens.paperWhite, filled: true), controller: TextEditingController(text: _rejectionReason), onChanged: (v) => _rejectionReason = v), const Spacer(), SButton(text: 'Confirm Rejection', type: SButtonType.primary, onPressed: () => setState(() => _currentView = VerifierView.queue)), const SizedBox(height: ShiftleyTokens.spaceXL)]));
+    return Padding(padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Why are you rejecting this onboarding?', style: ShiftleyTokens.bodyLarge), const SizedBox(height: ShiftleyTokens.spaceM), Wrap(spacing: 8, runSpacing: 8, children: suggestions.map((s) => ActionChip(label: Text(s, style: const TextStyle(fontSize: 12)), backgroundColor: ShiftleyTokens.paperWhite, side: const BorderSide(color: ShiftleyTokens.inkBlack), onPressed: () => setState(() => _rejectionReason = s))).toList()), const SizedBox(height: ShiftleyTokens.spaceXL), const Text('Additional Justification', style: ShiftleyTokens.caption), const SizedBox(height: 8), TextField(maxLines: 4, decoration: InputDecoration(border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, hintText: 'Provide detailed reason...', fillColor: ShiftleyTokens.paperWhite, filled: true), controller: TextEditingController(text: _rejectionReason), onChanged: (v) => _rejectionReason = v), const Spacer(), SButton(text: 'Confirm Rejection', type: SButtonType.primary, onPressed: () => setState(() => _currentView = VerifierView.queue)), const SizedBox(height: ShiftleyTokens.spaceXL)]));
   }
 
   Widget _buildHistoryView() {
-    return Column(children: [Container(color: ShiftleyTokens.paperWhite, padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(children: [Row(children: [Expanded(child: _buildDatePicker('From Date', _fromDate, (date) => setState(() => _fromDate = date))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: _buildDatePicker('To Date', _toDate, (date) => setState(() => _toDate = date)))]), const SizedBox(height: ShiftleyTokens.spaceM), SizedBox(height: 48, child: TextField(decoration: InputDecoration(hintText: 'Search history...', prefixIcon: const Icon(Icons.search, size: 20), filled: true, fillColor: ShiftleyTokens.background, border: ShiftleyTokens.primaryInputBorder, contentPadding: EdgeInsets.zero)))])), const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1), Expanded(child: ListView(padding: const EdgeInsets.all(ShiftleyTokens.spaceL), children: [_buildHistoryItem('ITC Kohenur', 'APPROVED', '24 Oct 2023', 'Verified by GST & On-site visit'), _buildHistoryItem('Paradise Biryani', 'REJECTED', '22 Oct 2023', 'GST mismatch / Invalid Address')]))]);
+    return Column(children: [Container(color: ShiftleyTokens.paperWhite, padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(children: [Row(children: [Expanded(child: _buildDatePicker('From Date', _fromDate, (date) => setState(() => _fromDate = date))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: _buildDatePicker('To Date', _toDate, (date) => setState(() => _toDate = date)))]), const SizedBox(height: ShiftleyTokens.spaceM), SizedBox(height: 48, child: TextField(decoration: InputDecoration(hintText: 'Search history...', prefixIcon: const Icon(Icons.search, size: 20), filled: true, fillColor: ShiftleyTokens.background, border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, contentPadding: EdgeInsets.zero)))])), const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1), Expanded(child: ListView(padding: const EdgeInsets.all(ShiftleyTokens.spaceL), children: [_buildHistoryItem('ITC Kohenur', 'APPROVED', '24 Oct 2023', 'Verified by GST & On-site visit'), _buildHistoryItem('Paradise Biryani', 'REJECTED', '22 Oct 2023', 'GST mismatch / Invalid Address')]))]);
   }
 
   Widget _buildDatePicker(String label, DateTime? date, Function(DateTime) onSelect) {

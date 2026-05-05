@@ -7,88 +7,92 @@ class DevNavigationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ShiftleyTokens.background,
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Shiftley.',
-                  style: TextStyle(
-                    fontFamily: 'Figtree',
-                    fontSize: 48,
-                    fontWeight: FontWeight.w900,
-                    color: ShiftleyTokens.inkBlack,
-                    letterSpacing: -2.0,
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        backgroundColor: ShiftleyTokens.background,
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Shiftley.',
+                    style: TextStyle(
+                      fontFamily: 'Figtree',
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      color: ShiftleyTokens.inkBlack,
+                      letterSpacing: -2.0,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: ShiftleyTokens.spaceS),
-                Text(
-                  'Dev Navigation & Implementation Check',
-                  style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.primaryRed),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: ShiftleyTokens.spaceXXL),
-                
-                _DevButton(
-                  label: 'Splash Screen',
-                  path: '/',
-                  icon: Icons.flash_on,
-                ),
-                _DevButton(
-                  label: 'Landing Page',
-                  path: '/landing',
-                  icon: Icons.home_outlined,
-                ),
-                _DevButton(
-                  label: 'Authentication (Sign Up/In)',
-                  path: '/auth',
-                  icon: Icons.login,
-                ),
-                _DevButton(
-                  label: 'OTP Screen',
-                  path: '/otp',
-                  icon: Icons.pin_outlined,
-                  extra: '+919876543210',
-                ),
-                const Divider(height: ShiftleyTokens.spaceXXL, thickness: 2, color: ShiftleyTokens.inkBlack),
-                _DevButton(
-                  label: 'Super Admin Dashboard',
-                  path: '/admin',
-                  icon: Icons.admin_panel_settings_outlined,
-                  color: ShiftleyTokens.secondaryCyan,
-                ),
-                _DevButton(
-                  label: 'Verifier Dashboard',
-                  path: '/verifier',
-                  icon: Icons.verified_user_outlined,
-                  color: ShiftleyTokens.secondaryCyan,
-                ),
-                _DevButton(
-                  label: 'Employer Dashboard',
-                  path: '/employer',
-                  icon: Icons.business_center_outlined,
-                  color: ShiftleyTokens.secondaryCyan,
-                ),
-                _DevButton(
-                  label: 'Employee Dashboard',
-                  path: '/employee',
-                  icon: Icons.person_outline,
-                  color: ShiftleyTokens.secondaryCyan,
-                ),
-                const SizedBox(height: ShiftleyTokens.spaceXXL),
-                Text(
-                  'Current Environment: Development',
-                  style: ShiftleyTokens.caption,
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                  const SizedBox(height: ShiftleyTokens.spaceS),
+                  Text(
+                    'Dev Navigation & Implementation Check',
+                    style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.primaryRed),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: ShiftleyTokens.spaceXXL),
+                  
+                  _DevButton(
+                    label: 'Splash Screen',
+                    path: '/',
+                    icon: Icons.flash_on,
+                  ),
+                  _DevButton(
+                    label: 'Landing Page',
+                    path: '/landing',
+                    icon: Icons.home_outlined,
+                  ),
+                  _DevButton(
+                    label: 'Authentication (Sign Up/In)',
+                    path: '/auth',
+                    icon: Icons.login,
+                  ),
+                  _DevButton(
+                    label: 'OTP Screen',
+                    path: '/otp',
+                    icon: Icons.pin_outlined,
+                    extra: '+919876543210',
+                  ),
+                  const Divider(height: ShiftleyTokens.spaceXXL, thickness: 2, color: ShiftleyTokens.inkBlack),
+                  _DevButton(
+                    label: 'Super Admin Dashboard',
+                    path: '/admin',
+                    icon: Icons.admin_panel_settings_outlined,
+                    color: ShiftleyTokens.secondaryCyan,
+                  ),
+                  _DevButton(
+                    label: 'Verifier Dashboard',
+                    path: '/verifier',
+                    icon: Icons.verified_user_outlined,
+                    color: ShiftleyTokens.secondaryCyan,
+                  ),
+                  _DevButton(
+                    label: 'Employer Dashboard',
+                    path: '/employer',
+                    icon: Icons.business_center_outlined,
+                    color: ShiftleyTokens.secondaryCyan,
+                  ),
+                  _DevButton(
+                    label: 'Employee Dashboard',
+                    path: '/employee',
+                    icon: Icons.person_outline,
+                    color: ShiftleyTokens.secondaryCyan,
+                  ),
+                  const SizedBox(height: ShiftleyTokens.spaceXXL),
+                  Text(
+                    'Current Environment: Development',
+                    style: ShiftleyTokens.caption,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -20,20 +20,24 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ShiftleyTokens.background,
-      appBar: _buildAppBar(),
-      drawer: AdminSidebar(
-        activeTab: _activeTab,
-        onTabChanged: (tab) {
-          setState(() => _activeTab = tab);
-          Navigator.pop(context); // Close drawer on selection
-        },
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-          child: _buildActiveView(),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        backgroundColor: ShiftleyTokens.background,
+        appBar: _buildAppBar(),
+        drawer: AdminSidebar(
+          activeTab: _activeTab,
+          onTabChanged: (tab) {
+            setState(() => _activeTab = tab);
+            Navigator.pop(context); // Close drawer on selection
+          },
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+            child: _buildActiveView(),
+          ),
         ),
       ),
     );

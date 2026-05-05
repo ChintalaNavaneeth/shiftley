@@ -25,6 +25,7 @@ class _EmployerScreenState extends State<EmployerScreen> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: ShiftleyTokens.background,
         appBar: _buildAppBar(),

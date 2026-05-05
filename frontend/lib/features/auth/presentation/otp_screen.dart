@@ -74,79 +74,83 @@ class _OtpScreenState extends State<OtpScreen> {
       ),
     );
 
-    return Scaffold(
-      backgroundColor: ShiftleyTokens.background,
-      appBar: AppBar(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
         backgroundColor: ShiftleyTokens.background,
-        elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
-          child: const Icon(Icons.arrow_back, color: ShiftleyTokens.inkBlack),
+        appBar: AppBar(
+          backgroundColor: ShiftleyTokens.background,
+          elevation: 0,
+          leading: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: const Icon(Icons.arrow_back, color: ShiftleyTokens.inkBlack),
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: ShiftleyTokens.spaceL),
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: ShiftleyTokens.spaceL),
 
-                  // ── Header ──────────────────────────────────────────
-                  const Text('Verify Phone', style: ShiftleyTokens.h1),
-                  const SizedBox(height: ShiftleyTokens.spaceS),
-                  Text(
-                    'OTP sent to ${widget.phoneNumber}',
-                    style: ShiftleyTokens.caption,
-                  ),
-
-                  const SizedBox(height: ShiftleyTokens.spaceXL),
-
-                  // ── OTP Input ────────────────────────────────────────
-                  Center(
-                    child: Pinput(
-                      length: 6,
-                      controller: _otpController,
-                      defaultPinTheme: defaultPinTheme,
-                      focusedPinTheme: focusedPinTheme,
-                      onCompleted: (_) => _onVerify(),
+                    // ── Header ──────────────────────────────────────────
+                    const Text('Verify Phone', style: ShiftleyTokens.h1),
+                    const SizedBox(height: ShiftleyTokens.spaceS),
+                    Text(
+                      'OTP sent to ${widget.phoneNumber}',
+                      style: ShiftleyTokens.caption,
                     ),
-                  ),
 
-                  const SizedBox(height: ShiftleyTokens.spaceXL),
+                    const SizedBox(height: ShiftleyTokens.spaceXL),
 
-                  // ── Verify Button ────────────────────────────────────
-                  SButton(
-                    text: 'Verify OTP',
-                    isLoading: _isVerifying,
-                    onPressed: _onVerify,
-                  ),
+                    // ── OTP Input ────────────────────────────────────────
+                    Center(
+                      child: Pinput(
+                        length: 6,
+                        controller: _otpController,
+                        defaultPinTheme: defaultPinTheme,
+                        focusedPinTheme: focusedPinTheme,
+                        onCompleted: (_) => _onVerify(),
+                      ),
+                    ),
 
-                  const SizedBox(height: ShiftleyTokens.spaceL),
+                    const SizedBox(height: ShiftleyTokens.spaceXL),
 
-                  // ── Resend Timer ─────────────────────────────────────
-                  Center(
-                    child: _secondsLeft > 0
-                        ? Text(
-                            'Resend OTP in ${_secondsLeft}s',
-                            style: ShiftleyTokens.caption,
-                          )
-                        : GestureDetector(
-                            onTap: _startTimer,
-                            child: Text(
-                              'Resend OTP',
-                              style: ShiftleyTokens.caption.copyWith(
-                                color: ShiftleyTokens.primaryRed,
-                                fontWeight: FontWeight.w700,
-                                decoration: TextDecoration.underline,
+                    // ── Verify Button ────────────────────────────────────
+                    SButton(
+                      text: 'Verify OTP',
+                      isLoading: _isVerifying,
+                      onPressed: _onVerify,
+                    ),
+
+                    const SizedBox(height: ShiftleyTokens.spaceL),
+
+                    // ── Resend Timer ─────────────────────────────────────
+                    Center(
+                      child: _secondsLeft > 0
+                          ? Text(
+                              'Resend OTP in ${_secondsLeft}s',
+                              style: ShiftleyTokens.caption,
+                            )
+                          : GestureDetector(
+                              onTap: _startTimer,
+                              child: Text(
+                                'Resend OTP',
+                                style: ShiftleyTokens.caption.copyWith(
+                                  color: ShiftleyTokens.primaryRed,
+                                  fontWeight: FontWeight.w700,
+                                  decoration: TextDecoration.underline,
+                                ),
                               ),
                             ),
-                          ),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
