@@ -98,7 +98,7 @@ func (h *Handler) VerifyOTP(c *gin.Context) {
 		return
 	}
 
-	token, isNewUser, user, err := h.svc.VerifyOTP(c.Request.Context(), req.Identifier, req.Type, req.Code)
+	accessToken, refreshToken, isNewUser, user, err := h.svc.VerifyOTP(c.Request.Context(), req.Identifier, req.Type, req.Code)
 	if err != nil {
 		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, err.Error(), nil)
 		return
@@ -107,12 +107,14 @@ func (h *Handler) VerifyOTP(c *gin.Context) {
 	if isNewUser {
 		utils.RespondSuccess(c, http.StatusOK, gin.H{
 			"is_new_user":        true,
-			"registration_token": token,
+			"registration_token": accessToken,
+			"refresh_token":      refreshToken,
 		}, nil)
 	} else {
 		utils.RespondSuccess(c, http.StatusOK, gin.H{
 			"is_new_user":   false,
-			"session_token": token,
+			"access_token":  accessToken,
+			"refresh_token": refreshToken,
 			"is_initial_setup_complete": user.IsInitialSetupComplete,
 			"user": gin.H{
 				"id":         user.ID,
@@ -121,6 +123,41 @@ func (h *Handler) VerifyOTP(c *gin.Context) {
 			},
 		}, nil)
 	}
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" form:"refresh_token" binding:"required"`
+}
+
+// RefreshToken handles POST /api/v1/auth/token/refresh
+// @Summary Refresh Access Token
+// @Description Uses a refresh token to get a new access/refresh token pair
+// @Tags Auth
+// @Accept json
+// @Accept x-www-form-urlencoded
+// @Produce json
+// @Param refresh_token formData string true "Refresh Token"
+// @Success 200 {object} utils.SuccessResponse
+// @Failure 401 {object} utils.FailureResponse
+// @Router /auth/token/refresh [post]
+func (h *Handler) RefreshToken(c *gin.Context) {
+	var req RefreshTokenRequest
+	// Try binding from both JSON and Form (for flexibility)
+	if err := c.ShouldBind(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Refresh token is required", []string{err.Error()})
+		return
+	}
+
+	newAccessToken, newRefreshToken, err := h.svc.RefreshToken(c.Request.Context(), req.RefreshToken)
+	if err != nil {
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized, err.Error(), nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"access_token":  newAccessToken,
+		"refresh_token": newRefreshToken,
+	}, nil)
 }
 
 // VerifyAadhaarXML handles POST /api/v1/auth/kyc/aadhaar-xml

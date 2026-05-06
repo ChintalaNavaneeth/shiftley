@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'widgets/employer_sidebar.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 import 'views/overview_view.dart';
 import 'views/manage_shifts_view.dart';
 import 'views/post_shift_view.dart';
@@ -38,9 +39,15 @@ class _EmployerScreenState extends State<EmployerScreen> {
           },
         ),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-            child: _buildActiveView(),
+          child: SRefreshable(
+            onRefresh: () async {
+              // Simulate network delay
+              await Future.delayed(const Duration(seconds: 1));
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+              child: _buildActiveView(),
+            ),
           ),
         ),
       ),

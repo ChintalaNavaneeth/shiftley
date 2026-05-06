@@ -3,6 +3,7 @@ import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'widgets/support_sidebar.dart';
 import 'views/ticket_queue_view.dart';
 import 'views/agent_settings_view.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 
 enum SupportTab { overview, history, settings }
 
@@ -32,9 +33,14 @@ class _SupportAgentScreenState extends State<SupportAgentScreen> {
           },
         ),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-            child: _buildActiveView(),
+          child: SRefreshable(
+            onRefresh: () async {
+              await Future.delayed(const Duration(seconds: 1));
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+              child: _buildActiveView(),
+            ),
           ),
         ),
       ),

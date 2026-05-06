@@ -18,6 +18,12 @@ type Repository interface {
 	MarkOTUsed(ctx context.Context, otpID uuid.UUID) error
 	StoreSession(ctx context.Context, userID string, token string, expiration time.Duration) error
 	BlacklistUser(ctx context.Context, userID string, expiration time.Duration) error
+	SetOTP(ctx context.Context, identifier string, code string, expiration time.Duration) error
+	GetOTP(ctx context.Context, identifier string) (string, error)
+	DeleteOTP(ctx context.Context, identifier string) error
+	SetRefreshToken(ctx context.Context, userID string, token string, expiration time.Duration) error
+	GetRefreshToken(ctx context.Context, userID string) (string, error)
+	DeleteRefreshToken(ctx context.Context, userID string) error
 }
 
 type repository struct {
@@ -77,4 +83,28 @@ func (r *repository) StoreSession(ctx context.Context, userID string, token stri
 
 func (r *repository) BlacklistUser(ctx context.Context, userID string, expiration time.Duration) error {
 	return r.redis.Set(ctx, "blacklist:"+userID, "revoked", expiration).Err()
+}
+
+func (r *repository) SetOTP(ctx context.Context, identifier string, code string, expiration time.Duration) error {
+	return r.redis.Set(ctx, "otp:"+identifier, code, expiration).Err()
+}
+
+func (r *repository) GetOTP(ctx context.Context, identifier string) (string, error) {
+	return r.redis.Get(ctx, "otp:"+identifier).Result()
+}
+
+func (r *repository) DeleteOTP(ctx context.Context, identifier string) error {
+	return r.redis.Del(ctx, "otp:"+identifier).Err()
+}
+
+func (r *repository) SetRefreshToken(ctx context.Context, userID string, token string, expiration time.Duration) error {
+	return r.redis.Set(ctx, "refresh_token:"+userID, token, expiration).Err()
+}
+
+func (r *repository) GetRefreshToken(ctx context.Context, userID string) (string, error) {
+	return r.redis.Get(ctx, "refresh_token:"+userID).Result()
+}
+
+func (r *repository) DeleteRefreshToken(ctx context.Context, userID string) error {
+	return r.redis.Del(ctx, "refresh_token:"+userID).Err()
 }

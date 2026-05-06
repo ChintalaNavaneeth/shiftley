@@ -3136,3 +3136,29 @@ I have implemented the **Background Subscription Worker**, **Gig Rate Limits**, 
 - **Worker**: Every 1 hour scan for expired plans.
 - **Limits**: 10 workers/gig cap and 5/40/200 gig post limits.
 - **Logout**: `POST /api/v1/auth/logout` blacklists the user in Redis.
+
+## Update: Stateless Auth System (Modernization)
+
+### Overview
+In May 2026, the authentication system was modernized to follow industry-standard stateless security patterns. The goal was to eliminate database-heavy session management and implement a robust "Silent Refresh" flow.
+
+### Key Architectural Changes
+1. **Redis-based OTP Storage:** 
+   - Moved OTP storage from PostgreSQL to Redis.
+   - OTPs now have a strict 5-minute TTL (Time-to-Live).
+   - This prevents sensitive codes from lingering in permanent storage and speeds up verification.
+
+2. **Access & Refresh Token System:**
+   - **Access Token:** A short-lived JWT (15 minutes). Sent in the `Authorization: Bearer` header.
+   - **Refresh Token:** A long-lived token (7 days) stored in Redis. Used only to obtain new access tokens.
+   - **Silent Refresh:** The frontend automatically detects 401 Unauthorized errors and uses the Refresh Token to get a new Access Token without user intervention.
+
+3. **Token Rotation & Security:**
+   - **Rotation:** Every refresh issues a *new* Refresh Token, making leaked tokens harder to exploit.
+   - **Instant Revocation:** Logging out deletes the Refresh Token from Redis immediately, ensuring the session cannot be extended.
+   - **HTTPS Enforcement:** While HTTPS protects tokens in transit, the short-lived access token provides "Defense in Depth" against client-side theft.
+
+### New API Endpoints
+- `POST /api/v1/auth/otp/send`: Now uses Redis.
+- `POST /api/v1/auth/otp/verify`: Returns `access_token` and `refresh_token`.
+- `POST /api/v1/auth/token/refresh`: The primary endpoint for silent refresh logic.

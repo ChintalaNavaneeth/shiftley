@@ -14,7 +14,8 @@ import (
 
 type Service interface {
 	SendOTP(ctx context.Context, identifier string, channel string, role string) (string, error)
-	VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, bool, *User, error)
+	VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, string, bool, *User, error)
+	RefreshToken(ctx context.Context, refreshToken string) (string, string, error)
 	Logout(ctx context.Context, userID string) error
 }
 
@@ -66,15 +67,8 @@ func (s *service) SendOTP(ctx context.Context, identifier string, channel string
 	
 	fmt.Printf("[MOCK OTP] Sent %s to %s via %s\n", code, identifier, deliveryChannel)
 
-	// Store OTP in DB
-	otp := &OTP{
-		UserID:    user.ID,
-		Channel:   deliveryChannel,
-		Code:      code,
-		ExpiresAt: time.Now().Add(5 * time.Minute),
-	}
-
-	if err := s.repo.CreateOTP(ctx, otp); err != nil {
+	// Store OTP in Redis (5 minute expiry)
+	if err := s.repo.SetOTP(ctx, identifier, code, 5*time.Minute); err != nil {
 		return "", err
 	}
 
@@ -82,54 +76,120 @@ func (s *service) SendOTP(ctx context.Context, identifier string, channel string
 	return code, nil
 }
 
-func (s *service) VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, bool, *User, error) {
+func (s *service) VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, string, bool, *User, error) {
 	user, err := s.repo.GetUserByIdentifier(ctx, identifier)
 	if err != nil {
-		return "", false, nil, err
+		return "", "", false, nil, err
 	}
 
-	deliveryChannel := channel
-	if deliveryChannel == "PHONE" {
-		deliveryChannel = "WHATSAPP"
-	}
-
-	otp, err := s.repo.GetLatestOTP(ctx, user.ID, deliveryChannel)
+	storedCode, err := s.repo.GetOTP(ctx, identifier)
 	if err != nil {
-		return "", false, nil, errors.New("invalid or expired OTP")
+		return "", "", false, nil, errors.New("invalid or expired OTP")
 	}
 
-	if otp.Code != code {
-		return "", false, nil, errors.New("incorrect OTP")
+	if storedCode != code {
+		return "", "", false, nil, errors.New("incorrect OTP")
 	}
 
-	// Mark OTP as used
-	if err := s.repo.MarkOTUsed(ctx, otp.ID); err != nil {
-		return "", false, nil, err
-	}
+	// Mark OTP as used (delete from Redis)
+	_ = s.repo.DeleteOTP(ctx, identifier)
 
-	// Generate JWT
+	// Generate Tokens
 	isNewUser := !user.IsVerified
+	accessToken, refreshToken, err := s.generateTokenPair(user, isNewUser)
+	if err != nil {
+		return "", "", false, nil, err
+	}
+
+	// Store Refresh Token in Redis (7 days)
+	if err := s.repo.SetRefreshToken(ctx, user.ID.String(), refreshToken, 7*24*time.Hour); err != nil {
+		return "", "", false, nil, err
+	}
+
+	return accessToken, refreshToken, isNewUser, user, nil
+}
+
+func (s *service) RefreshToken(ctx context.Context, refreshTokenStr string) (string, string, error) {
+	// 1. Parse and validate the refresh token
+	token, err := jwt.Parse(refreshTokenStr, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.jwtSecret), nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", "", errors.New("invalid refresh token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || claims["type"] != "refresh" {
+		return "", "", errors.New("invalid token type")
+	}
+
+	userID := claims["sub"].(string)
+
+	// 2. Check if this refresh token exists in Redis
+	storedToken, err := s.repo.GetRefreshToken(ctx, userID)
+	if err != nil || storedToken != refreshTokenStr {
+		return "", "", errors.New("refresh token expired or revoked")
+	}
+
+	// 3. Get User
+	user, err := s.repo.GetUserByIdentifier(ctx, userID)
+	if err != nil {
+		return "", "", err
+	}
+
+	// 4. Generate New Pair (Rotation)
+	isNewUser := !user.IsVerified
+	newAccessToken, newRefreshToken, err := s.generateTokenPair(user, isNewUser)
+	if err != nil {
+		return "", "", err
+	}
+
+	// 5. Update Redis with new Refresh Token
+	if err := s.repo.SetRefreshToken(ctx, userID, newRefreshToken, 7*24*time.Hour); err != nil {
+		return "", "", err
+	}
+
+	return newAccessToken, newRefreshToken, nil
+}
+
+func (s *service) generateTokenPair(user *User, isNewUser bool) (string, string, error) {
 	tokenType := "session"
 	if isNewUser {
 		tokenType = "registration"
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	// Access Token (15 minutes)
+	accessClaims := jwt.MapClaims{
 		"sub":  user.ID.String(),
 		"role": user.Role,
 		"type": tokenType,
-		"exp":  time.Now().Add(24 * time.Hour).Unix(),
-	})
-
-	tokenString, err := token.SignedString([]byte(s.jwtSecret))
+		"exp":  time.Now().Add(15 * time.Minute).Unix(),
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessTokenStr, err := accessToken.SignedString([]byte(s.jwtSecret))
 	if err != nil {
-		return "", false, nil, err
+		return "", "", err
 	}
 
-	return tokenString, isNewUser, user, nil
+	// Refresh Token (7 days)
+	refreshClaims := jwt.MapClaims{
+		"sub":  user.ID.String(),
+		"type": "refresh",
+		"exp":  time.Now().Add(7 * 24 * time.Hour).Unix(),
+	}
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	refreshTokenStr, err := refreshToken.SignedString([]byte(s.jwtSecret))
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessTokenStr, refreshTokenStr, nil
 }
 
 func (s *service) Logout(ctx context.Context, userID string) error {
-	// Blacklist for 24 hours (token default expiry)
-	return s.repo.BlacklistUser(ctx, userID, 24*time.Hour)
+	// Revoke Refresh Token
+	_ = s.repo.DeleteRefreshToken(ctx, userID)
+	// Also blacklist the current Access Token (optional since it's short-lived, but good for instant logout)
+	return s.repo.BlacklistUser(ctx, userID, 15*time.Minute)
 }

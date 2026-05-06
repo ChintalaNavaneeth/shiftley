@@ -194,6 +194,7 @@ func main() {
 		{
 			authGroup.POST("/otp/send", authHandler.SendOTP)
 			authGroup.POST("/otp/verify", authHandler.VerifyOTP)
+			authGroup.POST("/token/refresh", authHandler.RefreshToken)
 			
 			// KYC - Protected by Registration Token (Worker only usually)
 			kycGroup := authGroup.Group("/kyc")

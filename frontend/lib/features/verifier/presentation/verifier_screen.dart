@@ -6,6 +6,7 @@ import 'package:shiftley_frontend/shared/widgets/s_guidance.dart';
 
 import 'views/faq_view.dart';
 import 'views/support_view.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 
 enum VerifierView { queue, details, history, rejection, verifyFlow, success, support, faq, settings }
 
@@ -55,7 +56,12 @@ class _VerifierScreenState extends State<VerifierScreen> {
           ),
         ),
         drawer: _currentView == VerifierView.queue ? _buildDrawer() : null,
-        body: _buildBody(),
+        body: SRefreshable(
+          onRefresh: () async {
+            await Future.delayed(const Duration(seconds: 1));
+          },
+          child: _buildBody(),
+        ),
       ),
     );
   }
@@ -380,7 +386,26 @@ class _VerifierScreenState extends State<VerifierScreen> {
     ];
     final String targetStatus = _activeTabIndex == 0 ? 'Pending' : _activeTabIndex == 1 ? 'In Progress' : 'Completed';
     final filteredItems = allItems.where((item) => item['status'] == targetStatus).toList();
-    return Column(children: [_buildStatusTabs(), Expanded(child: filteredItems.isEmpty ? Center(child: Text('No $targetStatus items', style: ShiftleyTokens.caption)) : ListView.builder(padding: const EdgeInsets.all(ShiftleyTokens.spaceL), itemCount: filteredItems.length, itemBuilder: (context, index) { final item = filteredItems[index]; return _buildQueueItem(id: item['id']!, name: item['name']!, details: item['details']!, status: item['status']!, time: item['time']!); }))]);
+    return Column(
+      children: [
+        _buildStatusTabs(),
+        const SizedBox(height: ShiftleyTokens.spaceM),
+        if (filteredItems.isEmpty)
+          Center(child: Text('No $targetStatus items', style: ShiftleyTokens.caption))
+        else
+          Column(
+            children: filteredItems.map((item) {
+              return _buildQueueItem(
+                id: item['id']!,
+                name: item['name']!,
+                details: item['details']!,
+                status: item['status']!,
+                time: item['time']!,
+              );
+            }).toList(),
+          ),
+      ],
+    );
   }
 
   Widget _buildDetailsView(String id) {
@@ -416,7 +441,19 @@ class _VerifierScreenState extends State<VerifierScreen> {
   }
 
   Widget _buildHistoryView() {
-    return Column(children: [Container(color: ShiftleyTokens.paperWhite, padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(children: [Row(children: [Expanded(child: _buildDatePicker('From Date', _fromDate, (date) => setState(() => _fromDate = date))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: _buildDatePicker('To Date', _toDate, (date) => setState(() => _toDate = date)))]), const SizedBox(height: ShiftleyTokens.spaceM), SizedBox(height: 48, child: TextField(decoration: InputDecoration(hintText: 'Search history...', prefixIcon: const Icon(Icons.search, size: 20), filled: true, fillColor: ShiftleyTokens.background, border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, contentPadding: EdgeInsets.zero)))])), const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1), Expanded(child: ListView(padding: const EdgeInsets.all(ShiftleyTokens.spaceL), children: [_buildHistoryItem('ITC Kohenur', 'APPROVED', '24 Oct 2023', 'Verified by GST & On-site visit'), _buildHistoryItem('Paradise Biryani', 'REJECTED', '22 Oct 2023', 'GST mismatch / Invalid Address')]))]);
+    return Column(children: [
+      Container(color: ShiftleyTokens.paperWhite, padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(children: [Row(children: [Expanded(child: _buildDatePicker('From Date', _fromDate, (date) => setState(() => _fromDate = date))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: _buildDatePicker('To Date', _toDate, (date) => setState(() => _toDate = date)))]), const SizedBox(height: ShiftleyTokens.spaceM), SizedBox(height: 48, child: TextField(decoration: InputDecoration(hintText: 'Search history...', prefixIcon: const Icon(Icons.search, size: 20), filled: true, fillColor: ShiftleyTokens.background, border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, contentPadding: EdgeInsets.zero)))])), 
+      const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1),
+      Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+        child: Column(
+          children: [
+            _buildHistoryItem('ITC Kohenur', 'APPROVED', '24 Oct 2023', 'Verified by GST & On-site visit'),
+            _buildHistoryItem('Paradise Biryani', 'REJECTED', '22 Oct 2023', 'GST mismatch / Invalid Address'),
+          ],
+        ),
+      ),
+    ]);
   }
 
   Widget _buildDatePicker(String label, DateTime? date, Function(DateTime) onSelect) {

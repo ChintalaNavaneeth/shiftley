@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'widgets/admin_sidebar.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 import 'views/overview_view.dart';
 import 'views/user_management_view.dart';
 import 'views/config_view.dart';
@@ -35,9 +36,14 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
           },
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-            child: _buildActiveView(),
+          child: SRefreshable(
+            onRefresh: () async {
+              await Future.delayed(const Duration(seconds: 1));
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+              child: _buildActiveView(),
+            ),
           ),
         ),
       ),

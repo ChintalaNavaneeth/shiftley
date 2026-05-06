@@ -29,25 +29,19 @@ class _TicketQueueViewState extends State<TicketQueueView> {
         const SizedBox(height: ShiftleyTokens.spaceM),
         _buildFilterRow(),
         const SizedBox(height: ShiftleyTokens.spaceL),
-        Expanded(
-          child: ListView(
-            children: [
-              if (widget.showResolved) ...[
-                const Text('Source Distribution', style: ShiftleyTokens.h2),
-                const SizedBox(height: ShiftleyTokens.spaceM),
-                _buildSourceDistribution(),
-                const SizedBox(height: ShiftleyTokens.spaceXL),
-                const Text('Resolved History', style: ShiftleyTokens.h2),
-                const SizedBox(height: ShiftleyTokens.spaceM),
-                ..._buildResolvedTickets(),
-              ] else ...[
-                const Text('All Open Tickets', style: ShiftleyTokens.h2),
-                const SizedBox(height: ShiftleyTokens.spaceM),
-                ..._buildActiveTickets(),
-              ],
-            ],
-          ),
-        ),
+        if (widget.showResolved) ...[
+          const Text('Source Distribution', style: ShiftleyTokens.h2),
+          const SizedBox(height: ShiftleyTokens.spaceM),
+          _buildSourceDistribution(),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+          const Text('Resolved History', style: ShiftleyTokens.h2),
+          const SizedBox(height: ShiftleyTokens.spaceM),
+          ..._buildResolvedTickets(),
+        ] else ...[
+          const Text('All Open Tickets', style: ShiftleyTokens.h2),
+          const SizedBox(height: ShiftleyTokens.spaceM),
+          ..._buildActiveTickets(),
+        ],
       ],
     );
   }
@@ -217,9 +211,9 @@ class _TicketQueueViewState extends State<TicketQueueView> {
           ],
         ),
         const Divider(height: 1, thickness: 1, color: ShiftleyTokens.inkBlack),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceM),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceM),
+          child: Column(
             children: [
               _buildChatBubble('Hello, I worked the Sunday shift at Taj Banjara but my payment of ₹1200 is still showing as "Pending" in my wallet.', false, '09:00 AM'),
               _buildChatBubble('Hi Rahul, I can help you with that. Let me check the verification status from the employer side.', true, '09:02 AM'),

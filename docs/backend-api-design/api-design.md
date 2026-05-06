@@ -53,7 +53,11 @@ Crucially, these JSON errors are paired with accurate **HTTP Status Codes**. We 
 
 ### 4. Security: Identifiers & Headers
 *   **NanoIDs/UUIDs over Sequential Integers:** Auto-incrementing IDs (`/users/123`) allow malicious actors to scrape the entire database by simply counting up. All exposed resources use URL-safe NanoIDs (`/users/V1StGXR8`). They are mathematically virtually impossible to guess, adding a massive layer of security (preventing IDOR attacks), and stopping competitors from deducing platform growth metrics.
-*   **Headers & Authorization:** Auth state is managed via short-lived JWTs (JSON Web Tokens) passed entirely via the standard `Authorization: Bearer <token>` header. We do not rely on cookies or query parameters for auth, ensuring seamless mobile compatibility.
+*   **Headers & Authorization:** Auth state is managed via a two-token system:
+    *   **Access Token:** A short-lived JWT (15 minutes) passed via the `Authorization: Bearer <token>` header for all authenticated requests.
+    *   **Refresh Token:** A long-lived token (7 days) used strictly to obtain new access tokens.
+    *   **Silent Refresh:** Frontend clients automatically handle 401 Unauthorized responses by calling the refresh endpoint to obtain new tokens without interrupting the user.
+
 *   **Idempotency Headers:** Network connectivity in the gig economy can be unstable. For all state-mutating transactional endpoints (like Payments or Escrows), the client must send an `Idempotency-Key` header (e.g., a specific NanoID generated on the mobile app before the user clicks 'Pay').
     *   **How to implement it:** We use our Redis cache layer as an Idempotency Store. When a `POST` request hits the server, a middleware intercepts the `Idempotency-Key`.
         1. If exactly the same key exists in Redis and `status == processing`, drop the duplicate request to prevent database race conditions.
@@ -130,7 +134,8 @@ Verifies the 6-digit code. This endpoint acts as the universal **Login** for pub
   "success": true,
   "data": {
     "is_new_user": false,
-    "session_token": "primary_jwt_xyz789",
+    "access_token": "short_lived_jwt_xyz789",
+    "refresh_token": "long_lived_refresh_token_123",
     "is_initial_setup_complete": true,
     "user": { "id": "nano123", "role": "EMPLOYER", "kyc_status": "VERIFIED" }
   }
@@ -146,6 +151,29 @@ Invalidates the current session by blacklisting the user in the Redis store.
 **Responses:**
 *   `200 OK`: "Logged out successfully"
 *   `401 Unauthorized`: Session missing or already invalidated.
+
+#### 1.4 Refresh Token
+Uses a Refresh Token to obtain a new Access Token and a rotated Refresh Token.
+
+**Endpoint:** `POST /api/v1/auth/token/refresh`
+**Request Body:**
+```json
+{
+  "refresh_token": "long_lived_refresh_token_123"
+}
+```
+**Responses:**
+*   `200 OK`: Returns new token pair.
+```json
+{
+  "success": true,
+  "data": {
+    "access_token": "new_access_token_456",
+    "refresh_token": "new_refresh_token_789"
+  }
+}
+```
+*   `401 Unauthorized`: Refresh token is expired or revoked.
 
 #### 1.3 Onboard Employer (Multipart Form)
 Finalizes the Employer account creation. Due to heavy file uploads, this endpoint explicitly consumes `multipart/form-data`.
