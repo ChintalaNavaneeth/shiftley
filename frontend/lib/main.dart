@@ -7,6 +7,7 @@ import 'features/auth/presentation/landing_screen.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/otp_screen.dart';
 import 'features/admin/presentation/super_admin_screen.dart';
+import 'features/admin/presentation/super_admin_setup_screen.dart';
 import 'features/verifier/presentation/verifier_screen.dart';
 import 'features/employer/presentation/employer_screen.dart';
 import 'features/employee/presentation/employee_screen.dart';
@@ -47,6 +48,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/admin',
       builder: (context, state) => const SuperAdminScreen(),
+    ),
+    GoRoute(
+      path: '/admin/setup',
+      builder: (context, state) => const SuperAdminSetupScreen(),
     ),
     GoRoute(
       path: '/verifier',

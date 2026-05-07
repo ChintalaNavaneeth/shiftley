@@ -19,6 +19,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isSignUp = true;
   bool _isWorker = true;
+  bool _isAdmin = false;
   bool _isLoading = false;
 
   @override
@@ -32,7 +33,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       setState(() => _isLoading = true);
       try {
         final phoneNumber = '+91${_phoneController.text.trim()}';
-        final role = _isWorker ? 'WORKER' : 'EMPLOYER';
+        final role = _isAdmin ? 'SUPER_ADMIN' : (_isWorker ? 'WORKER' : 'EMPLOYER');
         
         await ref.read(authProvider.notifier).sendOtp(
           phoneNumber,
@@ -208,6 +209,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         text: 'Get OTP →',
                         isLoading: _isLoading,
                         onPressed: _onGetOtp,
+                      ),
+                      const SizedBox(height: ShiftleyTokens.spaceL),
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _isAdmin = !_isAdmin;
+                              if (_isAdmin) {
+                                _phoneController.text = '0000000000';
+                              } else {
+                                _phoneController.clear();
+                              }
+                            });
+                          },
+                          child: Text(
+                            _isAdmin ? '← Switch to User Login' : 'Admin Access',
+                            style: ShiftleyTokens.caption.copyWith(
+                              color: ShiftleyTokens.mutedText,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),

@@ -76,6 +76,12 @@ class DevNavigationScreen extends StatelessWidget {
                     color: ShiftleyTokens.secondaryCyan,
                   ),
                   _DevButton(
+                    label: 'Super Admin Setup',
+                    path: '/admin/setup',
+                    icon: Icons.settings_suggest_outlined,
+                    color: ShiftleyTokens.secondaryCyan,
+                  ),
+                  _DevButton(
                     label: 'Verifier Dashboard',
                     path: '/verifier',
                     icon: Icons.verified_user_outlined,

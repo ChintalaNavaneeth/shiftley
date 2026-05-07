@@ -80,7 +80,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             } else if (widget.role == 'EMPLOYER') {
               context.go('/employer');
             } else {
-              context.go('/admin');
+              if (data.isInitialSetupComplete == false) {
+                context.go('/admin/setup');
+              } else {
+                context.go('/admin');
+              }
             }
           }
         }

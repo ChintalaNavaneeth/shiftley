@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
+import '../providers/admin_providers.dart';
+import '../../domain/admin_models.dart';
 
-class TaxonomyView extends StatefulWidget {
+class TaxonomyView extends ConsumerStatefulWidget {
   const TaxonomyView({super.key});
 
   @override
-  State<TaxonomyView> createState() => _TaxonomyViewState();
+  ConsumerState<TaxonomyView> createState() => _TaxonomyViewState();
 }
 
-class _TaxonomyViewState extends State<TaxonomyView> {
+class _TaxonomyViewState extends ConsumerState<TaxonomyView> {
   String _searchQuery = '';
   final Set<String> _expandedCategories = {};
 
@@ -19,89 +22,66 @@ class _TaxonomyViewState extends State<TaxonomyView> {
   static const double _subcatFontSize = 14.0;
   static const double _statusFontSize = 11.0;
 
-  // Mock data for UI development
-  final List<Map<String, dynamic>> _categories = [
-    {
-      'id': '1',
-      'name': 'Restaurant / F&B',
-      'is_active': true,
-      'subcategories': [
-        {'id': 's1', 'name': 'Waiter / Server', 'is_active': true},
-        {'id': 's2', 'name': 'Kitchen Helper', 'is_active': true},
-        {'id': 's3', 'name': 'Dishwasher', 'is_active': false},
-      ],
-    },
-    {
-      'id': '2',
-      'name': 'Retail / Store',
-      'is_active': true,
-      'subcategories': [
-        {'id': 's4', 'name': 'Cashier', 'is_active': true},
-        {'id': 's5', 'name': 'Sales Associate', 'is_active': true},
-      ],
-    },
-    {
-      'id': '3',
-      'name': 'Logistics / Delivery',
-      'is_active': false,
-      'subcategories': [
-        {'id': 's6', 'name': 'Delivery Partner', 'is_active': true},
-      ],
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final filteredCategories = _categories.where((cat) {
-      final matchesCat = cat['name'].toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
-      final matchesSub = (cat['subcategories'] as List).any(
-        (sub) => sub['name'].toLowerCase().contains(_searchQuery.toLowerCase()),
-      );
-      return matchesCat || matchesSub;
-    }).toList();
+    final taxonomyAsync = ref.watch(adminTaxonomyProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Action Bar
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+    return taxonomyAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+      data: (categories) {
+        final filteredCategories = categories.where((cat) {
+          final matchesCat = cat.name.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              );
+          final matchesSub = cat.skills.any(
+            (sub) => sub.name.toLowerCase().contains(_searchQuery.toLowerCase()),
+          );
+          return matchesCat || matchesSub;
+        }).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ShiftleyButton(
-              label: 'Add Taxonomy',
-              icon: Icons.add,
-              onPressed: () => _showTaxonomyDialog(),
-              size: ShiftleyButtonSize.medium,
+            // Action Bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ShiftleyButton(
+                  label: 'Add Taxonomy',
+                  icon: Icons.add,
+                  onPressed: () => _showTaxonomyDialog(),
+                  size: ShiftleyButtonSize.medium,
+                ),
+              ],
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceL),
+
+            // Search Bar
+            _buildSearchBar(),
+
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+
+            // Horizontal Scrollable Table
+            LayoutBuilder(
+              builder: (context, constraints) {
+                double tableWidth = constraints.maxWidth > 900
+                    ? constraints.maxWidth
+                    : 900;
+                return Scrollbar(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      child: _buildTable(filteredCategories),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
-        ),
-        const SizedBox(height: ShiftleyTokens.spaceL),
-
-        // Search Bar
-        _buildSearchBar(),
-
-        const SizedBox(height: ShiftleyTokens.spaceXL),
-
-        // Horizontal Scrollable Table
-        LayoutBuilder(
-          builder: (context, constraints) {
-            double tableWidth = constraints.maxWidth > 900
-                ? constraints.maxWidth
-                : 900;
-            return Scrollbar(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: tableWidth,
-                  child: _buildTable(filteredCategories),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -135,7 +115,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
     );
   }
 
-  Widget _buildTable(List<Map<String, dynamic>> categories) {
+  Widget _buildTable(List<Category> categories) {
     return Container(
       decoration: BoxDecoration(
         color: ShiftleyTokens.paperWhite,
@@ -156,7 +136,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
             ...categories.expand(
               (cat) => [
                 _buildCategoryRow(cat),
-                if (_expandedCategories.contains(cat['id']))
+                if (_expandedCategories.contains(cat.id))
                   _buildSubcategoryList(cat),
                 const Divider(
                   height: 1,
@@ -259,17 +239,17 @@ class _TaxonomyViewState extends State<TaxonomyView> {
     );
   }
 
-  Widget _buildCategoryRow(Map<String, dynamic> cat) {
-    final bool isExpanded = _expandedCategories.contains(cat['id']);
-    final bool isActive = cat['is_active'];
+  Widget _buildCategoryRow(Category cat) {
+    final bool isExpanded = _expandedCategories.contains(cat.id);
+    final bool isActive = cat.isActive;
 
     return InkWell(
       onTap: () {
         setState(() {
           if (isExpanded) {
-            _expandedCategories.remove(cat['id']);
+            _expandedCategories.remove(cat.id);
           } else {
-            _expandedCategories.add(cat['id']);
+            _expandedCategories.add(cat.id);
           }
         });
       },
@@ -293,7 +273,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
               child: Padding(
                 padding: const EdgeInsets.only(left: 12),
                 child: Text(
-                  cat['name'],
+                  cat.name,
                   style: ShiftleyTokens.bodyLarge.copyWith(
                     fontSize: _bodyFontSize,
                     fontWeight: FontWeight.bold,
@@ -307,7 +287,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
               child: Padding(
                 padding: const EdgeInsets.only(left: 12),
                 child: Text(
-                  '${cat['subcategories'].length}',
+                  '${cat.skills.length}',
                   style: ShiftleyTokens.bodyMedium.copyWith(
                     fontSize: _bodyFontSize,
                   ),
@@ -353,8 +333,8 @@ class _TaxonomyViewState extends State<TaxonomyView> {
     );
   }
 
-  Widget _buildSubcategoryList(Map<String, dynamic> cat) {
-    final List subcats = cat['subcategories'];
+  Widget _buildSubcategoryList(Category cat) {
+    final List<Skill> subcats = cat.skills;
     return Container(
       color: ShiftleyTokens.background.withValues(alpha: 0.3),
       padding: const EdgeInsets.only(
@@ -379,7 +359,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                   Expanded(
                     flex: 3,
                     child: Text(
-                      sub['name'],
+                      sub.name,
                       style: ShiftleyTokens.bodyMedium.copyWith(
                         fontSize: _subcatFontSize,
                       ),
@@ -393,7 +373,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                       alignment: Alignment.centerLeft,
                       child: Padding(
                         padding: const EdgeInsets.only(left: 12),
-                        child: _buildStatusChip(sub['is_active'], small: true),
+                        child: _buildStatusChip(sub.isActive, small: true),
                       ),
                     ),
                   ),
@@ -453,16 +433,18 @@ class _TaxonomyViewState extends State<TaxonomyView> {
   }
 
   void _showTaxonomyDialog({
-    Map<String, dynamic>? cat,
-    Map<String, dynamic>? sub,
+    Category? cat,
+    Skill? sub,
   }) {
     final nameController = TextEditingController(
-      text: sub != null ? sub['name'] : (cat != null ? cat['name'] : ''),
+      text: sub != null ? sub.name : (cat != null ? cat.name : ''),
     );
     final subNameController = TextEditingController();
     bool isActive = sub != null
-        ? sub['is_active']
-        : (cat != null ? cat['is_active'] : true);
+        ? sub.isActive
+        : (cat != null ? cat.isActive : true);
+
+    bool isSubmitting = false;
 
     showDialog(
       context: context,
@@ -513,7 +495,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                     ),
                   ] else ...[
                     Text(
-                      'Editing Subcategory under: ${cat!['name']}',
+                      'Editing Subcategory under: ${cat!.name}',
                       style: ShiftleyTokens.caption,
                     ),
                     const SizedBox(height: ShiftleyTokens.spaceM),
@@ -577,11 +559,15 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                         const SizedBox(width: ShiftleyTokens.spaceM),
                         ShiftleyButton(
                           label: 'ADD',
-                          onPressed: () {
+                          onPressed: () async {
                             if (subNameController.text.isNotEmpty) {
-                              setDialogState(() {
+                              try {
+                                await ref.read(adminTaxonomyProvider.notifier).createSkill(cat.id, subNameController.text);
                                 subNameController.clear();
-                              });
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                              }
                             }
                           },
                           size: ShiftleyButtonSize.small,
@@ -590,7 +576,7 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                     ),
                     const SizedBox(height: ShiftleyTokens.spaceM),
 
-                    ...(cat['subcategories'] as List).map(
+                    ...cat.skills.map(
                       (s) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Container(
@@ -610,11 +596,11 @@ class _TaxonomyViewState extends State<TaxonomyView> {
                               const SizedBox(width: ShiftleyTokens.spaceM),
                               Expanded(
                                 child: Text(
-                                  s['name'],
+                                  s.name,
                                   style: ShiftleyTokens.bodyMedium,
                                 ),
                               ),
-                              _buildStatusChip(s['is_active'], small: true),
+                              _buildStatusChip(s.isActive, small: true),
                               const SizedBox(width: ShiftleyTokens.spaceS),
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 16),
@@ -652,7 +638,26 @@ class _TaxonomyViewState extends State<TaxonomyView> {
             const SizedBox(width: ShiftleyTokens.spaceS),
             ShiftleyButton(
               label: 'SAVE CHANGES',
-              onPressed: () => Navigator.pop(context),
+              isLoading: isSubmitting,
+              onPressed: () async {
+                setDialogState(() => isSubmitting = true);
+                try {
+                  if (sub != null) {
+                    await ref.read(adminTaxonomyProvider.notifier).updateSkill(sub.id, name: nameController.text, isActive: isActive);
+                  } else if (cat != null) {
+                    await ref.read(adminTaxonomyProvider.notifier).updateCategory(cat.id, name: nameController.text, isActive: isActive);
+                  } else {
+                    await ref.read(adminTaxonomyProvider.notifier).createCategory(nameController.text);
+                  }
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                } finally {
+                  setDialogState(() => isSubmitting = false);
+                }
+              },
               size: ShiftleyButtonSize.small,
             ),
           ],

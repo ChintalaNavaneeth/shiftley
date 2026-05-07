@@ -10,6 +10,7 @@ class ShiftleyButton extends StatelessWidget {
   final ShiftleyButtonSize size;
   final bool isFullWidth;
   final bool isPrimary;
+  final bool isLoading;
 
   const ShiftleyButton({
     super.key,
@@ -19,6 +20,7 @@ class ShiftleyButton extends StatelessWidget {
     this.size = ShiftleyButtonSize.medium,
     this.isFullWidth = false,
     this.isPrimary = true,
+    this.isLoading = false,
   });
 
   @override
@@ -48,28 +50,37 @@ class ShiftleyButton extends StatelessWidget {
             ),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: iconSize, color: textColor),
-              const SizedBox(width: ShiftleyTokens.spaceS),
-            ],
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label.toUpperCase(),
-                  style: ShiftleyTokens.buttonLabel.copyWith(
-                    color: textColor,
-                    fontSize: fontSize,
-                  ),
+        child: isLoading
+            ? SizedBox(
+                width: iconSize,
+                height: iconSize,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: textColor,
                 ),
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: iconSize, color: textColor),
+                    const SizedBox(width: ShiftleyTokens.spaceS),
+                  ],
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label.toUpperCase(),
+                        style: ShiftleyTokens.buttonLabel.copyWith(
+                          color: textColor,
+                          fontSize: fontSize,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
