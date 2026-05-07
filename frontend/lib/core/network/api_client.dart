@@ -6,13 +6,20 @@ class ApiClient {
   final TokenStorage _tokenStorage = TokenStorage();
   
   // Replace with your actual backend URL
-  static const String baseUrl = 'http://localhost:8080/api/v1';
+  // Use your machine's local IP for reliable emulator connection
+  static const String baseUrl = 'http://192.168.1.6:8080/api/v1';
 
   ApiClient() {
     dio = Dio(BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 3),
+    ));
+
+    dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      error: true,
     ));
 
     dio.interceptors.add(InterceptorsWrapper(

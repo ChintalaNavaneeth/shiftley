@@ -1,10 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
-import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
 import 'providers/auth_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -47,7 +47,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             'isSignUp': _isSignUp,
           });
         }
-      } catch (e) {
+      } catch (e, stack) {
+        debugPrint('Auth Error Detail: $e');
+        if (e is DioException) {
+          debugPrint('Request Path: ${e.requestOptions.path}');
+          debugPrint('Base URL: ${e.requestOptions.baseUrl}');
+        }
+        debugPrint('Stack: $stack');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
