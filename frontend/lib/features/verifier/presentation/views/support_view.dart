@@ -59,41 +59,37 @@ class _SupportViewState extends State<SupportView> {
         ),
         const SizedBox(height: ShiftleyTokens.spaceM),
         
-        Expanded(
-          child: Column(
-            children: [
-              if (displayedTickets.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Text('No active support requests', style: ShiftleyTokens.bodyMedium),
-                )
-              else
-                ...displayedTickets.map((ticket) => _buildTicketItem(
-                  ticket['id'], 
-                  ticket['subject'], 
-                  ticket['status'], 
-                  ticket['color'],
-                )),
-              
-              const Spacer(),
-
-              if (totalPages > 1)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceL),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildPageButton(Icons.chevron_left, _currentPage > 1 ? () => setState(() => _currentPage--) : null),
-                      const SizedBox(width: ShiftleyTokens.spaceL),
-                      Text('Page $_currentPage of $totalPages', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(width: ShiftleyTokens.spaceL),
-                      _buildPageButton(Icons.chevron_right, _currentPage < totalPages ? () => setState(() => _currentPage++) : null),
-                    ],
-                  ),
-                ),
-            ],
+        if (displayedTickets.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: Text('No active support requests', style: ShiftleyTokens.bodyMedium)),
+          )
+        else
+          Column(
+            children: displayedTickets.map((ticket) => _buildTicketItem(
+              ticket['id'], 
+              ticket['subject'], 
+              ticket['status'], 
+              ticket['color'],
+            )).toList(),
           ),
-        ),
+        
+        const SizedBox(height: ShiftleyTokens.spaceXL),
+
+        if (totalPages > 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceL),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildPageButton(Icons.chevron_left, _currentPage > 1 ? () => setState(() => _currentPage--) : null),
+                const SizedBox(width: ShiftleyTokens.spaceL),
+                Text('Page $_currentPage of $totalPages', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(width: ShiftleyTokens.spaceL),
+                _buildPageButton(Icons.chevron_right, _currentPage < totalPages ? () => setState(() => _currentPage++) : null),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -145,23 +141,26 @@ class _SupportViewState extends State<SupportView> {
         ),
         const Divider(height: ShiftleyTokens.spaceL),
 
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceM),
-            children: [
-              _buildChatBubble(
-                'Verifier Team: We see you are at the correct coordinates. Please try refreshing the GPS sync or step outside the building for a better signal.',
-                isSupport: true,
-                time: '11:00 AM',
-              ),
-              _buildChatBubble(
-                'I am outside but the app still says I am 120m away. The employer confirmed this is the only gate.',
-                isSupport: false,
-                time: '11:05 AM',
-              ),
-            ],
-          ),
+        // Chat list without Expanded to work inside SRefreshable
+        ListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceM),
+          children: [
+            _buildChatBubble(
+              'Verifier Team: We see you are at the correct coordinates. Please try refreshing the GPS sync or step outside the building for a better signal.',
+              isSupport: true,
+              time: '11:00 AM',
+            ),
+            _buildChatBubble(
+              'I am outside but the app still says I am 120m away. The employer confirmed this is the only gate.',
+              isSupport: false,
+              time: '11:05 AM',
+            ),
+          ],
         ),
+
+        const SizedBox(height: ShiftleyTokens.spaceL),
 
         Padding(
           padding: const EdgeInsets.all(ShiftleyTokens.spaceM),

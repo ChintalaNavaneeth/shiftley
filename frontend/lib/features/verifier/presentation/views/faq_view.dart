@@ -6,10 +6,9 @@ class FAQView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
           const Text('Find quick answers to common questions for field verifiers.', style: ShiftleyTokens.bodyMedium),
           const SizedBox(height: ShiftleyTokens.spaceXL),
 
@@ -30,8 +29,7 @@ class FAQView extends StatelessWidget {
           _buildFAQItem(context, 'Can I verify offline?', 'No, GPS sync and data submission require an active internet connection to prevent fraud.'),
 
           const SizedBox(height: 100),
-        ],
-      ),
+      ],
     );
   }
 

@@ -19,6 +19,10 @@ func NewTaxonomyHandler(db *gorm.DB) *TaxonomyHandler {
 	return &TaxonomyHandler{db: db}
 }
 
+type CreateCategoryRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
 type UpdateTaxonomyRequest struct {
 	Name     *string `json:"name"`
 	IsActive *bool   `json:"is_active"`

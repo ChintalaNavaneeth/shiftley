@@ -51,7 +51,6 @@ class _SupportViewState extends State<SupportView> {
         const Text('Track your tickets and communicate with our team.', style: ShiftleyTokens.bodyMedium),
         const SizedBox(height: ShiftleyTokens.spaceXL),
 
-        // Recent Tickets Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -65,36 +64,31 @@ class _SupportViewState extends State<SupportView> {
         ),
         const SizedBox(height: ShiftleyTokens.spaceM),
         
-        Expanded(
-          child: Column(
-            children: [
-              ...displayedTickets.map((ticket) => _buildTicketItem(
-                ticket['id'], 
-                ticket['subject'], 
-                ticket['status'], 
-                ticket['color'],
-              )),
-              
-              const Spacer(),
-
-              // Pagination Controls
-              if (totalPages > 1)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceL),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildPageButton(Icons.chevron_left, _currentPage > 1 ? () => setState(() => _currentPage--) : null),
-                      const SizedBox(width: ShiftleyTokens.spaceL),
-                      Text('Page $_currentPage of $totalPages', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(width: ShiftleyTokens.spaceL),
-                      _buildPageButton(Icons.chevron_right, _currentPage < totalPages ? () => setState(() => _currentPage++) : null),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+        Column(
+          children: displayedTickets.map((ticket) => _buildTicketItem(
+            ticket['id'], 
+            ticket['subject'], 
+            ticket['status'], 
+            ticket['color'],
+          )).toList(),
         ),
+        
+        const SizedBox(height: ShiftleyTokens.spaceXL),
+
+        if (totalPages > 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceL),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildPageButton(Icons.chevron_left, _currentPage > 1 ? () => setState(() => _currentPage--) : null),
+                const SizedBox(width: ShiftleyTokens.spaceL),
+                Text('Page $_currentPage of $totalPages', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(width: ShiftleyTokens.spaceL),
+                _buildPageButton(Icons.chevron_right, _currentPage < totalPages ? () => setState(() => _currentPage++) : null),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -117,7 +111,6 @@ class _SupportViewState extends State<SupportView> {
   Widget _buildChatView() {
     return Column(
       children: [
-        // Chat Header
         Row(
           children: [
             IconButton(
@@ -147,31 +140,31 @@ class _SupportViewState extends State<SupportView> {
         ),
         const Divider(height: ShiftleyTokens.spaceL),
 
-        // Chat Messages
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceM),
-            children: [
-              _buildChatBubble(
-                'Hi Taj Banjara! We have received your query regarding the payment delay. Our team is looking into it.',
-                isSupport: true,
-                time: '10:30 AM',
-              ),
-              _buildChatBubble(
-                'Thank you. The payment was processed 2 days ago but still shows pending in my dashboard.',
-                isSupport: false,
-                time: '10:35 AM',
-              ),
-              _buildChatBubble(
-                'Understood. Could you please share the transaction reference ID?',
-                isSupport: true,
-                time: '10:40 AM',
-              ),
-            ],
-          ),
+        ListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceM),
+          children: [
+            _buildChatBubble(
+              'Hi Taj Banjara! We have received your query regarding the payment delay. Our team is looking into it.',
+              isSupport: true,
+              time: '10:30 AM',
+            ),
+            _buildChatBubble(
+              'Thank you. The payment was processed 2 days ago but still shows pending in my dashboard.',
+              isSupport: false,
+              time: '10:35 AM',
+            ),
+            _buildChatBubble(
+              'Understood. Could you please share the transaction reference ID?',
+              isSupport: true,
+              time: '10:40 AM',
+            ),
+          ],
         ),
 
-        // Chat Input
+        const SizedBox(height: ShiftleyTokens.spaceL),
+
         Padding(
           padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
           child: Row(

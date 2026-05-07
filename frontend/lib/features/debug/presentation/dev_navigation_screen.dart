@@ -40,6 +40,14 @@ class DevNavigationScreen extends StatelessWidget {
                   const SizedBox(height: ShiftleyTokens.spaceXXL),
                   
                   _DevButton(
+                    label: 'Launch App Flow (Wireframe)',
+                    path: '/',
+                    icon: Icons.rocket_launch,
+                    color: Colors.greenAccent,
+                  ),
+                  const SizedBox(height: ShiftleyTokens.spaceL),
+
+                  _DevButton(
                     label: 'Splash Screen',
                     path: '/',
                     icon: Icons.flash_on,
@@ -55,10 +63,10 @@ class DevNavigationScreen extends StatelessWidget {
                     icon: Icons.login,
                   ),
                   _DevButton(
-                    label: 'OTP Screen',
+                    label: 'OTP Screen (Direct)',
                     path: '/otp',
                     icon: Icons.pin_outlined,
-                    extra: '+919876543210',
+                    extra: {'phone': '+919876543210', 'role': 'WORKER', 'isSignUp': true},
                   ),
                   const Divider(height: ShiftleyTokens.spaceXXL, thickness: 2, color: ShiftleyTokens.inkBlack),
                   _DevButton(

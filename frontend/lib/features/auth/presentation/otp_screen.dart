@@ -1,19 +1,29 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
+import 'providers/auth_provider.dart';
 
-
-class OtpScreen extends StatefulWidget {
+class OtpScreen extends ConsumerStatefulWidget {
   final String phoneNumber;
-  const OtpScreen({super.key, required this.phoneNumber});
+  final String role;
+  final bool isSignUp;
+
+  const OtpScreen({
+    super.key,
+    required this.phoneNumber,
+    required this.role,
+    required this.isSignUp,
+  });
 
   @override
-  State<OtpScreen> createState() => _OtpScreenState();
+  ConsumerState<OtpScreen> createState() => _OtpScreenState();
 }
 
-class _OtpScreenState extends State<OtpScreen> {
+class _OtpScreenState extends ConsumerState<OtpScreen> {
   final _otpController = TextEditingController();
   int _secondsLeft = 60;
   Timer? _timer;
@@ -44,13 +54,48 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
-  void _onVerify() {
+  Future<void> _onVerify() async {
     if (_otpController.text.length == 6) {
       setState(() => _isVerifying = true);
-      // Phase 4: wire up to auth_provider
-      Future.delayed(const Duration(seconds: 1), () {
+      try {
+        final response = await ref.read(authProvider.notifier).verifyOtp(
+          widget.phoneNumber,
+          'PHONE',
+          _otpController.text,
+        );
+
+        if (mounted) {
+          final data = response.data!;
+          if (data.isNewUser) {
+            // Navigate to onboarding
+            if (widget.role == 'WORKER') {
+              context.go('/onboarding/employee');
+            } else {
+              context.go('/onboarding/employer');
+            }
+          } else {
+            // Navigate to dashboard based on role
+            if (widget.role == 'WORKER') {
+              context.go('/employee');
+            } else if (widget.role == 'EMPLOYER') {
+              context.go('/employer');
+            } else {
+              context.go('/admin');
+            }
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: ShiftleyTokens.primaryRed,
+            ),
+          );
+        }
+      } finally {
         if (mounted) setState(() => _isVerifying = false);
-      });
+      }
     }
   }
 

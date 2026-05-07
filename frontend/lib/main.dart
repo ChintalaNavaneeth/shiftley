@@ -36,8 +36,12 @@ final _router = GoRouter(
     GoRoute(
       path: '/otp',
       builder: (context, state) {
-        final phone = state.extra as String? ?? '';
-        return OtpScreen(phoneNumber: phone);
+        final data = state.extra as Map<String, dynamic>;
+        return OtpScreen(
+          phoneNumber: data['phone'] as String,
+          role: data['role'] as String,
+          isSignUp: data['isSignUp'] as bool,
+        );
       },
     ),
     GoRoute(

@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
 )
@@ -159,11 +160,14 @@ func (s *service) generateTokenPair(user *User, isNewUser bool) (string, string,
 		tokenType = "registration"
 	}
 
+	jti := uuid.New().String()
+
 	// Access Token (15 minutes)
 	accessClaims := jwt.MapClaims{
 		"sub":  user.ID.String(),
 		"role": user.Role,
 		"type": tokenType,
+		"jti":  jti,
 		"exp":  time.Now().Add(15 * time.Minute).Unix(),
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -176,6 +180,7 @@ func (s *service) generateTokenPair(user *User, isNewUser bool) (string, string,
 	refreshClaims := jwt.MapClaims{
 		"sub":  user.ID.String(),
 		"type": "refresh",
+		"jti":  jti, // Shared JTI for rotation tracking
 		"exp":  time.Now().Add(7 * 24 * time.Hour).Unix(),
 	}
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)

@@ -126,7 +126,7 @@ class _LandingScreenState extends State<LandingScreen> {
                                 alignment: Alignment.topCenter,
                                 children: <Widget>[
                                   ...previousChildren,
-                                  ?currentChild,
+                                  currentChild ?? const SizedBox.shrink(),
                                 ],
                               );
                             },

@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pinput/pinput.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
+import 'providers/auth_provider.dart';
 
-class AuthScreen extends StatefulWidget {
+class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
   @override
-  State<AuthScreen> createState() => _AuthScreenState();
+  ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isSignUp = true;
   bool _isWorker = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,9 +27,38 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
-  void _onGetOtp() {
+  Future<void> _onGetOtp() async {
     if (_formKey.currentState!.validate()) {
-      context.push('/otp', extra: '+91${_phoneController.text.trim()}');
+      setState(() => _isLoading = true);
+      try {
+        final phoneNumber = '+91${_phoneController.text.trim()}';
+        final role = _isWorker ? 'WORKER' : 'EMPLOYER';
+        
+        await ref.read(authProvider.notifier).sendOtp(
+          phoneNumber,
+          'PHONE',
+          role,
+        );
+
+        if (mounted) {
+          context.push('/otp', extra: {
+            'phone': phoneNumber,
+            'role': role,
+            'isSignUp': _isSignUp,
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: ShiftleyTokens.primaryRed,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -135,28 +168,39 @@ class _AuthScreenState extends State<AuthScreen> {
                       // Input
                       const Text('Phone Number', style: ShiftleyTokens.bodyLarge),
                       const SizedBox(height: ShiftleyTokens.spaceS),
-                      STextField(
-                        hint: '9876543210',
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        maxLength: 10,
-                        prefix: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: ShiftleyTokens.spaceM,
-                            vertical: ShiftleyTokens.spaceM,
+                      Center(
+                        child: Pinput(
+                          length: 10,
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          defaultPinTheme: PinTheme(
+                            width: 32,
+                            height: 48,
+                            textStyle: ShiftleyTokens.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                            decoration: const BoxDecoration(
+                              border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.5)),
+                            ),
                           ),
-                          child: const Text('+91', style: ShiftleyTokens.bodyMedium),
+                          focusedPinTheme: PinTheme(
+                            width: 32,
+                            height: 48,
+                            textStyle: ShiftleyTokens.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                            decoration: const BoxDecoration(
+                              border: Border(bottom: BorderSide(color: ShiftleyTokens.primaryRed, width: 3.5)),
+                            ),
+                          ),
+                          // Allow pasting 10 digits
+                          onClipboardFound: (value) {
+                            if (value.length == 10) {
+                              _phoneController.text = value;
+                            }
+                          },
                         ),
-                        validator: (v) {
-                          if (v == null || v.length != 10) {
-                            return 'Enter a valid 10-digit phone number';
-                          }
-                          return null;
-                        },
                       ),
                       const SizedBox(height: ShiftleyTokens.spaceXL),
                       SButton(
                         text: 'Get OTP →',
+                        isLoading: _isLoading,
                         onPressed: _onGetOtp,
                       ),
                     ],
