@@ -47,7 +47,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      await _dio.post('/auth/logout');
+      await _dio.post('/auth/logout', options: Options(extra: {'no-retry': true}));
     } catch (e) {
       rethrow;
     }

@@ -20,6 +20,12 @@ class _SuperAdminSetupScreenState extends ConsumerState<SuperAdminSetupScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _phoneController.text = '+91';
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
@@ -51,15 +57,42 @@ class _SuperAdminSetupScreenState extends ConsumerState<SuperAdminSetupScreen> {
       await ref.read(authProvider.notifier).logout();
       
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Setup complete! Please login with your new credentials.'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 4),
+      
+      // Success Animation Dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: ShiftleyTokens.paperWhite,
+          shape: const RoundedRectangleBorder(side: BorderSide(color: ShiftleyTokens.inkBlack, width: 3)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
+              const SizedBox(height: ShiftleyTokens.spaceL),
+              const Text(
+                'ACCOUNT SETUP COMPLETE',
+                style: ShiftleyTokens.h2,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: ShiftleyTokens.spaceM),
+              const Text(
+                'Your credentials have been updated. Please login again from the home screen.',
+                style: ShiftleyTokens.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: ShiftleyTokens.spaceXL),
+              SButton(
+                text: 'CONTINUE',
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go('/dev');
+                },
+              ),
+            ],
+          ),
         ),
       );
-
-      context.go('/auth');
     } catch (e) {
       debugPrint('Super Admin Setup Error: $e');
       if (!mounted) return;

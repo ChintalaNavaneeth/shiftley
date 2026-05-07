@@ -29,10 +29,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _isSignUp = !widget.isAdminFlow;
     _isWorker = true;
     _isAdmin = widget.isAdminFlow;
-    
-    if (widget.isAdminFlow) {
-      _phoneController.text = '0000000000';
-    }
   }
 
   @override

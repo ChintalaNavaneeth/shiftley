@@ -89,7 +89,6 @@ services:
       - BUCKET_LOGOS=${BUCKET_LOGOS}
       - BUCKET_KYC=${BUCKET_KYC}
       - JWT_SECRET=test_secret
-      - FIXED_OTP=000000
     depends_on:
       db:
         condition: service_healthy

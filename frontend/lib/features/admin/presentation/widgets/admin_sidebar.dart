@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/features/auth/presentation/providers/auth_provider.dart';
 
 enum AdminTab {
   overview,
@@ -11,7 +14,7 @@ enum AdminTab {
   settings,
 }
 
-class AdminSidebar extends StatelessWidget {
+class AdminSidebar extends ConsumerWidget {
   final AdminTab activeTab;
   final Function(AdminTab) onTabChanged;
 
@@ -22,7 +25,7 @@ class AdminSidebar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Drawer(
       backgroundColor: ShiftleyTokens.paperWhite,
       child: Column(
@@ -103,8 +106,34 @@ class AdminSidebar extends StatelessWidget {
             icon: Icons.logout,
             label: 'Logout',
             isActive: false,
-            onTap: () {
-              // Handle logout
+            onTap: () async {
+              // Confirm logout
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: ShiftleyTokens.paperWhite,
+                  shape: const RoundedRectangleBorder(side: BorderSide(color: ShiftleyTokens.inkBlack, width: 2)),
+                  title: const Text('Logout', style: ShiftleyTokens.h2),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel', style: TextStyle(color: ShiftleyTokens.inkBlack)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Logout', style: TextStyle(color: ShiftleyTokens.primaryRed, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) {
+                  context.go('/dev');
+                }
+              }
             },
           ),
           const SizedBox(height: ShiftleyTokens.spaceL),

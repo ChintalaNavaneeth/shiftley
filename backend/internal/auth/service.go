@@ -134,7 +134,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshTokenStr string) (str
 	}
 
 	// 3. Get User
-	user, err := s.repo.GetUserByIdentifier(ctx, userID)
+	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return "", "", err
 	}

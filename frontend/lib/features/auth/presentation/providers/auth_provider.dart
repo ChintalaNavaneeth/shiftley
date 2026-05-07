@@ -63,7 +63,11 @@ class Auth extends _$Auth {
     try {
       final repo = ref.read(authRepositoryProvider);
       await repo.logout();
-    } catch (_) {} finally {
+    } catch (e) {
+      // Ignore logout errors (like 401) because if the session is already 
+      // invalid on the server, we just need to clear it locally anyway.
+      debugPrint('Logout request failed (expected if session revoked): $e');
+    } finally {
       final storage = ref.read(tokenStorageProvider);
       await storage.clearTokens();
       state = const AsyncValue.data(null);

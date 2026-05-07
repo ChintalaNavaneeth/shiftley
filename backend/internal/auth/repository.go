@@ -11,6 +11,7 @@ import (
 
 type Repository interface {
 	GetUserByIdentifier(ctx context.Context, identifier string) (*User, error)
+	GetUserByID(ctx context.Context, id string) (*User, error)
 	GetUserByPhone(ctx context.Context, phone string) (*User, error)
 	CreateUser(ctx context.Context, user *User) error
 	CreateOTP(ctx context.Context, otp *OTP) error
@@ -38,6 +39,15 @@ func NewRepository(db *gorm.DB, redis *redis.Client) Repository {
 func (r *repository) GetUserByIdentifier(ctx context.Context, identifier string) (*User, error) {
 	var user User
 	err := r.db.WithContext(ctx).Where("email = ? OR phone_number = ?", identifier, identifier).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *repository) GetUserByID(ctx context.Context, id string) (*User, error) {
+	var user User
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&user).Error
 	if err != nil {
 		return nil, err
 	}

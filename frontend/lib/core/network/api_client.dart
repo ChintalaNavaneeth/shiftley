@@ -32,14 +32,22 @@ class ApiClient {
         return handler.next(options);
       },
       onError: (error, handler) async {
-        if (error.response?.statusCode == 401) {
+        // Prevent infinite loop: Don't refresh if the request is marked as no-retry
+        // or if it's already a refresh/logout request
+        final bool noRetry = error.requestOptions.extra['no-retry'] == true;
+        final bool isAuthPath = error.requestOptions.path.contains('/auth/token/refresh') || 
+                               error.requestOptions.path.contains('/auth/logout');
+        
+        if (error.response?.statusCode == 401 && !noRetry && !isAuthPath) {
           final refreshToken = await _tokenStorage.getRefreshToken();
           if (refreshToken != null) {
             try {
-              // Attempt to refresh the token
-              final response = await dio.post('/auth/token/refresh', data: {
-                'refresh_token': refreshToken,
-              });
+              // Use a separate options object with no-retry to prevent recursion
+              final response = await dio.post(
+                '/auth/token/refresh',
+                data: {'refresh_token': refreshToken},
+                options: Options(extra: {'no-retry': true}),
+              );
 
               if (response.statusCode == 200) {
                 final newAccessToken = response.data['data']['access_token'];
