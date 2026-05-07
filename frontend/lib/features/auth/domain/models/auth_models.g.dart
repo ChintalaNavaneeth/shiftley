@@ -37,9 +37,7 @@ Map<String, dynamic> _$VerifyOtpRequestToJson(VerifyOtpRequest instance) =>
 AuthResponse _$AuthResponseFromJson(Map<String, dynamic> json) => AuthResponse(
       success: json['success'] as bool,
       message: json['message'] as String?,
-      data: json['data'] == null
-          ? null
-          : AuthData.fromJson(json['data'] as Map<String, dynamic>),
+      data: json['data'],
     );
 
 Map<String, dynamic> _$AuthResponseToJson(AuthResponse instance) =>

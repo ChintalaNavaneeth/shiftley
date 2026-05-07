@@ -8,7 +8,8 @@ import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import 'providers/auth_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
-  const AuthScreen({super.key});
+  final bool isAdminFlow;
+  const AuthScreen({super.key, this.isAdminFlow = false});
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -17,10 +18,22 @@ class AuthScreen extends ConsumerStatefulWidget {
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isSignUp = true;
-  bool _isWorker = true;
-  bool _isAdmin = false;
+  late bool _isSignUp;
+  late bool _isWorker;
+  late bool _isAdmin;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSignUp = !widget.isAdminFlow;
+    _isWorker = true;
+    _isAdmin = widget.isAdminFlow;
+    
+    if (widget.isAdminFlow) {
+      _phoneController.text = '0000000000';
+    }
+  }
 
   @override
   void dispose() {
@@ -108,27 +121,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       const SizedBox(height: ShiftleyTokens.spaceXL),
                       
                       // Toggle
-                      Container(
-                        decoration: BoxDecoration(
-                          border: ShiftleyTokens.primaryBorder,
-                          borderRadius: BorderRadius.circular(50),
+                      if (!_isAdmin) ...[
+                        Container(
+                          decoration: BoxDecoration(
+                            border: ShiftleyTokens.primaryBorder,
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: Row(
+                            children: [
+                              _TabButton(
+                                label: 'Sign In',
+                                isActive: !_isSignUp,
+                                onTap: () => setState(() => _isSignUp = false),
+                              ),
+                              _TabButton(
+                                label: 'Sign Up',
+                                isActive: _isSignUp,
+                                onTap: () => setState(() => _isSignUp = true),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            _TabButton(
-                              label: 'Sign In',
-                              isActive: !_isSignUp,
-                              onTap: () => setState(() => _isSignUp = false),
-                            ),
-                            _TabButton(
-                              label: 'Sign Up',
-                              isActive: _isSignUp,
-                              onTap: () => setState(() => _isSignUp = true),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: ShiftleyTokens.spaceXL),
+                        const SizedBox(height: ShiftleyTokens.spaceXL),
+                      ],
                       
                       // Role Picker
                       AnimatedSwitcher(
@@ -211,27 +226,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         onPressed: _onGetOtp,
                       ),
                       const SizedBox(height: ShiftleyTokens.spaceL),
-                      Center(
-                        child: TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isAdmin = !_isAdmin;
-                              if (_isAdmin) {
-                                _phoneController.text = '0000000000';
-                              } else {
-                                _phoneController.clear();
-                              }
-                            });
-                          },
-                          child: Text(
-                            _isAdmin ? '← Switch to User Login' : 'Admin Access',
-                            style: ShiftleyTokens.caption.copyWith(
-                              color: ShiftleyTokens.mutedText,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),

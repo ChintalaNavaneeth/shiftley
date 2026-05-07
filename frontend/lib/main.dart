@@ -32,7 +32,11 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/auth',
-      builder: (context, state) => const AuthScreen(),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final isAdminFlow = extra?['isAdminFlow'] as bool? ?? false;
+        return AuthScreen(isAdminFlow: isAdminFlow);
+      },
     ),
     GoRoute(
       path: '/otp',

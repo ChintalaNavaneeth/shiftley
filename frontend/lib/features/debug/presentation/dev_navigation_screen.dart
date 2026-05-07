@@ -38,72 +38,67 @@ class DevNavigationScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: ShiftleyTokens.spaceXXL),
-                  
                   _DevButton(
-                    label: 'Launch App Flow (Wireframe)',
-                    path: '/',
+                    label: 'Launch App Flow (Others)',
+                    path: '/landing',
                     icon: Icons.rocket_launch,
                     color: Colors.greenAccent,
                   ),
                   const SizedBox(height: ShiftleyTokens.spaceL),
 
                   _DevButton(
-                    label: 'Splash Screen',
-                    path: '/',
-                    icon: Icons.flash_on,
-                  ),
-                  _DevButton(
-                    label: 'Landing Page',
-                    path: '/landing',
-                    icon: Icons.home_outlined,
-                  ),
-                  _DevButton(
-                    label: 'Authentication (Sign Up/In)',
+                    label: 'Super Admin Account Setup & Login',
                     path: '/auth',
-                    icon: Icons.login,
+                    icon: Icons.admin_panel_settings,
+                    color: ShiftleyTokens.secondaryCyan,
+                    extra: {'isAdminFlow': true},
                   ),
-                  _DevButton(
-                    label: 'OTP Screen (Direct)',
-                    path: '/otp',
-                    icon: Icons.pin_outlined,
-                    extra: {'phone': '+919876543210', 'role': 'WORKER', 'isSignUp': true},
-                  ),
+                  const SizedBox(height: ShiftleyTokens.spaceXXL),
+                  
                   const Divider(height: ShiftleyTokens.spaceXXL, thickness: 2, color: ShiftleyTokens.inkBlack),
-                  _DevButton(
-                    label: 'Super Admin Dashboard',
-                    path: '/admin',
-                    icon: Icons.admin_panel_settings_outlined,
-                    color: ShiftleyTokens.secondaryCyan,
+                  
+                  Text(
+                    'Unified Integration Check',
+                    style: ShiftleyTokens.h2.copyWith(color: ShiftleyTokens.mutedText),
+                    textAlign: TextAlign.center,
                   ),
-                  _DevButton(
-                    label: 'Super Admin Setup',
-                    path: '/admin/setup',
-                    icon: Icons.settings_suggest_outlined,
-                    color: ShiftleyTokens.secondaryCyan,
-                  ),
-                  _DevButton(
-                    label: 'Verifier Dashboard',
-                    path: '/verifier',
-                    icon: Icons.verified_user_outlined,
-                    color: ShiftleyTokens.secondaryCyan,
-                  ),
-                  _DevButton(
-                    label: 'Employer Dashboard',
-                    path: '/employer',
-                    icon: Icons.business_center_outlined,
-                    color: ShiftleyTokens.secondaryCyan,
-                  ),
-                  _DevButton(
-                    label: 'Employee Dashboard',
-                    path: '/employee',
-                    icon: Icons.person_outline,
-                    color: ShiftleyTokens.secondaryCyan,
-                  ),
-                  _DevButton(
-                    label: 'Support Dashboard (CS)',
-                    path: '/support',
-                    icon: Icons.support_agent_outlined,
-                    color: ShiftleyTokens.secondaryCyan,
+                  const SizedBox(height: ShiftleyTokens.spaceL),
+                  
+                  ExpansionTile(
+                    title: const Text('Reference Views (Direct Access)', 
+                      style: TextStyle(fontWeight: FontWeight.bold, color: ShiftleyTokens.inkBlack)),
+                    children: [
+                      _DevButton(
+                        label: 'Super Admin Dashboard',
+                        path: '/admin',
+                        icon: Icons.admin_panel_settings_outlined,
+                        color: ShiftleyTokens.secondaryCyan,
+                      ),
+                      _DevButton(
+                        label: 'Verifier Dashboard',
+                        path: '/verifier',
+                        icon: Icons.verified_user_outlined,
+                        color: ShiftleyTokens.secondaryCyan,
+                      ),
+                      _DevButton(
+                        label: 'Employer Dashboard',
+                        path: '/employer',
+                        icon: Icons.business_center_outlined,
+                        color: ShiftleyTokens.secondaryCyan,
+                      ),
+                      _DevButton(
+                        label: 'Employee Dashboard',
+                        path: '/employee',
+                        icon: Icons.person_outline,
+                        color: ShiftleyTokens.secondaryCyan,
+                      ),
+                      _DevButton(
+                        label: 'Support Dashboard (CS)',
+                        path: '/support',
+                        icon: Icons.support_agent_outlined,
+                        color: ShiftleyTokens.secondaryCyan,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: ShiftleyTokens.spaceXXL),
                   Text(

@@ -61,6 +61,7 @@ class _SuperAdminSetupScreenState extends ConsumerState<SuperAdminSetupScreen> {
 
       context.go('/auth');
     } catch (e) {
+      debugPrint('Super Admin Setup Error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

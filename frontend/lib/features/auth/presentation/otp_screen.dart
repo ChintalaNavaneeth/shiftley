@@ -6,6 +6,7 @@ import 'package:pinput/pinput.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import 'providers/auth_provider.dart';
+import '../domain/models/auth_models.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String phoneNumber;
@@ -55,6 +56,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   Future<void> _onVerify() async {
+    if (_isVerifying) return;
     if (_otpController.text.length == 6) {
       setState(() => _isVerifying = true);
       try {
@@ -65,8 +67,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         );
 
         if (mounted) {
-          final data = response.data!;
-          if (data.isNewUser) {
+          final authData = AuthData.fromJson(response.data as Map<String, dynamic>);
+          if (authData.isNewUser) {
             // Navigate to onboarding
             if (widget.role == 'WORKER') {
               context.go('/onboarding/employee');
@@ -80,7 +82,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             } else if (widget.role == 'EMPLOYER') {
               context.go('/employer');
             } else {
-              if (data.isInitialSetupComplete == false) {
+              if (authData.isInitialSetupComplete == false) {
                 context.go('/admin/setup');
               } else {
                 context.go('/admin');
@@ -89,6 +91,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           }
         }
       } catch (e) {
+        debugPrint('Otp Verification Error: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -103,23 +106,49 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     }
   }
 
+  Future<void> _onResend() async {
+    try {
+      await ref.read(authProvider.notifier).sendOtp(
+        widget.phoneNumber,
+        'PHONE',
+        widget.role,
+      );
+      _startTimer();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('OTP Resent successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: ShiftleyTokens.primaryRed,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Neo-brutalism pinput theme
     final defaultPinTheme = PinTheme(
-      width: 52,
-      height: 60,
-      textStyle: ShiftleyTokens.h2,
-      decoration: BoxDecoration(
-        color: ShiftleyTokens.paperWhite,
-        border: ShiftleyTokens.primaryBorder,
-        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+      width: 48,
+      height: 56,
+      textStyle: ShiftleyTokens.h2.copyWith(fontWeight: FontWeight.bold),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2.5)),
       ),
     );
 
     final focusedPinTheme = defaultPinTheme.copyWith(
-      decoration: defaultPinTheme.decoration!.copyWith(
-        border: ShiftleyTokens.focusBorder,
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: ShiftleyTokens.primaryRed, width: 3.5)),
       ),
     );
 
@@ -187,13 +216,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                               style: ShiftleyTokens.caption,
                             )
                           : GestureDetector(
-                              onTap: _startTimer,
+                              onTap: _onResend,
                               child: Text(
                                 'Resend OTP',
                                 style: ShiftleyTokens.caption.copyWith(
                                   color: ShiftleyTokens.primaryRed,
                                   fontWeight: FontWeight.w700,
-                                  decoration: TextDecoration.underline,
                                 ),
                               ),
                             ),

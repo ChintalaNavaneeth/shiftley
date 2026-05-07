@@ -38,7 +38,7 @@ class VerifyOtpRequest {
 class AuthResponse {
   final bool success;
   final String? message;
-  final AuthData? data;
+  final dynamic data;
 
   AuthResponse({
     required this.success,
