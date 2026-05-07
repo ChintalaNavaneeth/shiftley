@@ -22,6 +22,7 @@ Category _$CategoryFromJson(Map<String, dynamic> json) {
 mixin _$Category {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
+  @JsonKey(name: 'is_active')
   bool get isActive => throw _privateConstructorUsedError;
   List<Skill> get skills => throw _privateConstructorUsedError;
 
@@ -36,7 +37,11 @@ abstract class $CategoryCopyWith<$Res> {
   factory $CategoryCopyWith(Category value, $Res Function(Category) then) =
       _$CategoryCopyWithImpl<$Res, Category>;
   @useResult
-  $Res call({String id, String name, bool isActive, List<Skill> skills});
+  $Res call(
+      {String id,
+      String name,
+      @JsonKey(name: 'is_active') bool isActive,
+      List<Skill> skills});
 }
 
 /// @nodoc
@@ -86,7 +91,11 @@ abstract class _$$CategoryImplCopyWith<$Res>
       __$$CategoryImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String name, bool isActive, List<Skill> skills});
+  $Res call(
+      {String id,
+      String name,
+      @JsonKey(name: 'is_active') bool isActive,
+      List<Skill> skills});
 }
 
 /// @nodoc
@@ -132,7 +141,7 @@ class _$CategoryImpl implements _Category {
   const _$CategoryImpl(
       {required this.id,
       required this.name,
-      required this.isActive,
+      @JsonKey(name: 'is_active') required this.isActive,
       final List<Skill> skills = const []})
       : _skills = skills;
 
@@ -144,6 +153,7 @@ class _$CategoryImpl implements _Category {
   @override
   final String name;
   @override
+  @JsonKey(name: 'is_active')
   final bool isActive;
   final List<Skill> _skills;
   @override
@@ -194,7 +204,7 @@ abstract class _Category implements Category {
   const factory _Category(
       {required final String id,
       required final String name,
-      required final bool isActive,
+      @JsonKey(name: 'is_active') required final bool isActive,
       final List<Skill> skills}) = _$CategoryImpl;
 
   factory _Category.fromJson(Map<String, dynamic> json) =
@@ -205,6 +215,7 @@ abstract class _Category implements Category {
   @override
   String get name;
   @override
+  @JsonKey(name: 'is_active')
   bool get isActive;
   @override
   List<Skill> get skills;
@@ -221,8 +232,10 @@ Skill _$SkillFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Skill {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'category_id')
   String get categoryId => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
+  @JsonKey(name: 'is_active')
   bool get isActive => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -235,7 +248,11 @@ abstract class $SkillCopyWith<$Res> {
   factory $SkillCopyWith(Skill value, $Res Function(Skill) then) =
       _$SkillCopyWithImpl<$Res, Skill>;
   @useResult
-  $Res call({String id, String categoryId, String name, bool isActive});
+  $Res call(
+      {String id,
+      @JsonKey(name: 'category_id') String categoryId,
+      String name,
+      @JsonKey(name: 'is_active') bool isActive});
 }
 
 /// @nodoc
@@ -284,7 +301,11 @@ abstract class _$$SkillImplCopyWith<$Res> implements $SkillCopyWith<$Res> {
       __$$SkillImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String categoryId, String name, bool isActive});
+  $Res call(
+      {String id,
+      @JsonKey(name: 'category_id') String categoryId,
+      String name,
+      @JsonKey(name: 'is_active') bool isActive});
 }
 
 /// @nodoc
@@ -329,9 +350,9 @@ class __$$SkillImplCopyWithImpl<$Res>
 class _$SkillImpl implements _Skill {
   const _$SkillImpl(
       {required this.id,
-      required this.categoryId,
+      @JsonKey(name: 'category_id') required this.categoryId,
       required this.name,
-      required this.isActive});
+      @JsonKey(name: 'is_active') required this.isActive});
 
   factory _$SkillImpl.fromJson(Map<String, dynamic> json) =>
       _$$SkillImplFromJson(json);
@@ -339,10 +360,12 @@ class _$SkillImpl implements _Skill {
   @override
   final String id;
   @override
+  @JsonKey(name: 'category_id')
   final String categoryId;
   @override
   final String name;
   @override
+  @JsonKey(name: 'is_active')
   final bool isActive;
 
   @override
@@ -384,19 +407,21 @@ class _$SkillImpl implements _Skill {
 abstract class _Skill implements Skill {
   const factory _Skill(
       {required final String id,
-      required final String categoryId,
+      @JsonKey(name: 'category_id') required final String categoryId,
       required final String name,
-      required final bool isActive}) = _$SkillImpl;
+      @JsonKey(name: 'is_active') required final bool isActive}) = _$SkillImpl;
 
   factory _Skill.fromJson(Map<String, dynamic> json) = _$SkillImpl.fromJson;
 
   @override
   String get id;
   @override
+  @JsonKey(name: 'category_id')
   String get categoryId;
   @override
   String get name;
   @override
+  @JsonKey(name: 'is_active')
   bool get isActive;
   @override
   @JsonKey(ignore: true)

@@ -36,12 +36,12 @@ class VerifyOtpRequest {
 
 @JsonSerializable()
 class AuthResponse {
-  final bool status;
+  final bool success;
   final String? message;
   final AuthData? data;
 
   AuthResponse({
-    required this.status,
+    required this.success,
     this.message,
     this.data,
   });
