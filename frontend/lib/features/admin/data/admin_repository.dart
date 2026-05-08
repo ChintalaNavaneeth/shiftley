@@ -1,9 +1,7 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_providers.dart';
 import '../domain/admin_models.dart';
-
-part 'admin_repository.g.dart';
 
 class AdminRepository {
   final ApiClient _client;
@@ -75,16 +73,25 @@ class AdminRepository {
   }
 
   // Management Users
-  Future<List<ManagementUser>> getManagementUsers() async {
-    final response = await _client.dio.get('/admin/users');
+  Future<List<ManagementUser>> getManagementUsers({String? query, String? role, String? status}) async {
+    final response = await _client.dio.get(
+      '/admin/users',
+      queryParameters: {
+        if (query != null && query.isNotEmpty) 'query': query,
+        if (role != null && role != 'All Roles') 'role': role,
+        if (status != null && status != 'All Status') 'status': status,
+      },
+    );
     if (response.statusCode == 200) {
-      final List data = response.data['data'];
-      return data.map((json) => ManagementUser.fromJson(json)).toList();
+      final data = response.data['data'];
+      if (data == null) return [];
+      final List list = data;
+      return list.map((json) => ManagementUser.fromJson(json)).toList();
     }
     throw Exception('Failed to fetch management users');
   }
 
-  Future<ManagementUser> createManagementUser(String fullName, String email, String phoneNumber, String role) async {
+  Future<String> createManagementUser(String fullName, String email, String phoneNumber, String role) async {
     final response = await _client.dio.post('/admin/super/users', data: {
       'full_name': fullName,
       'email': email,
@@ -92,9 +99,28 @@ class AdminRepository {
       'role': role,
     });
     if (response.statusCode == 201 || response.statusCode == 200) {
-      return ManagementUser.fromJson(response.data['data']);
+      return response.data['data']['message'] ?? 'User created successfully';
     }
     throw Exception('Failed to create management user');
+  }
+
+  Future<void> updateManagementUser(String id, {String? fullName, String? role, String? email, String? phoneNumber}) async {
+    final response = await _client.dio.patch('/admin/users/$id', data: {
+      'full_name': fullName,
+      'role': role,
+      'email': email,
+      'phone_number': phoneNumber,
+    }..removeWhere((_, value) => value == null));
+    if (response.statusCode != 200) {
+      throw Exception(response.data['message'] ?? 'Failed to update user');
+    }
+  }
+
+  Future<void> deleteManagementUser(String id) async {
+    final response = await _client.dio.delete('/admin/users/$id');
+    if (response.statusCode != 200) {
+      throw Exception(response.data['message'] ?? 'Failed to delete user');
+    }
   }
 
   Future<void> updateUserStatus(String id, String status) async {
@@ -102,11 +128,10 @@ class AdminRepository {
       'status': status,
     });
     if (response.statusCode != 200) {
-      throw Exception('Failed to update user status');
+      throw Exception(response.data['message'] ?? 'Failed to update user status');
     }
   }
 
-  // Platform Config
   Future<PlatformConfig> getPlatformConfig() async {
     final response = await _client.dio.get('/admin/config');
     if (response.statusCode == 200) {
@@ -116,12 +141,29 @@ class AdminRepository {
   }
 
   Future<void> updatePlatformConfig(double feePercentage) async {
-    final response = await _client.dio.patch('/admin/config/fees', data: {
+    final response = await _client.dio.patch('/admin/config', data: {
       'fee_percentage': feePercentage,
     });
     if (response.statusCode != 200) {
       throw Exception('Failed to update platform config');
     }
+  }
+
+  // Analytics & Financials
+  Future<AnalyticsOverview> getAnalyticsOverview() async {
+    final response = await _client.dio.get('/admin/analytics/overview');
+    if (response.statusCode == 200) {
+      return AnalyticsOverview.fromJson(response.data['data']);
+    }
+    throw Exception('Failed to fetch analytics');
+  }
+
+  Future<FinancialMetrics> getFinancials() async {
+    final response = await _client.dio.get('/admin/analytics/financials');
+    if (response.statusCode == 200) {
+      return FinancialMetrics.fromJson(response.data['data']);
+    }
+    throw Exception('Failed to fetch financial metrics');
   }
 
   // Disputes
@@ -131,7 +173,7 @@ class AdminRepository {
       final List data = response.data['data'];
       return data.map((json) => Dispute.fromJson(json)).toList();
     }
-    throw Exception('Failed to fetch pending disputes');
+    throw Exception('Failed to fetch disputes');
   }
 
   Future<void> resolveDispute(String id, String resolution, String notes) async {
@@ -142,23 +184,6 @@ class AdminRepository {
     if (response.statusCode != 200) {
       throw Exception('Failed to resolve dispute');
     }
-  }
-
-  // Analytics
-  Future<AnalyticsOverview> getAnalyticsOverview() async {
-    final response = await _client.dio.get('/analytics/overview');
-    if (response.statusCode == 200) {
-      return AnalyticsOverview.fromJson(response.data['data']);
-    }
-    throw Exception('Failed to fetch analytics overview');
-  }
-
-  Future<FinancialMetrics> getFinancials() async {
-    final response = await _client.dio.get('/analytics/financials');
-    if (response.statusCode == 200) {
-      return FinancialMetrics.fromJson(response.data['data']);
-    }
-    throw Exception('Failed to fetch financials');
   }
 
   Future<void> logExpenditure(String type, int amountPaise, String description) async {
@@ -173,8 +198,7 @@ class AdminRepository {
   }
 }
 
-@riverpod
-AdminRepository adminRepository(AdminRepositoryRef ref) {
+final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   final client = ref.watch(apiClientProvider);
   return AdminRepository(client);
-}
+});

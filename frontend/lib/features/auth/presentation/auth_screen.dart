@@ -57,7 +57,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             'isSignUp': _isSignUp,
           });
         }
-      } catch (e, stack) {
+      } catch (e) {
         String errorMsg = e.toString();
         if (e is DioException && e.response?.data != null) {
           final data = e.response!.data;

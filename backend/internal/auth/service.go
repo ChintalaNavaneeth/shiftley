@@ -195,6 +195,5 @@ func (s *service) generateTokenPair(user *User, isNewUser bool) (string, string,
 func (s *service) Logout(ctx context.Context, userID string) error {
 	// Revoke Refresh Token
 	_ = s.repo.DeleteRefreshToken(ctx, userID)
-	// Also blacklist the current Access Token (optional since it's short-lived, but good for instant logout)
-	return s.repo.BlacklistUser(ctx, userID, 15*time.Minute)
+	return nil
 }

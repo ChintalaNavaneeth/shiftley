@@ -251,8 +251,11 @@ func main() {
 			// Only SUPER_ADMIN and ADMIN (HR_ADMIN) can invite internal staff
 			usersGroup.Use(middleware.RequireRoles(string(auth.RoleSuperAdmin), string(auth.RoleAdmin)))
 			{
+				usersGroup.GET("", adminHandler.GetManagementUsers)
 				usersGroup.POST("/invite", adminHandler.InviteUser)
 				usersGroup.PATCH("/:id/status", adminHandler.UpdateUserStatus)
+				usersGroup.PATCH("/:id", adminHandler.UpdateUser)
+				usersGroup.DELETE("/:id", adminHandler.DeleteUser)
 			}
 
 			superGroup := adminGroup.Group("/super")

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -91,11 +92,23 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           }
         }
       } catch (e) {
-        debugPrint('Otp Verification Error: $e');
+        String errorMessage = 'An unexpected error occurred';
+        if (e is DioException && e.response?.data != null) {
+          final data = e.response!.data as Map<String, dynamic>;
+          if (data['error'] != null && data['error']['message'] != null) {
+            errorMessage = data['error']['message'].toString();
+          } else {
+            errorMessage = e.message ?? errorMessage;
+          }
+        } else {
+          errorMessage = e.toString();
+        }
+
+        debugPrint('Otp Verification Error: $errorMessage');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${e.toString()}'),
+              content: Text(errorMessage),
               backgroundColor: ShiftleyTokens.primaryRed,
             ),
           );
@@ -123,10 +136,17 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         );
       }
     } catch (e) {
+      String errorMessage = 'Failed to resend OTP';
+      if (e is DioException && e.response?.data != null) {
+        final data = e.response!.data as Map<String, dynamic>;
+        if (data['error'] != null && data['error']['message'] != null) {
+          errorMessage = data['error']['message'].toString();
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: ShiftleyTokens.primaryRed,
           ),
         );
@@ -193,7 +213,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                         controller: _otpController,
                         defaultPinTheme: defaultPinTheme,
                         focusedPinTheme: focusedPinTheme,
-                        onCompleted: (_) => _onVerify(),
                       ),
                     ),
 

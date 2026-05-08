@@ -25,6 +25,90 @@ func NewHandler(db *gorm.DB, rdb *redis.Client) *Handler {
 	return &Handler{db: db, rdb: rdb}
 }
 
+// GetManagementUsers handles GET /api/v1/admin/users
+// @Summary Get Management Users
+// @Description Fetches internal staff and admins
+// @Tags Admin
+// @Produce json
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /admin/users [get]
+func (h *Handler) GetManagementUsers(c *gin.Context) {
+	search := c.Query("query")
+	roleFilter := c.Query("role")
+	statusFilter := c.Query("status")
+
+	query := h.db.Model(&auth.User{})
+
+	// Base allowed roles for management
+	roles := []string{
+		string(auth.RoleSuperAdmin),
+		string(auth.RoleAdmin),
+		string(auth.RoleHRAdmin),
+		string(auth.RoleCSAgent),
+		string(auth.RoleAnalyst),
+		string(auth.RoleVerifier),
+	}
+
+	if roleFilter != "" && roleFilter != "All Roles" {
+		// Map UI labels to backend roles
+		roleMap := map[string]string{
+			"Super Admin":    string(auth.RoleSuperAdmin),
+			"Business Admin": string(auth.RoleAdmin),
+			"Verifier":       string(auth.RoleVerifier),
+			"CS Agent":       string(auth.RoleCSAgent),
+			"Analyst":        string(auth.RoleAnalyst),
+		}
+		if backendRole, ok := roleMap[roleFilter]; ok {
+			query = query.Where("role = ?", backendRole)
+		} else {
+			// Fallback or exact match
+			query = query.Where("role = ?", roleFilter)
+		}
+	} else {
+		query = query.Where("role IN ?", roles)
+	}
+
+	if statusFilter != "" && statusFilter != "All Status" {
+		if statusFilter == "Active" {
+			query = query.Where("is_suspended = ?", false)
+		} else if statusFilter == "Suspended" {
+			query = query.Where("is_suspended = ?", true)
+		}
+	}
+
+	if search != "" {
+		searchTerm := "%" + search + "%"
+		query = query.Where("full_name ILIKE ? OR email ILIKE ? OR phone_number LIKE ?", searchTerm, searchTerm, searchTerm)
+	}
+
+	var users []auth.User
+	if err := query.Order("created_at DESC").Find(&users).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to fetch management users", nil)
+		return
+	}
+
+	var response []map[string]interface{}
+	for _, u := range users {
+		status := "ACTIVE"
+		if u.IsSuspended {
+			status = "SUSPENDED"
+		}
+		response = append(response, map[string]interface{}{
+			"id":           u.ID,
+			"full_name":    u.FullName,
+			"email":        u.Email,
+			"phone_number": u.PhoneNumber,
+			"role":         u.Role,
+			"status":       status,
+			"created_at":   u.CreatedAt,
+		})
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, response, nil)
+}
+
+
 type UserStatusRequest struct {
 	Status string `json:"status" binding:"required"` // SUSPENDED, ACTIVE
 	Reason string `json:"reason"`
@@ -65,6 +149,52 @@ func (h *Handler) UpdateUserStatus(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"id": id, "status": req.Status}, nil)
+}
+
+// UpdateUser handles PATCH /api/v1/admin/users/{id}
+func (h *Handler) UpdateUser(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		FullName    string `json:"full_name"`
+		Role        string `json:"role"`
+		PhoneNumber string `json:"phone_number"`
+		Email       string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid request payload", nil)
+		return
+	}
+
+	updates := make(map[string]interface{})
+	if req.FullName != "" {
+		updates["full_name"] = req.FullName
+	}
+	if req.Role != "" {
+		updates["role"] = req.Role
+	}
+	if req.PhoneNumber != "" {
+		updates["phone_number"] = req.PhoneNumber
+	}
+	if req.Email != "" {
+		updates["email"] = req.Email
+	}
+
+	if err := h.db.Model(&auth.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update user", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, nil, "User updated successfully")
+}
+
+// DeleteUser handles DELETE /api/v1/admin/users/{id}
+func (h *Handler) DeleteUser(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.db.Where("id = ?", id).Delete(&auth.User{}).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to delete user", nil)
+		return
+	}
+	utils.RespondSuccess(c, http.StatusOK, nil, "User deleted successfully")
 }
 
 type ConfigUpdateRequest struct {
@@ -243,9 +373,17 @@ func (h *Handler) CreateManagementUser(c *gin.Context) {
 		return
 	}
 
-	// Only ADMIN and HR_ADMIN can be created via this endpoint
-	if req.Role != string(auth.RoleAdmin) && req.Role != string(auth.RoleHRAdmin) {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Only ADMIN and HR_ADMIN roles can be created here", nil)
+	// Allow creating all management roles except SUPER_ADMIN
+	allowedRoles := map[string]bool{
+		string(auth.RoleAdmin):    true,
+		string(auth.RoleHRAdmin):  true,
+		string(auth.RoleCSAgent):  true,
+		string(auth.RoleAnalyst):  true,
+		string(auth.RoleVerifier): true,
+	}
+
+	if !allowedRoles[req.Role] {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid role or restricted role creation", nil)
 		return
 	}
 

@@ -60,9 +60,14 @@ class ApiClient {
 
                 // Retry the original request with the new access token
                 error.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
+                
+                final extra = Map<String, dynamic>.from(error.requestOptions.extra);
+                extra['no-retry'] = true;
+                
                 final opts = Options(
                   method: error.requestOptions.method,
                   headers: error.requestOptions.headers,
+                  extra: extra,
                 );
                 
                 final retryResponse = await dio.request(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'widgets/admin_sidebar.dart';
 import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
+import 'providers/admin_providers.dart';
 import 'views/overview_view.dart';
 import 'views/user_management_view.dart';
 import 'views/config_view.dart';
@@ -10,14 +12,14 @@ import 'views/analytics_view.dart';
 import 'views/taxonomy_view.dart';
 import 'views/settings_view.dart';
 
-class SuperAdminScreen extends StatefulWidget {
+class SuperAdminScreen extends ConsumerStatefulWidget {
   const SuperAdminScreen({super.key});
 
   @override
-  State<SuperAdminScreen> createState() => _SuperAdminScreenState();
+  ConsumerState<SuperAdminScreen> createState() => _SuperAdminScreenState();
 }
 
-class _SuperAdminScreenState extends State<SuperAdminScreen> {
+class _SuperAdminScreenState extends ConsumerState<SuperAdminScreen> {
   AdminTab _activeTab = AdminTab.overview;
 
   @override
@@ -38,7 +40,14 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
         body: SafeArea(
           child: SRefreshable(
             onRefresh: () async {
-              await Future.delayed(const Duration(seconds: 1));
+              if (_activeTab == AdminTab.users) {
+                ref.read(managementSearchQueryProvider.notifier).state = '';
+                ref.read(managementRoleFilterProvider.notifier).state = 'All Roles';
+                ref.read(managementStatusFilterProvider.notifier).state = 'All Status';
+                await ref.read(managementUsersProvider.notifier).refresh();
+              } else {
+                await Future.delayed(const Duration(milliseconds: 500));
+              }
             },
             child: Padding(
               padding: const EdgeInsets.all(ShiftleyTokens.spaceM),

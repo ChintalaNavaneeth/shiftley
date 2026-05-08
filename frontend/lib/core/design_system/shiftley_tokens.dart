@@ -51,6 +51,14 @@ class ShiftleyTokens {
         borderSide: focusBorderSide,
       );
 
+  static InputBorder get underlineInputBorder => const UnderlineInputBorder(
+        borderSide: BorderSide(color: inkBlack, width: borderWidth),
+      );
+
+  static InputBorder get underlineFocusInputBorder => const UnderlineInputBorder(
+        borderSide: BorderSide(color: primaryRed, width: borderWidth),
+      );
+
   // ─── Typography ───────────────────────────────────────────
   // Uses locally bundled fonts declared in pubspec.yaml
 
