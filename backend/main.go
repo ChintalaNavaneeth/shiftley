@@ -22,6 +22,7 @@ import (
 	"shiftley/pkg/middleware"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/storage"
+	"shiftley/pkg/events"
 	"context"
 
 	"github.com/gin-gonic/gin"
@@ -124,6 +125,9 @@ func main() {
 	// 5. Initialize Notify Service (WhatsApp Business Cloud API)
 	notifySvc := notify.NewNotifyService(cfg.WhatsAppPhoneNumberID, cfg.WhatsAppAccessToken)
 
+	// 5.1 Initialize Event Bus
+	bus := events.NewMemoryEventBus()
+
 	// 6. Initialize Handlers & Services
 	authRepo := auth.NewRepository(db, rdb)
 	authSvc := auth.NewService(authRepo, cfg.JWTSecret)
@@ -134,7 +138,11 @@ func main() {
 	adminHandler := admin.NewHandler(db, rdb)
 	taxonomyAdminHandler := admin.NewTaxonomyHandler(db)
 	employerHandler := employer.NewHandler(db)
-	gigHandler := gig.NewHandler(db, rdb, notifySvc)
+	
+	// Register Gig Listeners
+	gig.RegisterListeners(bus, db, notifySvc)
+	
+	gigHandler := gig.NewHandler(db, rdb, notifySvc, bus)
 	employeeHandler := employee.NewHandler(db)
 	supportHandler := support.NewHandler(db)
 	analyticsHandler := analytics.NewHandler(db)

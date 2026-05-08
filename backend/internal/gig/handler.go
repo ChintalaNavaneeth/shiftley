@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"shiftley/internal/auth"
+	"shiftley/pkg/events"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
 	"encoding/json"
@@ -22,10 +23,11 @@ type Handler struct {
 	db     *gorm.DB
 	rdb    *redis.Client
 	notify *notify.NotifyService
+	bus    events.EventBus
 }
 
-func NewHandler(db *gorm.DB, rdb *redis.Client, notifySvc *notify.NotifyService) *Handler {
-	return &Handler{db: db, rdb: rdb, notify: notifySvc}
+func NewHandler(db *gorm.DB, rdb *redis.Client, notifySvc *notify.NotifyService, bus events.EventBus) *Handler {
+	return &Handler{db: db, rdb: rdb, notify: notifySvc, bus: bus}
 }
 
 type PostGigRequest struct {
@@ -162,6 +164,9 @@ func (h *Handler) PostGig(c *gin.Context) {
 		h.rdb.Set(c.Request.Context(), "idem:gig:"+idemKey, cachedResp, 24*time.Hour)
 	}
 
+	// 5. Publish Event
+	h.bus.Publish(NewGigCreatedEvent(gig.ID.String(), gig.EmployerID.String(), gig.Title))
+
 	utils.RespondSuccess(c, http.StatusCreated, respData, nil)
 }
 
@@ -235,21 +240,22 @@ func (h *Handler) ApproveApplication(c *gin.Context) {
 		return
 	}
 
-	// Fetch data for notification
+	// Fetch data for event publishing
 	var app GigApplication
 	h.db.First(&app, "id = ?", appID)
-	var worker auth.User
-	h.db.First(&worker, "id = ?", app.EmployeeID)
-	var g Gig
-	h.db.First(&g, "id = ?", app.GigID)
 
+	// Publish Status Changed Event
+	var eventName string
 	if req.Status == string(AppApproved) {
-		h.notify.SendApplicationAccepted(worker.PhoneNumber, worker.FullName, g.Title, "Employer")
+		eventName = EventApplicationAccepted
 	} else if req.Status == string(AppRejected) {
-		h.notify.SendApplicationRejected(worker.PhoneNumber, worker.FullName, g.Title)
+		eventName = EventApplicationRejected
+	}
+
+	if eventName != "" {
+		h.bus.Publish(NewApplicationStatusChangedEvent(eventName, app.ID.String(), app.GigID.String(), app.EmployeeID.String()))
 	} else if req.Status == string(AppShortlisted) {
-		// Silent state - no notification per user instruction
-		fmt.Printf("[GIG] Worker %s shortlisted for Gig %s. No notification sent.\n", worker.FullName, g.ID)
+		fmt.Printf("[GIG] Worker %s shortlisted for Gig %s. No event published.\n", app.EmployeeID, app.GigID)
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"application_id": appID, "status": req.Status}, nil)
@@ -639,6 +645,9 @@ func (h *Handler) ApplyForGig(c *gin.Context) {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to apply", nil)
 		return
 	}
+
+	// 4. Publish Event
+	h.bus.Publish(NewApplicationSubmittedEvent(app.ID.String(), app.GigID.String(), app.EmployeeID.String()))
 
 	utils.RespondSuccess(c, http.StatusCreated, "Application submitted", nil)
 }

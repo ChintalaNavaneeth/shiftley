@@ -1,33 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
+import '../../domain/admin_models.dart';
+import '../providers/admin_providers.dart';
 
-class DisputeView extends StatefulWidget {
+class DisputeView extends ConsumerWidget {
   const DisputeView({super.key});
 
   @override
-  State<DisputeView> createState() => _DisputeViewState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final disputesAsync = ref.watch(pendingDisputesProvider);
 
-class _DisputeViewState extends State<DisputeView> {
-  bool _showClosed = false;
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              _showClosed ? 'Closed Disputes' : 'Pending Disputes',
+            const Text(
+              'Pending Disputes',
               style: ShiftleyTokens.h2,
             ),
             ShiftleyButton(
-              onPressed: () => setState(() => _showClosed = !_showClosed),
-              icon: _showClosed ? Icons.pending_actions : Icons.history,
-              label: _showClosed ? 'View Pending' : 'View History',
+              onPressed: () => ref.refresh(pendingDisputesProvider),
+              icon: Icons.refresh,
+              label: 'Refresh',
               isPrimary: false,
               size: ShiftleyButtonSize.small,
             ),
@@ -35,61 +33,23 @@ class _DisputeViewState extends State<DisputeView> {
         ),
         const SizedBox(height: ShiftleyTokens.spaceL),
         
-        if (!_showClosed) ...[
-          _buildDisputeCard(
-            id: 'DISP-4421',
-            professional: 'Rahul Sharma',
-            business: 'Radisson Blu',
-            amount: '₹ 1,200',
-            reason: 'No-show reported by business, professional claims attendance.',
-            time: '3 hours ago',
-            isClosed: false,
-          ),
-          _buildDisputeCard(
-            id: 'DISP-4422',
-            professional: 'Anita Deshmukh',
-            business: 'Cafe Coffee Day',
-            amount: '₹ 800',
-            reason: 'Business claims poor service, professional claims overtime unpaid.',
-            time: '5 hours ago',
-            isClosed: false,
-          ),
-        ] else ...[
-          _buildDisputeCard(
-            id: 'DISP-4410',
-            professional: 'Kiran Deep',
-            business: 'The Park Hotel',
-            amount: '₹ 2,500',
-            reason: 'Dispute over break timing resolved via mediation.',
-            time: 'Yesterday',
-            isClosed: true,
-            resolution: 'Approved',
-          ),
-          _buildDisputeCard(
-            id: 'DISP-4408',
-            professional: 'Sagar Varma',
-            business: 'McDonalds',
-            amount: '₹ 450',
-            reason: 'Uniform damage claim rejected due to lack of evidence.',
-            time: '2 days ago',
-            isClosed: true,
-            resolution: 'Rejected',
-          ),
-        ],
+        disputesAsync.when(
+          data: (disputes) => disputes.isEmpty
+              ? const Center(child: Text('No pending disputes found.', style: ShiftleyTokens.bodyMedium))
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: disputes.length,
+                  itemBuilder: (context, index) => _buildDisputeCard(disputes[index], ref, context),
+                ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text('Error: $err')),
+        ),
       ],
     );
   }
 
-  Widget _buildDisputeCard({
-    required String id,
-    required String professional,
-    required String business,
-    required String amount,
-    required String reason,
-    required String time,
-    required bool isClosed,
-    String? resolution,
-  }) {
+  Widget _buildDisputeCard(Dispute dispute, WidgetRef ref, BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isMobile = constraints.maxWidth < 500;
@@ -108,98 +68,86 @@ class _DisputeViewState extends State<DisputeView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(id, style: ShiftleyTokens.bodyLarge.copyWith(color: isClosed ? ShiftleyTokens.mutedText : ShiftleyTokens.primaryRed)),
-                  if (isClosed && resolution != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: resolution == 'Approved' ? Colors.green.withValues(alpha: 0.1) : ShiftleyTokens.primaryRed.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        resolution.toUpperCase(),
-                        style: TextStyle(
-                          color: resolution == 'Approved' ? Colors.green : ShiftleyTokens.primaryRed,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  Text(time, style: ShiftleyTokens.caption),
+                  Text(dispute.id, style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.primaryRed)),
+                  Text(
+                    '${dispute.createdAt.day}/${dispute.createdAt.month} ${dispute.createdAt.hour}:${dispute.createdAt.minute}',
+                    style: ShiftleyTokens.caption,
+                  ),
                 ],
               ),
               const SizedBox(height: ShiftleyTokens.spaceM),
               
               if (isMobile) ...[
-                _buildEntityInfo('PROFESSIONAL', professional),
+                _buildEntityInfo('PROFESSIONAL', dispute.workerName),
                 const SizedBox(height: ShiftleyTokens.spaceM),
-                _buildEntityInfo('BUSINESS', business),
+                _buildEntityInfo('BUSINESS', dispute.businessName),
                 const SizedBox(height: ShiftleyTokens.spaceM),
-                _buildEntityInfo('DISPUTED AMOUNT', amount),
+                _buildEntityInfo('DISPUTED AMOUNT', '₹ ${(dispute.amountPaise / 100).toStringAsFixed(2)}'),
               ] else
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: _buildEntityInfo('PROFESSIONAL', professional)),
+                    Expanded(child: _buildEntityInfo('PROFESSIONAL', dispute.workerName)),
                     const SizedBox(width: ShiftleyTokens.spaceM),
-                    Expanded(child: _buildEntityInfo('BUSINESS', business)),
+                    Expanded(child: _buildEntityInfo('BUSINESS', dispute.businessName)),
                     const SizedBox(width: ShiftleyTokens.spaceM),
-                    Expanded(child: _buildEntityInfo('DISPUTED AMOUNT', amount)),
+                    Expanded(child: _buildEntityInfo('DISPUTED AMOUNT', '₹ ${(dispute.amountPaise / 100).toStringAsFixed(2)}')),
                   ],
                 ),
               
               const Divider(height: ShiftleyTokens.spaceXL),
               Text('Reason for Dispute:', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: ShiftleyTokens.spaceS),
-              Text(reason, style: ShiftleyTokens.bodyMedium),
+              Text(dispute.reason, style: ShiftleyTokens.bodyMedium),
               const SizedBox(height: ShiftleyTokens.spaceXL),
               
-              if (!isClosed)
-                if (isMobile)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ShiftleyButton(
-                        label: 'Reject Request',
-                        isPrimary: false,
-                        onPressed: () {},
-                        isFullWidth: true,
-                      ),
-                      const SizedBox(height: ShiftleyTokens.spaceM),
-                      ShiftleyButton(
-                        label: 'Approve Resolution',
-                        onPressed: () {},
-                        isFullWidth: true,
-                      ),
-                    ],
-                  )
-                else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      ShiftleyButton(
-                        label: 'Reject Request',
-                        isPrimary: false,
-                        onPressed: () {},
-                      ),
-                      const SizedBox(width: ShiftleyTokens.spaceM),
-                      ShiftleyButton(
-                        label: 'Approve Resolution',
-                        onPressed: () {},
-                      ),
-                    ],
-                  )
-              else
-                const Center(
-                  child: Text(
-                    'This dispute has been settled.',
-                    style: TextStyle(fontStyle: FontStyle.italic, color: ShiftleyTokens.mutedText),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ShiftleyButton(
+                    label: 'Reject Request',
+                    isPrimary: false,
+                    onPressed: () => _handleResolve(context, ref, dispute.id, 'REJECTED'),
                   ),
-                ),
+                  const SizedBox(width: ShiftleyTokens.spaceM),
+                  ShiftleyButton(
+                    label: 'Approve Resolution',
+                    onPressed: () => _handleResolve(context, ref, dispute.id, 'APPROVED'),
+                  ),
+                ],
+              ),
             ],
           ),
         );
       },
+    );
+  }
+
+  void _handleResolve(BuildContext context, WidgetRef ref, String id, String resolution) {
+    final notesController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${resolution == 'APPROVED' ? 'Approve' : 'Reject'} Dispute'),
+        content: TextField(
+          controller: notesController,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Add internal notes for resolution...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              await ref.read(pendingDisputesProvider.notifier).resolve(id, resolution, notesController.text);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
     );
   }
 

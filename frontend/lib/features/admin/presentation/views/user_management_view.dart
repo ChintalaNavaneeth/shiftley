@@ -1,64 +1,95 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
+import '../../domain/admin_models.dart';
+import '../providers/admin_providers.dart';
 
-class UserManagementView extends StatelessWidget {
+class UserManagementView extends ConsumerWidget {
   const UserManagementView({super.key});
 
-  void _showInviteDialog(BuildContext context) {
+  void _showInviteDialog(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
+    String selectedRole = 'Verifier';
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: ShiftleyTokens.paperWhite,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2),
-          borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-        ),
-        title: const Text('Invite New Staff', style: ShiftleyTokens.h2),
-        content: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.7,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildDialogField('Full Name', 'e.g. John Doe'),
-                const SizedBox(height: ShiftleyTokens.spaceM),
-                _buildDialogField('Email Address', 'e.g. john@example.com'),
-                const SizedBox(height: ShiftleyTokens.spaceM),
-                _buildDialogField('Phone Number', 'e.g. 9876543210'),
-                const SizedBox(height: ShiftleyTokens.spaceM),
-                _buildDialogDropdown('Assign Role', ['Verifier', 'Business Admin', 'Customer Support', 'Insights']),
-              ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: ShiftleyTokens.paperWhite,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2),
+            borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+          ),
+          title: const Text('Invite New Staff', style: ShiftleyTokens.h2),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.7,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildDialogField('Full Name', 'e.g. John Doe', nameController),
+                  const SizedBox(height: ShiftleyTokens.spaceM),
+                  _buildDialogField('Email Address', 'e.g. john@example.com', emailController),
+                  const SizedBox(height: ShiftleyTokens.spaceM),
+                  _buildDialogField('Phone Number', 'e.g. 9876543210', phoneController),
+                  const SizedBox(height: ShiftleyTokens.spaceM),
+                  _buildDialogDropdown(
+                    'Assign Role',
+                    ['Verifier', 'Business Admin', 'Customer Support', 'Insights'],
+                    (v) => setState(() => selectedRole = v!),
+                  ),
+                ],
+              ),
             ),
           ),
+          actions: [
+            ShiftleyButton(
+              label: 'Cancel',
+              onPressed: () => Navigator.pop(context),
+              isPrimary: false,
+              size: ShiftleyButtonSize.small,
+            ),
+            const SizedBox(width: ShiftleyTokens.spaceS),
+            ShiftleyButton(
+              label: 'Send Invite',
+              onPressed: () async {
+                try {
+                  await ref.read(managementUsersProvider.notifier).inviteStaff(
+                        nameController.text,
+                        emailController.text,
+                        phoneController.text,
+                        selectedRole.toUpperCase().replaceAll(' ', '_'),
+                      );
+                  if (context.mounted) Navigator.pop(context);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                }
+              },
+              size: ShiftleyButtonSize.small,
+            ),
+          ],
         ),
-        actions: [
-          ShiftleyButton(
-            label: 'Cancel',
-            onPressed: () => Navigator.pop(context),
-            isPrimary: false,
-            size: ShiftleyButtonSize.small,
-          ),
-          const SizedBox(width: ShiftleyTokens.spaceS),
-          ShiftleyButton(
-            label: 'Send Invite',
-            onPressed: () => Navigator.pop(context),
-            size: ShiftleyButtonSize.small,
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildDialogField(String label, String hint) {
+  Widget _buildDialogField(String label, String hint, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: ShiftleyTokens.caption),
         const SizedBox(height: 4),
         TextField(
+          controller: controller,
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
@@ -73,16 +104,17 @@ class UserManagementView extends StatelessWidget {
     );
   }
 
-  Widget _buildDialogDropdown(String label, List<String> options) {
+  Widget _buildDialogDropdown(String label, List<String> options, ValueChanged<String?> onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: ShiftleyTokens.caption),
         const SizedBox(height: 4),
         DropdownButtonFormField<String>(
+          initialValue: options[0],
           icon: const Icon(Icons.keyboard_arrow_down, size: 20, color: ShiftleyTokens.inkBlack),
           items: options.map((e) => DropdownMenuItem(value: e, child: Text(e, style: ShiftleyTokens.bodyMedium))).toList(),
-          onChanged: (v) {},
+          onChanged: onChanged,
           decoration: InputDecoration(
             filled: true,
             fillColor: ShiftleyTokens.background,
@@ -98,7 +130,9 @@ class UserManagementView extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final usersAsync = ref.watch(managementUsersProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -107,7 +141,7 @@ class UserManagementView extends StatelessWidget {
           children: [
             const Text('Manage Users', style: ShiftleyTokens.h2),
             ShiftleyButton(
-              onPressed: () => _showInviteDialog(context),
+              onPressed: () => _showInviteDialog(context, ref),
               icon: Icons.add,
               label: 'Invite Staff',
               size: ShiftleyButtonSize.medium,
@@ -146,8 +180,8 @@ class UserManagementView extends StatelessWidget {
             const SizedBox(width: ShiftleyTokens.spaceM),
             
             ShiftleyButton(
-              onPressed: () {},
-              icon: Icons.filter_list_off,
+              onPressed: () => ref.invalidate(managementUsersProvider),
+              icon: Icons.refresh,
               label: '',
               isPrimary: false,
               size: ShiftleyButtonSize.medium,
@@ -168,12 +202,16 @@ class UserManagementView extends StatelessWidget {
 
         const SizedBox(height: ShiftleyTokens.spaceXL),
 
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: 850, 
-            child: _buildUserTable(),
+        usersAsync.when(
+          data: (users) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 850, 
+              child: _buildUserTable(users, ref),
+            ),
           ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text('Error: $err')),
         ),
       ],
     );
@@ -205,7 +243,7 @@ class UserManagementView extends StatelessWidget {
     );
   }
 
-  Widget _buildUserTable() {
+  Widget _buildUserTable(List<ManagementUser> users, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
         color: ShiftleyTokens.paperWhite,
@@ -216,10 +254,7 @@ class UserManagementView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildTableHeader(),
-          _buildUserRow('Navaneeth Chintala', 'Super Admin', 'Active', '9876543210'),
-          _buildUserRow('Rahul Sharma', 'Professional', 'Active', '8877665544'),
-          _buildUserRow('Megha Rao', 'Business Admin', 'Suspended', '7766554433'),
-          _buildUserRow('Amit Singh', 'Verifier', 'Active', '6655443322'),
+          ...users.map((user) => _buildUserRow(user, ref)),
         ],
       ),
     );
@@ -232,8 +267,8 @@ class UserManagementView extends StatelessWidget {
         color: ShiftleyTokens.secondaryCyan,
         border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 1.0)),
       ),
-      child: Row(
-        children: const [
+      child: const Row(
+        children: [
           Expanded(flex: 3, child: Text('NAME', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: ShiftleyTokens.mutedText))),
           Expanded(flex: 2, child: Text('ROLE', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: ShiftleyTokens.mutedText))),
           Expanded(flex: 2, child: Text('STATUS', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: ShiftleyTokens.mutedText))),
@@ -244,8 +279,8 @@ class UserManagementView extends StatelessWidget {
     );
   }
 
-  Widget _buildUserRow(String name, String role, String status, String phone) {
-    final isSuspended = status == 'Suspended';
+  Widget _buildUserRow(ManagementUser user, WidgetRef ref) {
+    final isSuspended = user.status == 'SUSPENDED';
     const double increasedFontSizeBody = 16.5; 
     const double increasedFontSizeMedium = 15.4; 
 
@@ -256,12 +291,12 @@ class UserManagementView extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text(name, style: ShiftleyTokens.bodyLarge.copyWith(fontSize: increasedFontSizeBody))),
-          Expanded(flex: 2, child: Text(role, style: ShiftleyTokens.bodyMedium.copyWith(fontSize: increasedFontSizeMedium))),
+          Expanded(flex: 3, child: Text(user.fullName, style: ShiftleyTokens.bodyLarge.copyWith(fontSize: increasedFontSizeBody))),
+          Expanded(flex: 2, child: Text(user.role, style: ShiftleyTokens.bodyMedium.copyWith(fontSize: increasedFontSizeMedium))),
           Expanded(
             flex: 2,
             child: Text(
-              status,
+              user.status,
               style: TextStyle(
                 color: isSuspended ? ShiftleyTokens.primaryRed : Colors.green,
                 fontWeight: FontWeight.bold,
@@ -269,13 +304,22 @@ class UserManagementView extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(flex: 2, child: Text(phone, style: ShiftleyTokens.bodyMedium.copyWith(fontSize: increasedFontSizeMedium))),
+          Expanded(flex: 2, child: Text(user.phoneNumber, style: ShiftleyTokens.bodyMedium.copyWith(fontSize: increasedFontSizeMedium))),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 20),
-            onSelected: (value) {},
+            onSelected: (value) async {
+              if (value == 'suspend') {
+                await ref.read(managementUsersProvider.notifier).updateStatus(user.id, 'SUSPENDED');
+              } else if (value == 'activate') {
+                await ref.read(managementUsersProvider.notifier).updateStatus(user.id, 'ACTIVE');
+              }
+            },
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'edit', child: Text('Edit User')),
-              const PopupMenuItem(value: 'suspend', child: Text('Suspend')),
+              if (user.status != 'SUSPENDED')
+                const PopupMenuItem(value: 'suspend', child: Text('Suspend')),
+              if (user.status == 'SUSPENDED')
+                const PopupMenuItem(value: 'activate', child: Text('Activate')),
               const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: ShiftleyTokens.primaryRed))),
             ],
           ),

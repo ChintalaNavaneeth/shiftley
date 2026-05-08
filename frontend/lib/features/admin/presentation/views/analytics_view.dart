@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
+import '../../domain/admin_models.dart';
+import '../providers/admin_providers.dart';
 
-class AnalyticsView extends StatefulWidget {
+class AnalyticsView extends ConsumerWidget {
   const AnalyticsView({super.key});
 
-  @override
-  State<AnalyticsView> createState() => _AnalyticsViewState();
-}
-
-class _AnalyticsViewState extends State<AnalyticsView> {
   // Reduced font size by 15%
   double get _tableFontSizeSmall => (ShiftleyTokens.bodyMedium.fontSize ?? 14.0) * 0.85;
   double get _tableFontSizeLarge => (ShiftleyTokens.bodyLarge.fontSize ?? 16.0) * 0.85;
   double get _tableFontSizeHeader => 12.0 * 0.85;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final overviewAsync = ref.watch(analyticsOverviewProvider);
+    final financialsAsync = ref.watch(financialMetricsProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -25,7 +26,22 @@ class _AnalyticsViewState extends State<AnalyticsView> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Statistics', style: ShiftleyTokens.h2),
-            _buildDownloadDropdown(),
+            Row(
+              children: [
+                ShiftleyButton(
+                  onPressed: () {
+                    ref.invalidate(analyticsOverviewProvider);
+                    ref.invalidate(financialMetricsProvider);
+                  },
+                  icon: Icons.refresh,
+                  label: '',
+                  isPrimary: false,
+                  size: ShiftleyButtonSize.medium,
+                ),
+                const SizedBox(width: ShiftleyTokens.spaceM),
+                _buildDownloadDropdown(),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: ShiftleyTokens.spaceXL),
@@ -33,16 +49,26 @@ class _AnalyticsViewState extends State<AnalyticsView> {
         // ── System Summary Table ─────────────────────────────────────
         Text('System Overview', style: ShiftleyTokens.bodyLarge.copyWith(fontSize: _tableFontSizeLarge)),
         const SizedBox(height: ShiftleyTokens.spaceM),
-        _buildSystemTable(),
+        overviewAsync.when(
+          data: (overview) => _buildSystemTable(overview),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text('Error: $err')),
+        ),
 
         const SizedBox(height: ShiftleyTokens.spaceXL),
 
         // ── Financial Summary Table ──────────────────────────────────
         Text('Financial Summary', style: ShiftleyTokens.bodyLarge.copyWith(fontSize: _tableFontSizeLarge)),
         const SizedBox(height: ShiftleyTokens.spaceM),
-        _buildFinancialTable(),
+        financialsAsync.when(
+          data: (metrics) => _buildFinancialTable(metrics),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text('Error: $err')),
+        ),
 
         const SizedBox(height: ShiftleyTokens.spaceXXL),
+        
+        // ... rest of the charts
 
         // ── Charts & Breakdown ───────────────────────────────────────
         LayoutBuilder(
@@ -92,52 +118,24 @@ class _AnalyticsViewState extends State<AnalyticsView> {
     );
   }
 
-  Widget _buildSystemTable() {
+  Widget _buildSystemTable(AnalyticsOverview overview) {
     return Column(
       children: [
         _buildTableHeader(),
-        _buildTableRow('Active Professionals', '1,248', '+54 today', true),
-        _buildTableRow('Active Gigs', '342', '-12% yesterday', false),
-        _buildTableRow('Verified Businesses', '128', '+2 this week', true),
+        _buildTableRow('Active Professionals', overview.activeWorkers.toString(), '+5% from avg', true),
+        _buildTableRow('Active Gigs', overview.totalGigs.toString(), 'Current live', true),
+        _buildTableRow('Verified Businesses', overview.activeBusinesses.toString(), 'Total active', true),
       ],
     );
   }
 
-  Widget _buildFinancialTable() {
+  Widget _buildFinancialTable(FinancialMetrics metrics) {
     return Column(
       children: [
         _buildTableHeader(),
-        _buildTableRow('Gross Income', '₹ 12,45,200', '+12.5%', true),
-        _buildTableRow('Total Expenditure', '₹ 2,15,400', '+4.2%', false),
-        _buildTableRow('Tax Deductions', '₹ 45,200', '+1.1%', false),
-        const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.0, height: 1),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3, 
-                child: Text('ENTIRE TOTAL (NET)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: _tableFontSizeSmall)),
-              ),
-              _vDivider(),
-              Expanded(
-                flex: 2, 
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Text('₹ 10,29,800', style: TextStyle(fontWeight: FontWeight.bold, fontSize: _tableFontSizeLarge, color: ShiftleyTokens.primaryRed)),
-                ),
-              ),
-              _vDivider(),
-              Expanded(
-                flex: 2, 
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Text('+18.3%', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: _tableFontSizeSmall)),
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildTableRow('Escrow Balance', '₹ ${(metrics.escrowBalancePaise / 100).toStringAsFixed(2)}', 'Current holding', true),
+        _buildTableRow('Total Payouts', '₹ ${(metrics.totalPayoutsPaise / 100).toStringAsFixed(2)}', 'Cumulative', true),
+        _buildTableRow('Commission Earned', '₹ ${(metrics.commissionEarnedPaise / 100).toStringAsFixed(2)}', 'Platform profit', true),
       ],
     );
   }

@@ -1,74 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
-import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
+import '../providers/admin_providers.dart';
 
-class ConfigView extends StatelessWidget {
+class ConfigView extends ConsumerWidget {
   const ConfigView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final configAsync = ref.watch(platformConfigNotifierProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Platform Variable Management', style: ShiftleyTokens.h2),
         const SizedBox(height: ShiftleyTokens.spaceL),
         
-        LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth < 800) {
+        configAsync.when(
+          data: (config) => LayoutBuilder(
+            builder: (context, constraints) {
               return Column(
                 children: [
                   _buildConfigCard(
-                    title: 'Employer Subscription Fees',
+                    title: 'Platform Service Fees',
+                    ref: ref,
                     children: [
-                      _buildInputField('Monthly Fee (INR)', '₹ 2,999'),
-                      _buildInputField('Weekly Fee (INR)', '₹ 899'),
-                      _buildInputField('Daily Fee (INR)', '₹ 150'),
+                      _buildInputField(
+                        'Service Fee (%)',
+                        config.feePercentage.toString(),
+                        onChanged: (val) async {
+                          final fee = double.tryParse(val);
+                          if (fee != null) {
+                            await ref.read(platformConfigNotifierProvider.notifier).updateFees(fee);
+                          }
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: ShiftleyTokens.spaceL),
                   _buildConfigCard(
-                    title: 'Cancellation Penalties',
+                    title: 'Operational Defaults',
+                    ref: ref,
                     children: [
-                      _buildInputField('Professional No-Show Penalty (INR)', '₹ 500'),
-                      _buildInputField('Business Late-Cancel Penalty (INR)', '₹ 300'),
+                      _buildInputField('Max Workers per Gig', config.maxWorkersPerGig.toString()),
+                      _buildInputField('Min Wage (INR/hr)', (config.minWagePaise / 100).toString()),
                     ],
                   ),
                 ],
               );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildConfigCard(
-                    title: 'Employer Subscription Fees',
-                    children: [
-                      _buildInputField('Monthly Fee (INR)', '₹ 2,999'),
-                      _buildInputField('Weekly Fee (INR)', '₹ 899'),
-                      _buildInputField('Daily Fee (INR)', '₹ 150'),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: ShiftleyTokens.spaceL),
-                Expanded(
-                  child: _buildConfigCard(
-                    title: 'Cancellation Penalties',
-                    children: [
-                      _buildInputField('Professional No-Show Penalty (INR)', '₹ 500'),
-                      _buildInputField('Business Late-Cancel Penalty (INR)', '₹ 300'),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
+            },
+          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text('Error: $err')),
         ),
       ],
     );
   }
 
-  Widget _buildConfigCard({required String title, required List<Widget> children}) {
+  Widget _buildConfigCard({required String title, required List<Widget> children, required WidgetRef ref}) {
     return Container(
       padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
       decoration: BoxDecoration(
@@ -82,21 +71,13 @@ class ConfigView extends StatelessWidget {
           Text(title, style: ShiftleyTokens.h2),
           const SizedBox(height: ShiftleyTokens.spaceXL),
           ...children,
-          const SizedBox(height: ShiftleyTokens.spaceL),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ShiftleyButton(
-              label: 'Save Changes',
-              onPressed: () {},
-              size: ShiftleyButtonSize.medium,
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildInputField(String label, String value) {
+  Widget _buildInputField(String label, String value, {ValueChanged<String>? onChanged}) {
+    final controller = TextEditingController(text: value);
     return Padding(
       padding: const EdgeInsets.only(bottom: ShiftleyTokens.spaceL),
       child: Column(
@@ -105,7 +86,9 @@ class ConfigView extends StatelessWidget {
           Text(label, style: ShiftleyTokens.bodyMedium),
           const SizedBox(height: ShiftleyTokens.spaceS),
           TextField(
-            controller: TextEditingController(text: value),
+            controller: controller,
+            keyboardType: TextInputType.number,
+            onSubmitted: onChanged,
             decoration: InputDecoration(
               filled: true,
               fillColor: ShiftleyTokens.background,
@@ -113,6 +96,10 @@ class ConfigView extends StatelessWidget {
               enabledBorder: ShiftleyTokens.primaryInputBorder,
               focusedBorder: ShiftleyTokens.focusInputBorder,
               contentPadding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceM),
+              suffixIcon: onChanged != null ? IconButton(
+                icon: const Icon(Icons.check, size: 16),
+                onPressed: () => onChanged(controller.text),
+              ) : null,
             ),
           ),
         ],

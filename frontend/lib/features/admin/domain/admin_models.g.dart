@@ -39,3 +39,119 @@ Map<String, dynamic> _$$SkillImplToJson(_$SkillImpl instance) =>
       'name': instance.name,
       'is_active': instance.isActive,
     };
+
+_$ManagementUserImpl _$$ManagementUserImplFromJson(Map<String, dynamic> json) =>
+    _$ManagementUserImpl(
+      id: json['id'] as String,
+      fullName: json['full_name'] as String,
+      email: json['email'] as String,
+      phoneNumber: json['phone_number'] as String,
+      role: json['role'] as String,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+
+Map<String, dynamic> _$$ManagementUserImplToJson(
+        _$ManagementUserImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'full_name': instance.fullName,
+      'email': instance.email,
+      'phone_number': instance.phoneNumber,
+      'role': instance.role,
+      'status': instance.status,
+      'created_at': instance.createdAt.toIso8601String(),
+    };
+
+_$PlatformConfigImpl _$$PlatformConfigImplFromJson(Map<String, dynamic> json) =>
+    _$PlatformConfigImpl(
+      feePercentage: (json['fee_percentage'] as num).toDouble(),
+      minWagePaise: (json['min_wage_paise'] as num).toInt(),
+      maxWorkersPerGig: (json['max_workers_per_gig'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$$PlatformConfigImplToJson(
+        _$PlatformConfigImpl instance) =>
+    <String, dynamic>{
+      'fee_percentage': instance.feePercentage,
+      'min_wage_paise': instance.minWagePaise,
+      'max_workers_per_gig': instance.maxWorkersPerGig,
+    };
+
+_$DisputeImpl _$$DisputeImplFromJson(Map<String, dynamic> json) =>
+    _$DisputeImpl(
+      id: json['id'] as String,
+      gigId: json['gig_id'] as String,
+      workerName: json['worker_name'] as String,
+      businessName: json['business_name'] as String,
+      amountPaise: (json['amount_paise'] as num).toInt(),
+      reason: json['reason'] as String,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      resolution: json['resolution'] as String?,
+    );
+
+Map<String, dynamic> _$$DisputeImplToJson(_$DisputeImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'gig_id': instance.gigId,
+      'worker_name': instance.workerName,
+      'business_name': instance.businessName,
+      'amount_paise': instance.amountPaise,
+      'reason': instance.reason,
+      'status': instance.status,
+      'created_at': instance.createdAt.toIso8601String(),
+      'resolution': instance.resolution,
+    };
+
+_$AnalyticsOverviewImpl _$$AnalyticsOverviewImplFromJson(
+        Map<String, dynamic> json) =>
+    _$AnalyticsOverviewImpl(
+      totalGigs: (json['total_gigs'] as num).toInt(),
+      activeWorkers: (json['active_workers'] as num).toInt(),
+      activeBusinesses: (json['active_businesses'] as num).toInt(),
+      totalRevenuePaise: (json['total_revenue_paise'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$$AnalyticsOverviewImplToJson(
+        _$AnalyticsOverviewImpl instance) =>
+    <String, dynamic>{
+      'total_gigs': instance.totalGigs,
+      'active_workers': instance.activeWorkers,
+      'active_businesses': instance.activeBusinesses,
+      'total_revenue_paise': instance.totalRevenuePaise,
+    };
+
+_$FinancialMetricsImpl _$$FinancialMetricsImplFromJson(
+        Map<String, dynamic> json) =>
+    _$FinancialMetricsImpl(
+      escrowBalancePaise: (json['escrow_balance_paise'] as num).toInt(),
+      totalPayoutsPaise: (json['total_payouts_paise'] as num).toInt(),
+      commissionEarnedPaise: (json['commission_earned_paise'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$$FinancialMetricsImplToJson(
+        _$FinancialMetricsImpl instance) =>
+    <String, dynamic>{
+      'escrow_balance_paise': instance.escrowBalancePaise,
+      'total_payouts_paise': instance.totalPayoutsPaise,
+      'commission_earned_paise': instance.commissionEarnedPaise,
+    };
+
+_$ExpenditureImpl _$$ExpenditureImplFromJson(Map<String, dynamic> json) =>
+    _$ExpenditureImpl(
+      id: json['id'] as String,
+      type: json['type'] as String,
+      amountPaise: (json['amount_paise'] as num).toInt(),
+      description: json['description'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+
+Map<String, dynamic> _$$ExpenditureImplToJson(_$ExpenditureImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': instance.type,
+      'amount_paise': instance.amountPaise,
+      'description': instance.description,
+      'created_at': instance.createdAt.toIso8601String(),
+    };

@@ -3,9 +3,11 @@ package auth
 import (
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
+
 	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -50,6 +52,10 @@ func (h *Handler) SendOTP(c *gin.Context) {
 
 	code, err := h.svc.SendOTP(c.Request.Context(), req.Identifier, req.Type, req.Role)
 	if err != nil {
+		if strings.Contains(err.Error(), "unauthorized") {
+			utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden, err.Error(), nil)
+			return
+		}
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to send OTP", []string{err.Error()})
 		return
 	}

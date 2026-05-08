@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shiftley_frontend/core/network/api_providers.dart';
 import '../../data/auth_repository_provider.dart';

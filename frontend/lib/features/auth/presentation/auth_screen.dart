@@ -58,16 +58,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           });
         }
       } catch (e, stack) {
-        debugPrint('Auth Error Detail: $e');
+        String errorMsg = e.toString();
+        if (e is DioException && e.response?.data != null) {
+          final data = e.response!.data;
+          if (data is Map<String, dynamic> && data['error'] != null) {
+            errorMsg = data['error']['message'] ?? errorMsg;
+          }
+        }
+        
+        debugPrint('Auth Error Detail: $errorMsg');
         if (e is DioException) {
           debugPrint('Request Path: ${e.requestOptions.path}');
-          debugPrint('Base URL: ${e.requestOptions.baseUrl}');
         }
-        debugPrint('Stack: $stack');
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${e.toString()}'),
+              content: Text(errorMsg),
               backgroundColor: ShiftleyTokens.primaryRed,
             ),
           );
