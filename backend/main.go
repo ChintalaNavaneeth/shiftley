@@ -24,6 +24,7 @@ import (
 	"shiftley/pkg/storage"
 	"shiftley/pkg/events"
 	"context"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -91,7 +92,7 @@ func main() {
 		&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &auth.WorkerProfile{}, &auth.EmployerProfile{},
 		&taxonomy.Category{}, &taxonomy.Skill{},
 		&config.PlatformConfig{},
-		&verifier.VerificationAudit{},
+		&verifier.VerificationAudit{}, &verifier.VerifierProfile{},
 		&employer.Subscription{}, &employer.SubscriptionPlanMeta{},
 		&gig.Gig{}, &gig.GigApplication{}, &gig.GigAttendance{}, &gig.GigReview{}, &gig.SupportTicket{},
 		&analytics.Expenditure{},
@@ -230,12 +231,13 @@ func main() {
 			authGroup.POST("/logout", middleware.RequireAuth(cfg.JWTSecret, rdb), authHandler.Logout)
 		}
 
-		// Onboarding - Strictly for users with a registration token
+		// Onboarding - Strictly for users with a registration token (or session for pre-verified staff)
 		onboardingGroup := v1.Group("/onboarding")
-		onboardingGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("registration"))
+		onboardingGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireOnboardingToken())
 		{
 			onboardingGroup.POST("/employer", onboardingHandler.OnboardEmployer)
 			onboardingGroup.POST("/employee", onboardingHandler.OnboardEmployee)
+			onboardingGroup.POST("/verifier", onboardingHandler.OnboardVerifier)
 		}
 
 		// Taxonomy
@@ -338,9 +340,44 @@ func main() {
 		verifierGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"), middleware.RequireRoles(string(auth.RoleVerifier), string(auth.RoleSuperAdmin)))
 		{
 			verifierGroup.GET("/queue", verifierHandler.GetQueue)
+			verifierGroup.GET("/history", verifierHandler.GetHistory)
+			verifierGroup.GET("/profile", verifierHandler.GetProfile)
 			verifierGroup.POST("/employers/:id/verify", verifierHandler.VerifyEmployer)
 			verifierGroup.POST("/employees/:id/verify", verifierHandler.VerifyEmployee)
 		}
+
+		// Storage Proxy
+		v1.GET("/storage/*filepath", func(c *gin.Context) {
+			path := c.Param("filepath")
+			path = strings.TrimPrefix(path, "/")
+			
+			parts := strings.SplitN(path, "/", 2)
+			if len(parts) < 2 {
+				log.Printf("Storage Proxy: Invalid path format: %s", path)
+				c.AbortWithStatus(404)
+				return
+			}
+			bucket, object := parts[0], parts[1]
+
+			reader, size, err := storageSvc.GetFile(c.Request.Context(), bucket, object)
+			if err != nil {
+				log.Printf("Storage Proxy Error: Failed to get file %s from bucket %s: %v", object, bucket, err)
+				c.AbortWithStatus(404)
+				return
+			}
+			defer reader.Close()
+
+			contentType := "application/octet-stream"
+			if strings.HasSuffix(object, ".jpg") || strings.HasSuffix(object, ".jpeg") {
+				contentType = "image/jpeg"
+			} else if strings.HasSuffix(object, ".png") {
+				contentType = "image/png"
+			} else if strings.HasSuffix(object, ".pdf") {
+				contentType = "application/pdf"
+			}
+
+			c.DataFromReader(200, size, contentType, reader, nil)
+		})
 
 		// Employer & Gigs
 		employerGroup := v1.Group("/employers")

@@ -13,6 +13,8 @@ import (
 type Repository interface {
 	GetPendingQueue(ctx context.Context, userType string, limit int) ([]QueueItem, error)
 	SubmitVerification(ctx context.Context, audit *VerificationAudit, kycStatus string) error
+	GetVerificationHistory(ctx context.Context, verifierID uuid.UUID, limit int) ([]VerificationAudit, error)
+	GetVerifierProfile(ctx context.Context, userID uuid.UUID) (*VerifierProfile, error)
 }
 
 type QueueItem struct {
@@ -74,4 +76,23 @@ func (r *repository) SubmitVerification(ctx context.Context, audit *Verification
 
 		return nil
 	})
+}
+
+func (r *repository) GetVerificationHistory(ctx context.Context, verifierID uuid.UUID, limit int) ([]VerificationAudit, error) {
+	var audits []VerificationAudit
+	err := r.db.WithContext(ctx).Where("verifier_id = ?", verifierID).Order("created_at DESC").Limit(limit).Find(&audits).Error
+	return audits, err
+}
+
+func (r *repository) GetVerifierProfile(ctx context.Context, userID uuid.UUID) (*VerifierProfile, error) {
+	var profile VerifierProfile
+	err := r.db.WithContext(ctx).Table("shiftley.verifier_profiles").
+		Select("shiftley.verifier_profiles.id, shiftley.verifier_profiles.user_id, shiftley.verifier_profiles.profile_photo_url, shiftley.verifier_profiles.aadhaar_url, shiftley.verifier_profiles.lat, shiftley.verifier_profiles.lng, shiftley.verifier_profiles.created_at, shiftley.users.full_name, shiftley.users.email, shiftley.users.phone_number, shiftley.users.role").
+		Joins("JOIN shiftley.users ON shiftley.users.id = shiftley.verifier_profiles.user_id").
+		Where("shiftley.verifier_profiles.user_id = ?", userID).
+		First(&profile).Error
+	if err != nil {
+		return nil, err
+	}
+	return &profile, nil
 }

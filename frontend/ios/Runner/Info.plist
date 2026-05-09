@@ -66,5 +66,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Shiftley needs access to location to verify your home base and auditor availability.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Shiftley needs access to location to verify your home base and auditor availability.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Shiftley needs access to the camera for profile photos and document verification.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Shiftley needs access to photos for profile photos and document verification.</string>
 </dict>
 </plist>

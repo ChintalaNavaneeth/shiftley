@@ -13,6 +13,8 @@ import 'features/employer/presentation/employer_screen.dart';
 import 'features/employee/presentation/employee_screen.dart';
 import 'features/debug/presentation/dev_navigation_screen.dart';
 import 'features/support/presentation/support_agent_screen.dart';
+import 'features/verifier/presentation/verifier_auth_screen.dart';
+import 'features/verifier/presentation/verifier_setup_screen.dart';
 
 
 final _router = GoRouter(
@@ -35,7 +37,11 @@ final _router = GoRouter(
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>?;
         final isAdminFlow = extra?['isAdminFlow'] as bool? ?? false;
-        return AuthScreen(isAdminFlow: isAdminFlow);
+        final isVerifierFlow = extra?['isVerifierFlow'] as bool? ?? false;
+        return AuthScreen(
+          isAdminFlow: isAdminFlow,
+          isVerifierFlow: isVerifierFlow,
+        );
       },
     ),
     GoRoute(
@@ -60,6 +66,14 @@ final _router = GoRouter(
     GoRoute(
       path: '/verifier',
       builder: (context, state) => const VerifierScreen(),
+    ),
+    GoRoute(
+      path: '/verifier/auth',
+      builder: (context, state) => const VerifierAuthScreen(),
+    ),
+    GoRoute(
+      path: '/verifier/setup',
+      builder: (context, state) => const VerifierSetupScreen(),
     ),
     GoRoute(
       path: '/employer',

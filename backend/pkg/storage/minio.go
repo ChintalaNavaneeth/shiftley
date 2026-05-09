@@ -45,6 +45,18 @@ func (s *minioStorage) GetFileURL(ctx context.Context, bucketName, objectName st
 	return fmt.Sprintf("/api/v1/storage/%s/%s", bucketName, objectName), nil
 }
 
+func (s *minioStorage) GetFile(ctx context.Context, bucketName, objectName string) (io.ReadCloser, int64, error) {
+	obj, err := s.client.GetObject(ctx, bucketName, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, 0, err
+	}
+	stat, err := obj.Stat()
+	if err != nil {
+		return nil, 0, err
+	}
+	return obj, stat.Size, nil
+}
+
 func (s *minioStorage) EnsureBucketExists(ctx context.Context, bucketName string) error {
 	exists, err := s.client.BucketExists(ctx, bucketName)
 	if err != nil {

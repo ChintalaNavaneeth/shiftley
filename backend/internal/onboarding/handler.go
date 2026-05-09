@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"shiftley/internal/auth"
+	"shiftley/internal/verifier"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/storage"
 	"shiftley/pkg/utils"
@@ -341,4 +342,90 @@ func (h *Handler) OnboardEmployee(c *gin.Context) {
 	tx.Commit()
 
 	utils.RespondSuccess(c, http.StatusCreated, workerProfile, nil)
+}
+
+// OnboardVerifier handles POST /api/v1/onboarding/verifier
+func (h *Handler) OnboardVerifier(c *gin.Context) {
+	userIDStr, _ := c.Get("userID")
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized, "Invalid user session", nil)
+		return
+	}
+
+	// 1. Extract Lat/Lng
+	latStr := c.PostForm("latitude")
+	lngStr := c.PostForm("longitude")
+
+	lat, _ := strconv.ParseFloat(latStr, 64)
+	lng, _ := strconv.ParseFloat(lngStr, 64)
+
+	if lat == 0 || lng == 0 {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Latitude and Longitude are required", nil)
+		return
+	}
+
+	// 2. Handle File Uploads
+	filesToUpload := []struct {
+		fieldName string
+		bucket    string
+	}{
+		{"profile_image", h.bucketProfiles},
+		{"aadhar_pdf", h.bucketKYC},
+	}
+
+	uploadedUrls := make(map[string]string)
+	for _, fInfo := range filesToUpload {
+		file, err := c.FormFile(fInfo.fieldName)
+		if err != nil {
+			utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, fmt.Sprintf("%s is required", fInfo.fieldName), nil)
+			return
+		}
+
+		f, _ := file.Open()
+		defer f.Close()
+
+		extension := filepath.Ext(file.Filename)
+		objectName := fmt.Sprintf("verifiers/%s/%s%s", userID, fInfo.fieldName, extension)
+
+		_, err = h.storage.UploadFile(c.Request.Context(), fInfo.bucket, objectName, f, file.Size, file.Header.Get("Content-Type"))
+		if err != nil {
+			utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Upload failed", nil)
+			return
+		}
+
+		url, _ := h.storage.GetFileURL(c.Request.Context(), fInfo.bucket, objectName)
+		uploadedUrls[fInfo.fieldName] = url
+	}
+
+	// 3. Persist to Database
+	tx := h.db.Begin()
+
+	if err := tx.Model(&auth.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"is_initial_setup_complete": true,
+		"is_verified":               true, // Verifiers are pre-approved or auto-verified for onboarding
+	}).Error; err != nil {
+		tx.Rollback()
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update user", nil)
+		return
+	}
+
+	verifierProfile := verifier.VerifierProfile{
+		UserID:          userID,
+		ProfilePhotoURL: uploadedUrls["profile_image"],
+		AadhaarURL:      uploadedUrls["aadhar_pdf"],
+		Lat:             lat,
+		Lng:             lng,
+		Location:        fmt.Sprintf("POINT(%f %f)", lng, lat),
+	}
+
+	if err := tx.Create(&verifierProfile).Error; err != nil {
+		tx.Rollback()
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to create verifier profile", nil)
+		return
+	}
+
+	tx.Commit()
+
+	utils.RespondSuccess(c, http.StatusCreated, verifierProfile, nil)
 }

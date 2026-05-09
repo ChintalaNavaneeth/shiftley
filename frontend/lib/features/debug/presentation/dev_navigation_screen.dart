@@ -53,6 +53,13 @@ class DevNavigationScreen extends StatelessWidget {
                     color: ShiftleyTokens.secondaryCyan,
                     extra: {'isAdminFlow': true},
                   ),
+                  const SizedBox(height: ShiftleyTokens.spaceL),
+                  _DevButton(
+                    label: 'Verifier Audit & Verification Flow',
+                    path: '/verifier/auth',
+                    icon: Icons.verified_user,
+                    color: Colors.amberAccent,
+                  ),
                   const SizedBox(height: ShiftleyTokens.spaceXXL),
                   
                   const Divider(height: ShiftleyTokens.spaceXXL, thickness: 2, color: ShiftleyTokens.inkBlack),

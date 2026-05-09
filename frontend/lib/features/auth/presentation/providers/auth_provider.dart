@@ -41,8 +41,14 @@ class Auth extends _$Auth {
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final data = AuthData.fromJson(response.data as Map<String, dynamic>);
-        if (!data.isNewUser) {
-          final storage = ref.read(tokenStorageProvider);
+        final storage = ref.read(tokenStorageProvider);
+        
+        if (data.isNewUser) {
+          await storage.saveTokens(
+            accessToken: data.registrationToken!,
+            refreshToken: data.refreshToken!,
+          );
+        } else {
           await storage.saveTokens(
             accessToken: data.accessToken!,
             refreshToken: data.refreshToken!,

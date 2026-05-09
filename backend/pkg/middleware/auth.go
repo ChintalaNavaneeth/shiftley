@@ -120,6 +120,26 @@ func RequireTokenType(expectedType string) gin.HandlerFunc {
 	}
 }
 
+// RequireOnboardingToken allows both registration and session tokens (for pre-verified staff)
+func RequireOnboardingToken() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenType, exists := c.Get("tokenType")
+		if !exists {
+			utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden, "Unauthorized", nil)
+			c.Abort()
+			return
+		}
+
+		tType := tokenType.(string)
+		if tType != "registration" && tType != "session" {
+			utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden, "Invalid token type for onboarding", nil)
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 
 // RequireNoDebt blocks workers with unpaid fines
 func RequireNoDebt(db *gorm.DB) gin.HandlerFunc {

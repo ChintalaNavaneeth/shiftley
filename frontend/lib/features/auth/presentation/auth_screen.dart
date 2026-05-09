@@ -9,7 +9,12 @@ import 'providers/auth_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   final bool isAdminFlow;
-  const AuthScreen({super.key, this.isAdminFlow = false});
+  final bool isVerifierFlow;
+  const AuthScreen({
+    super.key, 
+    this.isAdminFlow = false,
+    this.isVerifierFlow = false,
+  });
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -21,14 +26,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   late bool _isSignUp;
   late bool _isWorker;
   late bool _isAdmin;
+  late bool _isVerifier;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _isSignUp = !widget.isAdminFlow;
+    _isSignUp = !widget.isAdminFlow && !widget.isVerifierFlow;
     _isWorker = true;
     _isAdmin = widget.isAdminFlow;
+    _isVerifier = widget.isVerifierFlow;
   }
 
   @override
@@ -42,7 +49,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       setState(() => _isLoading = true);
       try {
         final phoneNumber = '+91${_phoneController.text.trim()}';
-        final role = _isAdmin ? 'SUPER_ADMIN' : (_isWorker ? 'WORKER' : 'EMPLOYER');
+        String role = _isAdmin ? 'SUPER_ADMIN' : (_isWorker ? 'WORKER' : 'EMPLOYER');
+        if (_isVerifier) role = 'VERIFIER';
         
         await ref.read(authProvider.notifier).sendOtp(
           phoneNumber,
@@ -124,7 +132,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       const SizedBox(height: ShiftleyTokens.spaceXL),
                       
                       // Toggle
-                      if (!_isAdmin) ...[
+                      if (!_isAdmin && !_isVerifier) ...[
                         Container(
                           decoration: BoxDecoration(
                             border: ShiftleyTokens.primaryBorder,

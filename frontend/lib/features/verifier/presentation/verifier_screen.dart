@@ -8,6 +8,11 @@ import 'views/faq_view.dart';
 import 'views/support_view.dart';
 import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shiftley_frontend/features/verifier/presentation/providers/verifier_providers.dart';
+import 'package:shiftley_frontend/features/auth/presentation/providers/auth_provider.dart';
+
 enum VerifierView { queue, details, history, rejection, verifyFlow, success, support, faq, settings }
 
 class VerifierScreen extends StatefulWidget {
@@ -56,11 +61,18 @@ class _VerifierScreenState extends State<VerifierScreen> {
           ),
         ),
         drawer: _currentView == VerifierView.queue ? _buildDrawer() : null,
-        body: SRefreshable(
-          onRefresh: () async {
-            await Future.delayed(const Duration(seconds: 1));
+        body: Consumer(
+          builder: (context, ref, child) {
+            return SRefreshable(
+              onRefresh: () async {
+                ref.invalidate(verifierQueueProvider);
+                ref.invalidate(verifierHistoryProvider);
+                ref.invalidate(verifierProfileProvider);
+                await Future.delayed(const Duration(seconds: 1));
+              },
+              child: _buildBody(ref),
+            );
           },
-          child: _buildBody(),
         ),
       ),
     );
@@ -92,11 +104,11 @@ class _VerifierScreenState extends State<VerifierScreen> {
     }
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(WidgetRef ref) {
     switch (_currentView) {
-      case VerifierView.queue: return _buildQueueView();
+      case VerifierView.queue: return _buildQueueView(ref);
       case VerifierView.details: return _buildDetailsView(_selectedEmployerId!);
-      case VerifierView.history: return _buildHistoryView();
+      case VerifierView.history: return _buildHistoryView(ref);
       case VerifierView.rejection: return _buildRejectionView();
       case VerifierView.verifyFlow: return _buildVerifyFlow();
       case VerifierView.success: return _buildSuccessView();
@@ -299,76 +311,112 @@ class _VerifierScreenState extends State<VerifierScreen> {
 
   // ── Drawer UI ──────────────────────────────────────────────
   Widget _buildDrawer() {
-    return Drawer(
-      backgroundColor: ShiftleyTokens.paperWhite,
-      width: MediaQuery.of(context).size.width * 0.85,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(ShiftleyTokens.spaceXL, 64, ShiftleyTokens.spaceXL, ShiftleyTokens.spaceXL),
-            decoration: const BoxDecoration(
-              color: ShiftleyTokens.inkBlack,
-              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    color: ShiftleyTokens.secondaryCyan,
-                    border: Border.all(color: ShiftleyTokens.paperWhite, width: 3),
-                    shape: BoxShape.circle,
+    return Consumer(
+      builder: (context, ref, child) {
+        final profileAsync = ref.watch(verifierProfileProvider);
+
+        return Drawer(
+          backgroundColor: ShiftleyTokens.paperWhite,
+          width: MediaQuery.of(context).size.width * 0.85,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              profileAsync.when(
+                loading: () => Container(height: 250, color: ShiftleyTokens.inkBlack, child: const Center(child: CircularProgressIndicator(color: ShiftleyTokens.secondaryCyan))),
+                error: (err, stack) => Container(height: 250, color: ShiftleyTokens.inkBlack, child: Center(child: Text('Error loading profile', style: ShiftleyTokens.caption.copyWith(color: Colors.white)))),
+                data: (profile) => Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(ShiftleyTokens.spaceXL, 64, ShiftleyTokens.spaceXL, ShiftleyTokens.spaceXL),
+                  decoration: const BoxDecoration(
+                    color: ShiftleyTokens.inkBlack,
+                    borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32)),
                   ),
-                  child: const Icon(Icons.person, size: 48, color: ShiftleyTokens.inkBlack),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 84,
+                        height: 84,
+                        decoration: BoxDecoration(
+                          color: ShiftleyTokens.secondaryCyan,
+                          border: Border.all(color: ShiftleyTokens.paperWhite, width: 3),
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            image: NetworkImage(_getFullUrl(profile.profilePhotoUrl)),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: ShiftleyTokens.spaceL),
+                      Text(
+                        profile.fullName ?? 'Verifier Staff',
+                        style: const TextStyle(color: ShiftleyTokens.paperWhite, fontSize: 24, fontWeight: FontWeight.w900, fontFamily: 'Figtree'),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        profile.email ?? 'auditor@shiftley.in',
+                        style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.secondaryCyan, fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      const SizedBox(height: ShiftleyTokens.spaceL),
+                      _buildProfileMeta(Icons.phone_outlined, profile.phoneNumber ?? '+91 00000 00000'),
+                      const SizedBox(height: 8),
+                      _buildProfileMeta(Icons.badge_outlined, profile.role ?? 'VERIFIER'),
+                      const SizedBox(height: 8),
+                      _buildProfileMeta(Icons.location_on_outlined, '${profile.lat.toStringAsFixed(4)}, ${profile.lng.toStringAsFixed(4)}'),
+                      const SizedBox(height: 8),
+                      _buildProfileMeta(Icons.verified_user_outlined, 'Aadhaar Verified', iconColor: Colors.greenAccent),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: ShiftleyTokens.spaceL),
-                const Text(
-                  'Rahul Sharma',
-                  style: TextStyle(color: ShiftleyTokens.paperWhite, fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Figtree'),
+              ),
+              
+              const SizedBox(height: ShiftleyTokens.spaceXL),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    _buildDrawerItem(Icons.queue_outlined, 'Verification Queue', _currentView == VerifierView.queue, onTap: () { setState(() => _currentView = VerifierView.queue); Navigator.pop(context); }),
+                    _buildDrawerItem(Icons.history_outlined, 'History', _currentView == VerifierView.history, onTap: () { setState(() => _currentView = VerifierView.history); Navigator.pop(context); }),
+                    _buildDrawerItem(Icons.support_agent_outlined, 'Support Hub', _currentView == VerifierView.support, onTap: () { setState(() => _currentView = VerifierView.support); Navigator.pop(context); }),
+                    _buildDrawerItem(Icons.help_outline_rounded, 'Help & FAQ', _currentView == VerifierView.faq, onTap: () { setState(() => _currentView = VerifierView.faq); Navigator.pop(context); }),
+                    _buildDrawerItem(Icons.settings_outlined, 'Settings', _currentView == VerifierView.settings, onTap: () { setState(() => _currentView = VerifierView.settings); Navigator.pop(context); }),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Verifier',
-                  style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.secondaryCyan, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: ShiftleyTokens.spaceXL),
-                _buildProfileMeta(Icons.email_outlined, 'rahul.v@shiftley.com'),
-                const SizedBox(height: 8),
-                _buildProfileMeta(Icons.phone_android_outlined, '+91 99887 76655'),
-              ],
-            ),
+              ),
+              
+              const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1),
+              _buildDrawerItem(
+                Icons.logout, 
+                'Logout', 
+                false, 
+                isDestructive: true, 
+                onTap: () async {
+                  Navigator.pop(context);
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) {
+                    context.go('/dev');
+                  }
+                },
+              ),
+              const SizedBox(height: ShiftleyTokens.spaceM),
+            ],
           ),
-          
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _buildDrawerItem(Icons.queue_outlined, 'Verification Queue', _currentView == VerifierView.queue, onTap: () { setState(() => _currentView = VerifierView.queue); Navigator.pop(context); }),
-                _buildDrawerItem(Icons.history_outlined, 'History', _currentView == VerifierView.history, onTap: () { setState(() => _currentView = VerifierView.history); Navigator.pop(context); }),
-                _buildDrawerItem(Icons.support_agent_outlined, 'Support Hub', _currentView == VerifierView.support, onTap: () { setState(() => _currentView = VerifierView.support); Navigator.pop(context); }),
-                _buildDrawerItem(Icons.help_outline_rounded, 'Help & FAQ', _currentView == VerifierView.faq, onTap: () { setState(() => _currentView = VerifierView.faq); Navigator.pop(context); }),
-                _buildDrawerItem(Icons.settings_outlined, 'Settings', _currentView == VerifierView.settings, onTap: () { setState(() => _currentView = VerifierView.settings); Navigator.pop(context); }),
-              ],
-            ),
-          ),
-          
-          const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1),
-          _buildDrawerItem(Icons.logout, 'Logout', false, isDestructive: true, onTap: () => Navigator.pop(context)),
-          const SizedBox(height: ShiftleyTokens.spaceM),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildProfileMeta(IconData icon, String text) {
+  String _getFullUrl(String path) {
+    if (path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    // Assuming ApiClient.baseUrl is 'http://192.168.1.6:8080/api/v1/'
+    return 'http://192.168.1.6:8080$path';
+  }
+
+  Widget _buildProfileMeta(IconData icon, String text, {Color? iconColor}) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: ShiftleyTokens.paperWhite.withValues(alpha: 0.6)),
+        Icon(icon, size: 14, color: iconColor ?? ShiftleyTokens.paperWhite.withValues(alpha: 0.6)),
         const SizedBox(width: 8),
         Text(text, style: const TextStyle(color: ShiftleyTokens.paperWhite, fontSize: 12, fontWeight: FontWeight.w500)),
       ],
@@ -376,36 +424,52 @@ class _VerifierScreenState extends State<VerifierScreen> {
   }
 
   // ── Other Helpers ───────────────────────────────────────────
-  Widget _buildQueueView() {
-    final List<Map<String, String>> allItems = [
-      {'id': '1', 'name': 'Taj Banjara', 'details': 'GST Verification & Physical Visit', 'status': 'Pending', 'time': '2h ago'},
-      {'id': '2', 'name': 'Zomato Kitchen (Madhapur)', 'details': 'FSSAI License Review', 'status': 'In Progress', 'time': '1d ago'},
-      {'id': '3', 'name': 'GMR AeroCity', 'details': 'Identity & Address Proof', 'status': 'Pending', 'time': '3h ago'},
-      {'id': '4', 'name': 'ITC Kakatiya', 'details': 'Final Site Audit', 'status': 'Completed', 'time': '4h ago'},
-      {'id': '5', 'name': 'Blue Fox', 'details': 'Bank Account Verification', 'status': 'In Progress', 'time': '5h ago'},
-    ];
-    final String targetStatus = _activeTabIndex == 0 ? 'Pending' : _activeTabIndex == 1 ? 'In Progress' : 'Completed';
-    final filteredItems = allItems.where((item) => item['status'] == targetStatus).toList();
-    return Column(
-      children: [
-        _buildStatusTabs(),
-        const SizedBox(height: ShiftleyTokens.spaceM),
-        if (filteredItems.isEmpty)
-          Center(child: Text('No $targetStatus items', style: ShiftleyTokens.caption))
-        else
-          Column(
-            children: filteredItems.map((item) {
-              return _buildQueueItem(
-                id: item['id']!,
-                name: item['name']!,
-                details: item['details']!,
-                status: item['status']!,
-                time: item['time']!,
-              );
-            }).toList(),
-          ),
-      ],
+  Widget _buildQueueView(WidgetRef ref) {
+    final String roleFilter = _activeTabIndex == 0 ? 'EMPLOYER' : 'EMPLOYEE';
+    final queueAsync = ref.watch(verifierQueueProvider(type: roleFilter));
+
+    return queueAsync.when(
+      loading: () => const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed))),
+      error: (err, stack) => Center(child: Padding(padding: const EdgeInsets.all(32.0), child: Text('Error: $err', style: ShiftleyTokens.caption))),
+      data: (items) {
+        return Column(
+          children: [
+            _buildStatusTabs(),
+            Padding(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Showing ${items.length} tasks', style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
+                  const Icon(Icons.filter_list, size: 16),
+                ],
+              ),
+            ),
+            if (items.isEmpty)
+              Center(child: Padding(padding: const EdgeInsets.all(64.0), child: Text('No $roleFilter tasks found', style: ShiftleyTokens.caption)))
+            else
+              Column(
+                children: items.map((item) {
+                  return _buildQueueItem(
+                    id: item.userId,
+                    name: item.fullName,
+                    details: item.kycStatus,
+                    status: item.role,
+                    time: _formatDate(item.createdAt),
+                  );
+                }).toList(),
+              ),
+          ],
+        );
+      },
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   Widget _buildDetailsView(String id) {
@@ -440,17 +504,30 @@ class _VerifierScreenState extends State<VerifierScreen> {
     return Padding(padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Why are you rejecting this onboarding?', style: ShiftleyTokens.bodyLarge), const SizedBox(height: ShiftleyTokens.spaceM), Wrap(spacing: 8, runSpacing: 8, children: suggestions.map((s) => ActionChip(label: Text(s, style: const TextStyle(fontSize: 12)), backgroundColor: ShiftleyTokens.paperWhite, side: const BorderSide(color: ShiftleyTokens.inkBlack), onPressed: () => setState(() => _rejectionReason = s))).toList()), const SizedBox(height: ShiftleyTokens.spaceXL), const Text('Additional Justification', style: ShiftleyTokens.caption), const SizedBox(height: 8), TextField(maxLines: 4, decoration: InputDecoration(border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, hintText: 'Provide detailed reason...', fillColor: ShiftleyTokens.paperWhite, filled: true), controller: TextEditingController(text: _rejectionReason), onChanged: (v) => _rejectionReason = v), const Spacer(), SButton(text: 'Confirm Rejection', type: SButtonType.primary, onPressed: () => setState(() => _currentView = VerifierView.queue)), const SizedBox(height: ShiftleyTokens.spaceXL)]));
   }
 
-  Widget _buildHistoryView() {
+  Widget _buildHistoryView(WidgetRef ref) {
+    final historyAsync = ref.watch(verifierHistoryProvider);
+
     return Column(children: [
       Container(color: ShiftleyTokens.paperWhite, padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(children: [Row(children: [Expanded(child: _buildDatePicker('From Date', _fromDate, (date) => setState(() => _fromDate = date))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: _buildDatePicker('To Date', _toDate, (date) => setState(() => _toDate = date)))]), const SizedBox(height: ShiftleyTokens.spaceM), SizedBox(height: 48, child: TextField(decoration: InputDecoration(hintText: 'Search history...', prefixIcon: const Icon(Icons.search, size: 20), filled: true, fillColor: ShiftleyTokens.background, border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, contentPadding: EdgeInsets.zero)))])), 
       const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1),
       Padding(
         padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
-        child: Column(
-          children: [
-            _buildHistoryItem('ITC Kohenur', 'APPROVED', '24 Oct 2023', 'Verified by GST & On-site visit'),
-            _buildHistoryItem('Paradise Biryani', 'REJECTED', '22 Oct 2023', 'GST mismatch / Invalid Address'),
-          ],
+        child: historyAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),
+          error: (err, stack) => Text('Error: $err'),
+          data: (audits) {
+            if (audits.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: Text('No history found', style: ShiftleyTokens.caption)));
+            return Column(
+              children: audits.map((audit) {
+                return _buildHistoryItem(
+                  'User: ${audit.userId.substring(0, 8)}',
+                  audit.status,
+                  _formatDate(audit.createdAt),
+                  audit.notes,
+                );
+              }).toList(),
+            );
+          },
         ),
       ),
     ]);
@@ -466,7 +543,24 @@ class _VerifierScreenState extends State<VerifierScreen> {
   }
 
   Widget _buildStatusTabs() {
-    return Container(width: double.infinity, decoration: const BoxDecoration(color: ShiftleyTokens.paperWhite, border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 1.5))), child: SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceL), child: Row(children: [_buildTab('Pending (12)', 0), _buildTab('In Progress (3)', 1), _buildTab('Completed (45)', 2)])));
+    return Container(
+      width: double.infinity, 
+      decoration: const BoxDecoration(
+        color: ShiftleyTokens.paperWhite, 
+        border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 1.5))
+      ), 
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal, 
+        padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceL), 
+        child: Row(
+          children: [
+            _buildTab('PENDING', 0), 
+            _buildTab('IN PROGRESS', 1), 
+            _buildTab('COMPLETED', 2)
+          ]
+        )
+      )
+    );
   }
 
   Widget _buildTab(String label, int index) {

@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
@@ -240,4 +241,39 @@ func (h *Handler) VerifyEmployee(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"status": kycStatus}, nil)
+}
+
+// GetHistory handles GET /api/v1/verifier/history
+func (h *Handler) GetHistory(c *gin.Context) {
+	verifierIDStr, _ := c.Get("userID")
+	verifierID, _ := uuid.Parse(verifierIDStr.(string))
+
+	limitStr := c.DefaultQuery("limit", "20")
+	limit, _ := strconv.Atoi(limitStr)
+
+	history, err := h.repo.GetVerificationHistory(c.Request.Context(), verifierID, limit)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to fetch history", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, history, nil)
+}
+
+// GetProfile handles GET /api/v1/verifier/profile
+func (h *Handler) GetProfile(c *gin.Context) {
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	profile, err := h.repo.GetVerifierProfile(c.Request.Context(), userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Profile not found", nil)
+			return
+		}
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to fetch profile", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, profile, nil)
 }

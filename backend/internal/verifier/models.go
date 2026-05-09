@@ -27,3 +27,24 @@ type VerificationAudit struct {
 func (VerificationAudit) TableName() string {
 	return "shiftley.verification_audits"
 }
+
+type VerifierProfile struct {
+	ID              uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID          uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex" json:"user_id"`
+	FullName        string         `gorm:"->" json:"full_name"`
+	Email           string         `gorm:"->" json:"email"`
+	PhoneNumber     string         `gorm:"->" json:"phone_number"`
+	Role            string         `gorm:"->" json:"role"`
+	ProfilePhotoURL string         `json:"profile_photo_url"`
+	AadhaarURL      string         `json:"aadhaar_url"`
+	Lat             float64        `json:"lat"`
+	Lng             float64        `json:"lng"`
+	Location        string         `gorm:"type:geometry(Point,4326)" json:"-"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+func (VerifierProfile) TableName() string {
+	return "shiftley.verifier_profiles"
+}
