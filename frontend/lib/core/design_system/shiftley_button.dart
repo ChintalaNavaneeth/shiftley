@@ -43,7 +43,7 @@ class ShiftleyButton extends StatelessWidget {
           elevation: 0,
           padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+            borderRadius: BorderRadius.zero,
             side: const BorderSide(
               color: ShiftleyTokens.inkBlack, 
               width: ShiftleyTokens.borderWidth,

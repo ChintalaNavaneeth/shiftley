@@ -152,3 +152,15 @@ final analyticsOverviewProvider = FutureProvider<AnalyticsOverview>((ref) async 
 final financialMetricsProvider = FutureProvider<FinancialMetrics>((ref) async {
   return await ref.watch(adminRepositoryProvider).getFinancials();
 });
+
+final pnlProvider = FutureProvider.family<PnLSummary, String>((ref, month) async {
+  return await ref.watch(adminRepositoryProvider).getPnL(month);
+});
+
+final liquidityProvider = FutureProvider<LiquidityMetrics>((ref) async {
+  return await ref.watch(adminRepositoryProvider).getLiquidity();
+});
+
+final platformHealthProvider = FutureProvider<PlatformHealth>((ref) async {
+  return await ref.watch(adminRepositoryProvider).getHealth();
+});

@@ -7,7 +7,7 @@ class ApiClient {
   
   // Replace with your actual backend URL
   // Use your machine's local IP for reliable emulator connection
-  static const String baseUrl = 'http://192.168.1.6:8080/api/v1';
+  static const String baseUrl = 'http://192.168.1.6:8080/api/v1/';
 
   ApiClient() {
     dio = Dio(BaseOptions(

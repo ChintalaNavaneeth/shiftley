@@ -21,7 +21,7 @@ Category _$CategoryFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Category {
   String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
+  String? get name => throw _privateConstructorUsedError;
   @JsonKey(name: 'is_active')
   bool get isActive => throw _privateConstructorUsedError;
   List<Skill> get skills => throw _privateConstructorUsedError;
@@ -39,7 +39,7 @@ abstract class $CategoryCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String name,
+      String? name,
       @JsonKey(name: 'is_active') bool isActive,
       List<Skill> skills});
 }
@@ -58,7 +58,7 @@ class _$CategoryCopyWithImpl<$Res, $Val extends Category>
   @override
   $Res call({
     Object? id = null,
-    Object? name = null,
+    Object? name = freezed,
     Object? isActive = null,
     Object? skills = null,
   }) {
@@ -67,10 +67,10 @@ class _$CategoryCopyWithImpl<$Res, $Val extends Category>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      name: null == name
+      name: freezed == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       isActive: null == isActive
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
@@ -93,7 +93,7 @@ abstract class _$$CategoryImplCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
-      String name,
+      String? name,
       @JsonKey(name: 'is_active') bool isActive,
       List<Skill> skills});
 }
@@ -110,7 +110,7 @@ class __$$CategoryImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? name = null,
+    Object? name = freezed,
     Object? isActive = null,
     Object? skills = null,
   }) {
@@ -119,10 +119,10 @@ class __$$CategoryImplCopyWithImpl<$Res>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      name: null == name
+      name: freezed == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       isActive: null == isActive
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
@@ -140,8 +140,8 @@ class __$$CategoryImplCopyWithImpl<$Res>
 class _$CategoryImpl implements _Category {
   const _$CategoryImpl(
       {required this.id,
-      required this.name,
-      @JsonKey(name: 'is_active') required this.isActive,
+      this.name,
+      @JsonKey(name: 'is_active') this.isActive = true,
       final List<Skill> skills = const []})
       : _skills = skills;
 
@@ -151,7 +151,7 @@ class _$CategoryImpl implements _Category {
   @override
   final String id;
   @override
-  final String name;
+  final String? name;
   @override
   @JsonKey(name: 'is_active')
   final bool isActive;
@@ -203,8 +203,8 @@ class _$CategoryImpl implements _Category {
 abstract class _Category implements Category {
   const factory _Category(
       {required final String id,
-      required final String name,
-      @JsonKey(name: 'is_active') required final bool isActive,
+      final String? name,
+      @JsonKey(name: 'is_active') final bool isActive,
       final List<Skill> skills}) = _$CategoryImpl;
 
   factory _Category.fromJson(Map<String, dynamic> json) =
@@ -213,7 +213,7 @@ abstract class _Category implements Category {
   @override
   String get id;
   @override
-  String get name;
+  String? get name;
   @override
   @JsonKey(name: 'is_active')
   bool get isActive;
@@ -233,8 +233,8 @@ Skill _$SkillFromJson(Map<String, dynamic> json) {
 mixin _$Skill {
   String get id => throw _privateConstructorUsedError;
   @JsonKey(name: 'category_id')
-  String get categoryId => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
+  String? get categoryId => throw _privateConstructorUsedError;
+  String? get name => throw _privateConstructorUsedError;
   @JsonKey(name: 'is_active')
   bool get isActive => throw _privateConstructorUsedError;
 
@@ -250,8 +250,8 @@ abstract class $SkillCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      @JsonKey(name: 'category_id') String categoryId,
-      String name,
+      @JsonKey(name: 'category_id') String? categoryId,
+      String? name,
       @JsonKey(name: 'is_active') bool isActive});
 }
 
@@ -269,8 +269,8 @@ class _$SkillCopyWithImpl<$Res, $Val extends Skill>
   @override
   $Res call({
     Object? id = null,
-    Object? categoryId = null,
-    Object? name = null,
+    Object? categoryId = freezed,
+    Object? name = freezed,
     Object? isActive = null,
   }) {
     return _then(_value.copyWith(
@@ -278,14 +278,14 @@ class _$SkillCopyWithImpl<$Res, $Val extends Skill>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      categoryId: null == categoryId
+      categoryId: freezed == categoryId
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
+              as String?,
+      name: freezed == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       isActive: null == isActive
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
@@ -303,8 +303,8 @@ abstract class _$$SkillImplCopyWith<$Res> implements $SkillCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      @JsonKey(name: 'category_id') String categoryId,
-      String name,
+      @JsonKey(name: 'category_id') String? categoryId,
+      String? name,
       @JsonKey(name: 'is_active') bool isActive});
 }
 
@@ -320,8 +320,8 @@ class __$$SkillImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? categoryId = null,
-    Object? name = null,
+    Object? categoryId = freezed,
+    Object? name = freezed,
     Object? isActive = null,
   }) {
     return _then(_$SkillImpl(
@@ -329,14 +329,14 @@ class __$$SkillImplCopyWithImpl<$Res>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      categoryId: null == categoryId
+      categoryId: freezed == categoryId
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
+              as String?,
+      name: freezed == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       isActive: null == isActive
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
@@ -350,9 +350,9 @@ class __$$SkillImplCopyWithImpl<$Res>
 class _$SkillImpl implements _Skill {
   const _$SkillImpl(
       {required this.id,
-      @JsonKey(name: 'category_id') required this.categoryId,
-      required this.name,
-      @JsonKey(name: 'is_active') required this.isActive});
+      @JsonKey(name: 'category_id') this.categoryId,
+      this.name,
+      @JsonKey(name: 'is_active') this.isActive = true});
 
   factory _$SkillImpl.fromJson(Map<String, dynamic> json) =>
       _$$SkillImplFromJson(json);
@@ -361,9 +361,9 @@ class _$SkillImpl implements _Skill {
   final String id;
   @override
   @JsonKey(name: 'category_id')
-  final String categoryId;
+  final String? categoryId;
   @override
-  final String name;
+  final String? name;
   @override
   @JsonKey(name: 'is_active')
   final bool isActive;
@@ -407,9 +407,9 @@ class _$SkillImpl implements _Skill {
 abstract class _Skill implements Skill {
   const factory _Skill(
       {required final String id,
-      @JsonKey(name: 'category_id') required final String categoryId,
-      required final String name,
-      @JsonKey(name: 'is_active') required final bool isActive}) = _$SkillImpl;
+      @JsonKey(name: 'category_id') final String? categoryId,
+      final String? name,
+      @JsonKey(name: 'is_active') final bool isActive}) = _$SkillImpl;
 
   factory _Skill.fromJson(Map<String, dynamic> json) = _$SkillImpl.fromJson;
 
@@ -417,9 +417,9 @@ abstract class _Skill implements Skill {
   String get id;
   @override
   @JsonKey(name: 'category_id')
-  String get categoryId;
+  String? get categoryId;
   @override
-  String get name;
+  String? get name;
   @override
   @JsonKey(name: 'is_active')
   bool get isActive;
@@ -1358,14 +1358,14 @@ AnalyticsOverview _$AnalyticsOverviewFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$AnalyticsOverview {
-  @JsonKey(name: 'total_gigs')
+  @JsonKey(name: 'gigs_posted')
   int get totalGigs => throw _privateConstructorUsedError;
-  @JsonKey(name: 'active_workers')
+  @JsonKey(name: 'total_active_workers')
   int get activeWorkers => throw _privateConstructorUsedError;
-  @JsonKey(name: 'active_businesses')
+  @JsonKey(name: 'total_verified_employers')
   int get activeBusinesses => throw _privateConstructorUsedError;
-  @JsonKey(name: 'total_revenue_paise')
-  int get totalRevenuePaise => throw _privateConstructorUsedError;
+  @JsonKey(name: 'gigs_completed')
+  int get completedGigs => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -1380,10 +1380,10 @@ abstract class $AnalyticsOverviewCopyWith<$Res> {
       _$AnalyticsOverviewCopyWithImpl<$Res, AnalyticsOverview>;
   @useResult
   $Res call(
-      {@JsonKey(name: 'total_gigs') int totalGigs,
-      @JsonKey(name: 'active_workers') int activeWorkers,
-      @JsonKey(name: 'active_businesses') int activeBusinesses,
-      @JsonKey(name: 'total_revenue_paise') int totalRevenuePaise});
+      {@JsonKey(name: 'gigs_posted') int totalGigs,
+      @JsonKey(name: 'total_active_workers') int activeWorkers,
+      @JsonKey(name: 'total_verified_employers') int activeBusinesses,
+      @JsonKey(name: 'gigs_completed') int completedGigs});
 }
 
 /// @nodoc
@@ -1402,7 +1402,7 @@ class _$AnalyticsOverviewCopyWithImpl<$Res, $Val extends AnalyticsOverview>
     Object? totalGigs = null,
     Object? activeWorkers = null,
     Object? activeBusinesses = null,
-    Object? totalRevenuePaise = null,
+    Object? completedGigs = null,
   }) {
     return _then(_value.copyWith(
       totalGigs: null == totalGigs
@@ -1417,9 +1417,9 @@ class _$AnalyticsOverviewCopyWithImpl<$Res, $Val extends AnalyticsOverview>
           ? _value.activeBusinesses
           : activeBusinesses // ignore: cast_nullable_to_non_nullable
               as int,
-      totalRevenuePaise: null == totalRevenuePaise
-          ? _value.totalRevenuePaise
-          : totalRevenuePaise // ignore: cast_nullable_to_non_nullable
+      completedGigs: null == completedGigs
+          ? _value.completedGigs
+          : completedGigs // ignore: cast_nullable_to_non_nullable
               as int,
     ) as $Val);
   }
@@ -1434,10 +1434,10 @@ abstract class _$$AnalyticsOverviewImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {@JsonKey(name: 'total_gigs') int totalGigs,
-      @JsonKey(name: 'active_workers') int activeWorkers,
-      @JsonKey(name: 'active_businesses') int activeBusinesses,
-      @JsonKey(name: 'total_revenue_paise') int totalRevenuePaise});
+      {@JsonKey(name: 'gigs_posted') int totalGigs,
+      @JsonKey(name: 'total_active_workers') int activeWorkers,
+      @JsonKey(name: 'total_verified_employers') int activeBusinesses,
+      @JsonKey(name: 'gigs_completed') int completedGigs});
 }
 
 /// @nodoc
@@ -1454,7 +1454,7 @@ class __$$AnalyticsOverviewImplCopyWithImpl<$Res>
     Object? totalGigs = null,
     Object? activeWorkers = null,
     Object? activeBusinesses = null,
-    Object? totalRevenuePaise = null,
+    Object? completedGigs = null,
   }) {
     return _then(_$AnalyticsOverviewImpl(
       totalGigs: null == totalGigs
@@ -1469,9 +1469,9 @@ class __$$AnalyticsOverviewImplCopyWithImpl<$Res>
           ? _value.activeBusinesses
           : activeBusinesses // ignore: cast_nullable_to_non_nullable
               as int,
-      totalRevenuePaise: null == totalRevenuePaise
-          ? _value.totalRevenuePaise
-          : totalRevenuePaise // ignore: cast_nullable_to_non_nullable
+      completedGigs: null == completedGigs
+          ? _value.completedGigs
+          : completedGigs // ignore: cast_nullable_to_non_nullable
               as int,
     ));
   }
@@ -1481,30 +1481,30 @@ class __$$AnalyticsOverviewImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$AnalyticsOverviewImpl implements _AnalyticsOverview {
   const _$AnalyticsOverviewImpl(
-      {@JsonKey(name: 'total_gigs') required this.totalGigs,
-      @JsonKey(name: 'active_workers') required this.activeWorkers,
-      @JsonKey(name: 'active_businesses') required this.activeBusinesses,
-      @JsonKey(name: 'total_revenue_paise') required this.totalRevenuePaise});
+      {@JsonKey(name: 'gigs_posted') this.totalGigs = 0,
+      @JsonKey(name: 'total_active_workers') this.activeWorkers = 0,
+      @JsonKey(name: 'total_verified_employers') this.activeBusinesses = 0,
+      @JsonKey(name: 'gigs_completed') this.completedGigs = 0});
 
   factory _$AnalyticsOverviewImpl.fromJson(Map<String, dynamic> json) =>
       _$$AnalyticsOverviewImplFromJson(json);
 
   @override
-  @JsonKey(name: 'total_gigs')
+  @JsonKey(name: 'gigs_posted')
   final int totalGigs;
   @override
-  @JsonKey(name: 'active_workers')
+  @JsonKey(name: 'total_active_workers')
   final int activeWorkers;
   @override
-  @JsonKey(name: 'active_businesses')
+  @JsonKey(name: 'total_verified_employers')
   final int activeBusinesses;
   @override
-  @JsonKey(name: 'total_revenue_paise')
-  final int totalRevenuePaise;
+  @JsonKey(name: 'gigs_completed')
+  final int completedGigs;
 
   @override
   String toString() {
-    return 'AnalyticsOverview(totalGigs: $totalGigs, activeWorkers: $activeWorkers, activeBusinesses: $activeBusinesses, totalRevenuePaise: $totalRevenuePaise)';
+    return 'AnalyticsOverview(totalGigs: $totalGigs, activeWorkers: $activeWorkers, activeBusinesses: $activeBusinesses, completedGigs: $completedGigs)';
   }
 
   @override
@@ -1518,14 +1518,14 @@ class _$AnalyticsOverviewImpl implements _AnalyticsOverview {
                 other.activeWorkers == activeWorkers) &&
             (identical(other.activeBusinesses, activeBusinesses) ||
                 other.activeBusinesses == activeBusinesses) &&
-            (identical(other.totalRevenuePaise, totalRevenuePaise) ||
-                other.totalRevenuePaise == totalRevenuePaise));
+            (identical(other.completedGigs, completedGigs) ||
+                other.completedGigs == completedGigs));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, totalGigs, activeWorkers,
-      activeBusinesses, totalRevenuePaise);
+  int get hashCode => Object.hash(
+      runtimeType, totalGigs, activeWorkers, activeBusinesses, completedGigs);
 
   @JsonKey(ignore: true)
   @override
@@ -1544,27 +1544,27 @@ class _$AnalyticsOverviewImpl implements _AnalyticsOverview {
 
 abstract class _AnalyticsOverview implements AnalyticsOverview {
   const factory _AnalyticsOverview(
-      {@JsonKey(name: 'total_gigs') required final int totalGigs,
-      @JsonKey(name: 'active_workers') required final int activeWorkers,
-      @JsonKey(name: 'active_businesses') required final int activeBusinesses,
-      @JsonKey(name: 'total_revenue_paise')
-      required final int totalRevenuePaise}) = _$AnalyticsOverviewImpl;
+          {@JsonKey(name: 'gigs_posted') final int totalGigs,
+          @JsonKey(name: 'total_active_workers') final int activeWorkers,
+          @JsonKey(name: 'total_verified_employers') final int activeBusinesses,
+          @JsonKey(name: 'gigs_completed') final int completedGigs}) =
+      _$AnalyticsOverviewImpl;
 
   factory _AnalyticsOverview.fromJson(Map<String, dynamic> json) =
       _$AnalyticsOverviewImpl.fromJson;
 
   @override
-  @JsonKey(name: 'total_gigs')
+  @JsonKey(name: 'gigs_posted')
   int get totalGigs;
   @override
-  @JsonKey(name: 'active_workers')
+  @JsonKey(name: 'total_active_workers')
   int get activeWorkers;
   @override
-  @JsonKey(name: 'active_businesses')
+  @JsonKey(name: 'total_verified_employers')
   int get activeBusinesses;
   @override
-  @JsonKey(name: 'total_revenue_paise')
-  int get totalRevenuePaise;
+  @JsonKey(name: 'gigs_completed')
+  int get completedGigs;
   @override
   @JsonKey(ignore: true)
   _$$AnalyticsOverviewImplCopyWith<_$AnalyticsOverviewImpl> get copyWith =>
@@ -1577,12 +1577,14 @@ FinancialMetrics _$FinancialMetricsFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$FinancialMetrics {
-  @JsonKey(name: 'escrow_balance_paise')
+  @JsonKey(name: 'current_escrow_load_paise')
   int get escrowBalancePaise => throw _privateConstructorUsedError;
-  @JsonKey(name: 'total_payouts_paise')
-  int get totalPayoutsPaise => throw _privateConstructorUsedError;
-  @JsonKey(name: 'commission_earned_paise')
-  int get commissionEarnedPaise => throw _privateConstructorUsedError;
+  @JsonKey(name: 'subscription_revenue_paise')
+  int get subscriptionRevenuePaise => throw _privateConstructorUsedError;
+  @JsonKey(name: 'retained_cancellation_fines_paise')
+  int get fineRevenuePaise => throw _privateConstructorUsedError;
+  @JsonKey(name: 'total_worker_gmv_paise')
+  int get totalWorkerGmvPaise => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -1597,9 +1599,10 @@ abstract class $FinancialMetricsCopyWith<$Res> {
       _$FinancialMetricsCopyWithImpl<$Res, FinancialMetrics>;
   @useResult
   $Res call(
-      {@JsonKey(name: 'escrow_balance_paise') int escrowBalancePaise,
-      @JsonKey(name: 'total_payouts_paise') int totalPayoutsPaise,
-      @JsonKey(name: 'commission_earned_paise') int commissionEarnedPaise});
+      {@JsonKey(name: 'current_escrow_load_paise') int escrowBalancePaise,
+      @JsonKey(name: 'subscription_revenue_paise') int subscriptionRevenuePaise,
+      @JsonKey(name: 'retained_cancellation_fines_paise') int fineRevenuePaise,
+      @JsonKey(name: 'total_worker_gmv_paise') int totalWorkerGmvPaise});
 }
 
 /// @nodoc
@@ -1616,21 +1619,26 @@ class _$FinancialMetricsCopyWithImpl<$Res, $Val extends FinancialMetrics>
   @override
   $Res call({
     Object? escrowBalancePaise = null,
-    Object? totalPayoutsPaise = null,
-    Object? commissionEarnedPaise = null,
+    Object? subscriptionRevenuePaise = null,
+    Object? fineRevenuePaise = null,
+    Object? totalWorkerGmvPaise = null,
   }) {
     return _then(_value.copyWith(
       escrowBalancePaise: null == escrowBalancePaise
           ? _value.escrowBalancePaise
           : escrowBalancePaise // ignore: cast_nullable_to_non_nullable
               as int,
-      totalPayoutsPaise: null == totalPayoutsPaise
-          ? _value.totalPayoutsPaise
-          : totalPayoutsPaise // ignore: cast_nullable_to_non_nullable
+      subscriptionRevenuePaise: null == subscriptionRevenuePaise
+          ? _value.subscriptionRevenuePaise
+          : subscriptionRevenuePaise // ignore: cast_nullable_to_non_nullable
               as int,
-      commissionEarnedPaise: null == commissionEarnedPaise
-          ? _value.commissionEarnedPaise
-          : commissionEarnedPaise // ignore: cast_nullable_to_non_nullable
+      fineRevenuePaise: null == fineRevenuePaise
+          ? _value.fineRevenuePaise
+          : fineRevenuePaise // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalWorkerGmvPaise: null == totalWorkerGmvPaise
+          ? _value.totalWorkerGmvPaise
+          : totalWorkerGmvPaise // ignore: cast_nullable_to_non_nullable
               as int,
     ) as $Val);
   }
@@ -1645,9 +1653,10 @@ abstract class _$$FinancialMetricsImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {@JsonKey(name: 'escrow_balance_paise') int escrowBalancePaise,
-      @JsonKey(name: 'total_payouts_paise') int totalPayoutsPaise,
-      @JsonKey(name: 'commission_earned_paise') int commissionEarnedPaise});
+      {@JsonKey(name: 'current_escrow_load_paise') int escrowBalancePaise,
+      @JsonKey(name: 'subscription_revenue_paise') int subscriptionRevenuePaise,
+      @JsonKey(name: 'retained_cancellation_fines_paise') int fineRevenuePaise,
+      @JsonKey(name: 'total_worker_gmv_paise') int totalWorkerGmvPaise});
 }
 
 /// @nodoc
@@ -1662,21 +1671,26 @@ class __$$FinancialMetricsImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? escrowBalancePaise = null,
-    Object? totalPayoutsPaise = null,
-    Object? commissionEarnedPaise = null,
+    Object? subscriptionRevenuePaise = null,
+    Object? fineRevenuePaise = null,
+    Object? totalWorkerGmvPaise = null,
   }) {
     return _then(_$FinancialMetricsImpl(
       escrowBalancePaise: null == escrowBalancePaise
           ? _value.escrowBalancePaise
           : escrowBalancePaise // ignore: cast_nullable_to_non_nullable
               as int,
-      totalPayoutsPaise: null == totalPayoutsPaise
-          ? _value.totalPayoutsPaise
-          : totalPayoutsPaise // ignore: cast_nullable_to_non_nullable
+      subscriptionRevenuePaise: null == subscriptionRevenuePaise
+          ? _value.subscriptionRevenuePaise
+          : subscriptionRevenuePaise // ignore: cast_nullable_to_non_nullable
               as int,
-      commissionEarnedPaise: null == commissionEarnedPaise
-          ? _value.commissionEarnedPaise
-          : commissionEarnedPaise // ignore: cast_nullable_to_non_nullable
+      fineRevenuePaise: null == fineRevenuePaise
+          ? _value.fineRevenuePaise
+          : fineRevenuePaise // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalWorkerGmvPaise: null == totalWorkerGmvPaise
+          ? _value.totalWorkerGmvPaise
+          : totalWorkerGmvPaise // ignore: cast_nullable_to_non_nullable
               as int,
     ));
   }
@@ -1686,27 +1700,32 @@ class __$$FinancialMetricsImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$FinancialMetricsImpl implements _FinancialMetrics {
   const _$FinancialMetricsImpl(
-      {@JsonKey(name: 'escrow_balance_paise') required this.escrowBalancePaise,
-      @JsonKey(name: 'total_payouts_paise') required this.totalPayoutsPaise,
-      @JsonKey(name: 'commission_earned_paise')
-      required this.commissionEarnedPaise});
+      {@JsonKey(name: 'current_escrow_load_paise') this.escrowBalancePaise = 0,
+      @JsonKey(name: 'subscription_revenue_paise')
+      this.subscriptionRevenuePaise = 0,
+      @JsonKey(name: 'retained_cancellation_fines_paise')
+      this.fineRevenuePaise = 0,
+      @JsonKey(name: 'total_worker_gmv_paise') this.totalWorkerGmvPaise = 0});
 
   factory _$FinancialMetricsImpl.fromJson(Map<String, dynamic> json) =>
       _$$FinancialMetricsImplFromJson(json);
 
   @override
-  @JsonKey(name: 'escrow_balance_paise')
+  @JsonKey(name: 'current_escrow_load_paise')
   final int escrowBalancePaise;
   @override
-  @JsonKey(name: 'total_payouts_paise')
-  final int totalPayoutsPaise;
+  @JsonKey(name: 'subscription_revenue_paise')
+  final int subscriptionRevenuePaise;
   @override
-  @JsonKey(name: 'commission_earned_paise')
-  final int commissionEarnedPaise;
+  @JsonKey(name: 'retained_cancellation_fines_paise')
+  final int fineRevenuePaise;
+  @override
+  @JsonKey(name: 'total_worker_gmv_paise')
+  final int totalWorkerGmvPaise;
 
   @override
   String toString() {
-    return 'FinancialMetrics(escrowBalancePaise: $escrowBalancePaise, totalPayoutsPaise: $totalPayoutsPaise, commissionEarnedPaise: $commissionEarnedPaise)';
+    return 'FinancialMetrics(escrowBalancePaise: $escrowBalancePaise, subscriptionRevenuePaise: $subscriptionRevenuePaise, fineRevenuePaise: $fineRevenuePaise, totalWorkerGmvPaise: $totalWorkerGmvPaise)';
   }
 
   @override
@@ -1716,16 +1735,19 @@ class _$FinancialMetricsImpl implements _FinancialMetrics {
             other is _$FinancialMetricsImpl &&
             (identical(other.escrowBalancePaise, escrowBalancePaise) ||
                 other.escrowBalancePaise == escrowBalancePaise) &&
-            (identical(other.totalPayoutsPaise, totalPayoutsPaise) ||
-                other.totalPayoutsPaise == totalPayoutsPaise) &&
-            (identical(other.commissionEarnedPaise, commissionEarnedPaise) ||
-                other.commissionEarnedPaise == commissionEarnedPaise));
+            (identical(
+                    other.subscriptionRevenuePaise, subscriptionRevenuePaise) ||
+                other.subscriptionRevenuePaise == subscriptionRevenuePaise) &&
+            (identical(other.fineRevenuePaise, fineRevenuePaise) ||
+                other.fineRevenuePaise == fineRevenuePaise) &&
+            (identical(other.totalWorkerGmvPaise, totalWorkerGmvPaise) ||
+                other.totalWorkerGmvPaise == totalWorkerGmvPaise));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, escrowBalancePaise,
-      totalPayoutsPaise, commissionEarnedPaise);
+      subscriptionRevenuePaise, fineRevenuePaise, totalWorkerGmvPaise);
 
   @JsonKey(ignore: true)
   @override
@@ -1744,25 +1766,29 @@ class _$FinancialMetricsImpl implements _FinancialMetrics {
 
 abstract class _FinancialMetrics implements FinancialMetrics {
   const factory _FinancialMetrics(
-      {@JsonKey(name: 'escrow_balance_paise')
-      required final int escrowBalancePaise,
-      @JsonKey(name: 'total_payouts_paise')
-      required final int totalPayoutsPaise,
-      @JsonKey(name: 'commission_earned_paise')
-      required final int commissionEarnedPaise}) = _$FinancialMetricsImpl;
+      {@JsonKey(name: 'current_escrow_load_paise') final int escrowBalancePaise,
+      @JsonKey(name: 'subscription_revenue_paise')
+      final int subscriptionRevenuePaise,
+      @JsonKey(name: 'retained_cancellation_fines_paise')
+      final int fineRevenuePaise,
+      @JsonKey(name: 'total_worker_gmv_paise')
+      final int totalWorkerGmvPaise}) = _$FinancialMetricsImpl;
 
   factory _FinancialMetrics.fromJson(Map<String, dynamic> json) =
       _$FinancialMetricsImpl.fromJson;
 
   @override
-  @JsonKey(name: 'escrow_balance_paise')
+  @JsonKey(name: 'current_escrow_load_paise')
   int get escrowBalancePaise;
   @override
-  @JsonKey(name: 'total_payouts_paise')
-  int get totalPayoutsPaise;
+  @JsonKey(name: 'subscription_revenue_paise')
+  int get subscriptionRevenuePaise;
   @override
-  @JsonKey(name: 'commission_earned_paise')
-  int get commissionEarnedPaise;
+  @JsonKey(name: 'retained_cancellation_fines_paise')
+  int get fineRevenuePaise;
+  @override
+  @JsonKey(name: 'total_worker_gmv_paise')
+  int get totalWorkerGmvPaise;
   @override
   @JsonKey(ignore: true)
   _$$FinancialMetricsImplCopyWith<_$FinancialMetricsImpl> get copyWith =>
@@ -1999,5 +2025,660 @@ abstract class _Expenditure implements Expenditure {
   @override
   @JsonKey(ignore: true)
   _$$ExpenditureImplCopyWith<_$ExpenditureImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+PnLSummary _$PnLSummaryFromJson(Map<String, dynamic> json) {
+  return _PnLSummary.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PnLSummary {
+  String get month => throw _privateConstructorUsedError;
+  @JsonKey(name: 'gross_revenue')
+  Map<String, dynamic> get grossRevenue => throw _privateConstructorUsedError;
+  @JsonKey(name: 'expenditures')
+  Map<String, dynamic> get expenditures => throw _privateConstructorUsedError;
+  @JsonKey(name: 'net_profit_paise')
+  int get netProfitPaise => throw _privateConstructorUsedError;
+  @JsonKey(name: 'profit_margin_percentage')
+  double get profitMarginPercentage => throw _privateConstructorUsedError;
+
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  @JsonKey(ignore: true)
+  $PnLSummaryCopyWith<PnLSummary> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PnLSummaryCopyWith<$Res> {
+  factory $PnLSummaryCopyWith(
+          PnLSummary value, $Res Function(PnLSummary) then) =
+      _$PnLSummaryCopyWithImpl<$Res, PnLSummary>;
+  @useResult
+  $Res call(
+      {String month,
+      @JsonKey(name: 'gross_revenue') Map<String, dynamic> grossRevenue,
+      @JsonKey(name: 'expenditures') Map<String, dynamic> expenditures,
+      @JsonKey(name: 'net_profit_paise') int netProfitPaise,
+      @JsonKey(name: 'profit_margin_percentage')
+      double profitMarginPercentage});
+}
+
+/// @nodoc
+class _$PnLSummaryCopyWithImpl<$Res, $Val extends PnLSummary>
+    implements $PnLSummaryCopyWith<$Res> {
+  _$PnLSummaryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? month = null,
+    Object? grossRevenue = null,
+    Object? expenditures = null,
+    Object? netProfitPaise = null,
+    Object? profitMarginPercentage = null,
+  }) {
+    return _then(_value.copyWith(
+      month: null == month
+          ? _value.month
+          : month // ignore: cast_nullable_to_non_nullable
+              as String,
+      grossRevenue: null == grossRevenue
+          ? _value.grossRevenue
+          : grossRevenue // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      expenditures: null == expenditures
+          ? _value.expenditures
+          : expenditures // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      netProfitPaise: null == netProfitPaise
+          ? _value.netProfitPaise
+          : netProfitPaise // ignore: cast_nullable_to_non_nullable
+              as int,
+      profitMarginPercentage: null == profitMarginPercentage
+          ? _value.profitMarginPercentage
+          : profitMarginPercentage // ignore: cast_nullable_to_non_nullable
+              as double,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$PnLSummaryImplCopyWith<$Res>
+    implements $PnLSummaryCopyWith<$Res> {
+  factory _$$PnLSummaryImplCopyWith(
+          _$PnLSummaryImpl value, $Res Function(_$PnLSummaryImpl) then) =
+      __$$PnLSummaryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String month,
+      @JsonKey(name: 'gross_revenue') Map<String, dynamic> grossRevenue,
+      @JsonKey(name: 'expenditures') Map<String, dynamic> expenditures,
+      @JsonKey(name: 'net_profit_paise') int netProfitPaise,
+      @JsonKey(name: 'profit_margin_percentage')
+      double profitMarginPercentage});
+}
+
+/// @nodoc
+class __$$PnLSummaryImplCopyWithImpl<$Res>
+    extends _$PnLSummaryCopyWithImpl<$Res, _$PnLSummaryImpl>
+    implements _$$PnLSummaryImplCopyWith<$Res> {
+  __$$PnLSummaryImplCopyWithImpl(
+      _$PnLSummaryImpl _value, $Res Function(_$PnLSummaryImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? month = null,
+    Object? grossRevenue = null,
+    Object? expenditures = null,
+    Object? netProfitPaise = null,
+    Object? profitMarginPercentage = null,
+  }) {
+    return _then(_$PnLSummaryImpl(
+      month: null == month
+          ? _value.month
+          : month // ignore: cast_nullable_to_non_nullable
+              as String,
+      grossRevenue: null == grossRevenue
+          ? _value._grossRevenue
+          : grossRevenue // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      expenditures: null == expenditures
+          ? _value._expenditures
+          : expenditures // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      netProfitPaise: null == netProfitPaise
+          ? _value.netProfitPaise
+          : netProfitPaise // ignore: cast_nullable_to_non_nullable
+              as int,
+      profitMarginPercentage: null == profitMarginPercentage
+          ? _value.profitMarginPercentage
+          : profitMarginPercentage // ignore: cast_nullable_to_non_nullable
+              as double,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$PnLSummaryImpl implements _PnLSummary {
+  const _$PnLSummaryImpl(
+      {required this.month,
+      @JsonKey(name: 'gross_revenue')
+      final Map<String, dynamic> grossRevenue = const {},
+      @JsonKey(name: 'expenditures')
+      final Map<String, dynamic> expenditures = const {},
+      @JsonKey(name: 'net_profit_paise') this.netProfitPaise = 0,
+      @JsonKey(name: 'profit_margin_percentage')
+      this.profitMarginPercentage = 0.0})
+      : _grossRevenue = grossRevenue,
+        _expenditures = expenditures;
+
+  factory _$PnLSummaryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PnLSummaryImplFromJson(json);
+
+  @override
+  final String month;
+  final Map<String, dynamic> _grossRevenue;
+  @override
+  @JsonKey(name: 'gross_revenue')
+  Map<String, dynamic> get grossRevenue {
+    if (_grossRevenue is EqualUnmodifiableMapView) return _grossRevenue;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_grossRevenue);
+  }
+
+  final Map<String, dynamic> _expenditures;
+  @override
+  @JsonKey(name: 'expenditures')
+  Map<String, dynamic> get expenditures {
+    if (_expenditures is EqualUnmodifiableMapView) return _expenditures;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_expenditures);
+  }
+
+  @override
+  @JsonKey(name: 'net_profit_paise')
+  final int netProfitPaise;
+  @override
+  @JsonKey(name: 'profit_margin_percentage')
+  final double profitMarginPercentage;
+
+  @override
+  String toString() {
+    return 'PnLSummary(month: $month, grossRevenue: $grossRevenue, expenditures: $expenditures, netProfitPaise: $netProfitPaise, profitMarginPercentage: $profitMarginPercentage)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PnLSummaryImpl &&
+            (identical(other.month, month) || other.month == month) &&
+            const DeepCollectionEquality()
+                .equals(other._grossRevenue, _grossRevenue) &&
+            const DeepCollectionEquality()
+                .equals(other._expenditures, _expenditures) &&
+            (identical(other.netProfitPaise, netProfitPaise) ||
+                other.netProfitPaise == netProfitPaise) &&
+            (identical(other.profitMarginPercentage, profitMarginPercentage) ||
+                other.profitMarginPercentage == profitMarginPercentage));
+  }
+
+  @JsonKey(ignore: true)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      month,
+      const DeepCollectionEquality().hash(_grossRevenue),
+      const DeepCollectionEquality().hash(_expenditures),
+      netProfitPaise,
+      profitMarginPercentage);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PnLSummaryImplCopyWith<_$PnLSummaryImpl> get copyWith =>
+      __$$PnLSummaryImplCopyWithImpl<_$PnLSummaryImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PnLSummaryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PnLSummary implements PnLSummary {
+  const factory _PnLSummary(
+      {required final String month,
+      @JsonKey(name: 'gross_revenue') final Map<String, dynamic> grossRevenue,
+      @JsonKey(name: 'expenditures') final Map<String, dynamic> expenditures,
+      @JsonKey(name: 'net_profit_paise') final int netProfitPaise,
+      @JsonKey(name: 'profit_margin_percentage')
+      final double profitMarginPercentage}) = _$PnLSummaryImpl;
+
+  factory _PnLSummary.fromJson(Map<String, dynamic> json) =
+      _$PnLSummaryImpl.fromJson;
+
+  @override
+  String get month;
+  @override
+  @JsonKey(name: 'gross_revenue')
+  Map<String, dynamic> get grossRevenue;
+  @override
+  @JsonKey(name: 'expenditures')
+  Map<String, dynamic> get expenditures;
+  @override
+  @JsonKey(name: 'net_profit_paise')
+  int get netProfitPaise;
+  @override
+  @JsonKey(name: 'profit_margin_percentage')
+  double get profitMarginPercentage;
+  @override
+  @JsonKey(ignore: true)
+  _$$PnLSummaryImplCopyWith<_$PnLSummaryImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+LiquidityMetrics _$LiquidityMetricsFromJson(Map<String, dynamic> json) {
+  return _LiquidityMetrics.fromJson(json);
+}
+
+/// @nodoc
+mixin _$LiquidityMetrics {
+  @JsonKey(name: 'gig_fill_rate_percentage')
+  double get fillRate => throw _privateConstructorUsedError;
+  @JsonKey(name: 'worker_to_gig_ratio')
+  double get workerRatio => throw _privateConstructorUsedError;
+  @JsonKey(name: 'most_demanded_skill')
+  String get topSkill => throw _privateConstructorUsedError;
+
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  @JsonKey(ignore: true)
+  $LiquidityMetricsCopyWith<LiquidityMetrics> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $LiquidityMetricsCopyWith<$Res> {
+  factory $LiquidityMetricsCopyWith(
+          LiquidityMetrics value, $Res Function(LiquidityMetrics) then) =
+      _$LiquidityMetricsCopyWithImpl<$Res, LiquidityMetrics>;
+  @useResult
+  $Res call(
+      {@JsonKey(name: 'gig_fill_rate_percentage') double fillRate,
+      @JsonKey(name: 'worker_to_gig_ratio') double workerRatio,
+      @JsonKey(name: 'most_demanded_skill') String topSkill});
+}
+
+/// @nodoc
+class _$LiquidityMetricsCopyWithImpl<$Res, $Val extends LiquidityMetrics>
+    implements $LiquidityMetricsCopyWith<$Res> {
+  _$LiquidityMetricsCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? fillRate = null,
+    Object? workerRatio = null,
+    Object? topSkill = null,
+  }) {
+    return _then(_value.copyWith(
+      fillRate: null == fillRate
+          ? _value.fillRate
+          : fillRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      workerRatio: null == workerRatio
+          ? _value.workerRatio
+          : workerRatio // ignore: cast_nullable_to_non_nullable
+              as double,
+      topSkill: null == topSkill
+          ? _value.topSkill
+          : topSkill // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$LiquidityMetricsImplCopyWith<$Res>
+    implements $LiquidityMetricsCopyWith<$Res> {
+  factory _$$LiquidityMetricsImplCopyWith(_$LiquidityMetricsImpl value,
+          $Res Function(_$LiquidityMetricsImpl) then) =
+      __$$LiquidityMetricsImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {@JsonKey(name: 'gig_fill_rate_percentage') double fillRate,
+      @JsonKey(name: 'worker_to_gig_ratio') double workerRatio,
+      @JsonKey(name: 'most_demanded_skill') String topSkill});
+}
+
+/// @nodoc
+class __$$LiquidityMetricsImplCopyWithImpl<$Res>
+    extends _$LiquidityMetricsCopyWithImpl<$Res, _$LiquidityMetricsImpl>
+    implements _$$LiquidityMetricsImplCopyWith<$Res> {
+  __$$LiquidityMetricsImplCopyWithImpl(_$LiquidityMetricsImpl _value,
+      $Res Function(_$LiquidityMetricsImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? fillRate = null,
+    Object? workerRatio = null,
+    Object? topSkill = null,
+  }) {
+    return _then(_$LiquidityMetricsImpl(
+      fillRate: null == fillRate
+          ? _value.fillRate
+          : fillRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      workerRatio: null == workerRatio
+          ? _value.workerRatio
+          : workerRatio // ignore: cast_nullable_to_non_nullable
+              as double,
+      topSkill: null == topSkill
+          ? _value.topSkill
+          : topSkill // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$LiquidityMetricsImpl implements _LiquidityMetrics {
+  const _$LiquidityMetricsImpl(
+      {@JsonKey(name: 'gig_fill_rate_percentage') required this.fillRate,
+      @JsonKey(name: 'worker_to_gig_ratio') required this.workerRatio,
+      @JsonKey(name: 'most_demanded_skill') required this.topSkill});
+
+  factory _$LiquidityMetricsImpl.fromJson(Map<String, dynamic> json) =>
+      _$$LiquidityMetricsImplFromJson(json);
+
+  @override
+  @JsonKey(name: 'gig_fill_rate_percentage')
+  final double fillRate;
+  @override
+  @JsonKey(name: 'worker_to_gig_ratio')
+  final double workerRatio;
+  @override
+  @JsonKey(name: 'most_demanded_skill')
+  final String topSkill;
+
+  @override
+  String toString() {
+    return 'LiquidityMetrics(fillRate: $fillRate, workerRatio: $workerRatio, topSkill: $topSkill)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$LiquidityMetricsImpl &&
+            (identical(other.fillRate, fillRate) ||
+                other.fillRate == fillRate) &&
+            (identical(other.workerRatio, workerRatio) ||
+                other.workerRatio == workerRatio) &&
+            (identical(other.topSkill, topSkill) ||
+                other.topSkill == topSkill));
+  }
+
+  @JsonKey(ignore: true)
+  @override
+  int get hashCode => Object.hash(runtimeType, fillRate, workerRatio, topSkill);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$LiquidityMetricsImplCopyWith<_$LiquidityMetricsImpl> get copyWith =>
+      __$$LiquidityMetricsImplCopyWithImpl<_$LiquidityMetricsImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$LiquidityMetricsImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _LiquidityMetrics implements LiquidityMetrics {
+  const factory _LiquidityMetrics(
+      {@JsonKey(name: 'gig_fill_rate_percentage')
+      required final double fillRate,
+      @JsonKey(name: 'worker_to_gig_ratio') required final double workerRatio,
+      @JsonKey(name: 'most_demanded_skill')
+      required final String topSkill}) = _$LiquidityMetricsImpl;
+
+  factory _LiquidityMetrics.fromJson(Map<String, dynamic> json) =
+      _$LiquidityMetricsImpl.fromJson;
+
+  @override
+  @JsonKey(name: 'gig_fill_rate_percentage')
+  double get fillRate;
+  @override
+  @JsonKey(name: 'worker_to_gig_ratio')
+  double get workerRatio;
+  @override
+  @JsonKey(name: 'most_demanded_skill')
+  String get topSkill;
+  @override
+  @JsonKey(ignore: true)
+  _$$LiquidityMetricsImplCopyWith<_$LiquidityMetricsImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+PlatformHealth _$PlatformHealthFromJson(Map<String, dynamic> json) {
+  return _PlatformHealth.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PlatformHealth {
+  @JsonKey(name: 'no_show_rate_percentage')
+  double get noShowRate => throw _privateConstructorUsedError;
+  @JsonKey(name: 'emergency_trigger_rate_percentage')
+  double get emergencyRate => throw _privateConstructorUsedError;
+  @JsonKey(name: 'verifier_sla_breaches')
+  int get slaBreaches => throw _privateConstructorUsedError;
+
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  @JsonKey(ignore: true)
+  $PlatformHealthCopyWith<PlatformHealth> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PlatformHealthCopyWith<$Res> {
+  factory $PlatformHealthCopyWith(
+          PlatformHealth value, $Res Function(PlatformHealth) then) =
+      _$PlatformHealthCopyWithImpl<$Res, PlatformHealth>;
+  @useResult
+  $Res call(
+      {@JsonKey(name: 'no_show_rate_percentage') double noShowRate,
+      @JsonKey(name: 'emergency_trigger_rate_percentage') double emergencyRate,
+      @JsonKey(name: 'verifier_sla_breaches') int slaBreaches});
+}
+
+/// @nodoc
+class _$PlatformHealthCopyWithImpl<$Res, $Val extends PlatformHealth>
+    implements $PlatformHealthCopyWith<$Res> {
+  _$PlatformHealthCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? noShowRate = null,
+    Object? emergencyRate = null,
+    Object? slaBreaches = null,
+  }) {
+    return _then(_value.copyWith(
+      noShowRate: null == noShowRate
+          ? _value.noShowRate
+          : noShowRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      emergencyRate: null == emergencyRate
+          ? _value.emergencyRate
+          : emergencyRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      slaBreaches: null == slaBreaches
+          ? _value.slaBreaches
+          : slaBreaches // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$PlatformHealthImplCopyWith<$Res>
+    implements $PlatformHealthCopyWith<$Res> {
+  factory _$$PlatformHealthImplCopyWith(_$PlatformHealthImpl value,
+          $Res Function(_$PlatformHealthImpl) then) =
+      __$$PlatformHealthImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {@JsonKey(name: 'no_show_rate_percentage') double noShowRate,
+      @JsonKey(name: 'emergency_trigger_rate_percentage') double emergencyRate,
+      @JsonKey(name: 'verifier_sla_breaches') int slaBreaches});
+}
+
+/// @nodoc
+class __$$PlatformHealthImplCopyWithImpl<$Res>
+    extends _$PlatformHealthCopyWithImpl<$Res, _$PlatformHealthImpl>
+    implements _$$PlatformHealthImplCopyWith<$Res> {
+  __$$PlatformHealthImplCopyWithImpl(
+      _$PlatformHealthImpl _value, $Res Function(_$PlatformHealthImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? noShowRate = null,
+    Object? emergencyRate = null,
+    Object? slaBreaches = null,
+  }) {
+    return _then(_$PlatformHealthImpl(
+      noShowRate: null == noShowRate
+          ? _value.noShowRate
+          : noShowRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      emergencyRate: null == emergencyRate
+          ? _value.emergencyRate
+          : emergencyRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      slaBreaches: null == slaBreaches
+          ? _value.slaBreaches
+          : slaBreaches // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$PlatformHealthImpl implements _PlatformHealth {
+  const _$PlatformHealthImpl(
+      {@JsonKey(name: 'no_show_rate_percentage') required this.noShowRate,
+      @JsonKey(name: 'emergency_trigger_rate_percentage')
+      required this.emergencyRate,
+      @JsonKey(name: 'verifier_sla_breaches') required this.slaBreaches});
+
+  factory _$PlatformHealthImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PlatformHealthImplFromJson(json);
+
+  @override
+  @JsonKey(name: 'no_show_rate_percentage')
+  final double noShowRate;
+  @override
+  @JsonKey(name: 'emergency_trigger_rate_percentage')
+  final double emergencyRate;
+  @override
+  @JsonKey(name: 'verifier_sla_breaches')
+  final int slaBreaches;
+
+  @override
+  String toString() {
+    return 'PlatformHealth(noShowRate: $noShowRate, emergencyRate: $emergencyRate, slaBreaches: $slaBreaches)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PlatformHealthImpl &&
+            (identical(other.noShowRate, noShowRate) ||
+                other.noShowRate == noShowRate) &&
+            (identical(other.emergencyRate, emergencyRate) ||
+                other.emergencyRate == emergencyRate) &&
+            (identical(other.slaBreaches, slaBreaches) ||
+                other.slaBreaches == slaBreaches));
+  }
+
+  @JsonKey(ignore: true)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, noShowRate, emergencyRate, slaBreaches);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PlatformHealthImplCopyWith<_$PlatformHealthImpl> get copyWith =>
+      __$$PlatformHealthImplCopyWithImpl<_$PlatformHealthImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PlatformHealthImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PlatformHealth implements PlatformHealth {
+  const factory _PlatformHealth(
+      {@JsonKey(name: 'no_show_rate_percentage')
+      required final double noShowRate,
+      @JsonKey(name: 'emergency_trigger_rate_percentage')
+      required final double emergencyRate,
+      @JsonKey(name: 'verifier_sla_breaches')
+      required final int slaBreaches}) = _$PlatformHealthImpl;
+
+  factory _PlatformHealth.fromJson(Map<String, dynamic> json) =
+      _$PlatformHealthImpl.fromJson;
+
+  @override
+  @JsonKey(name: 'no_show_rate_percentage')
+  double get noShowRate;
+  @override
+  @JsonKey(name: 'emergency_trigger_rate_percentage')
+  double get emergencyRate;
+  @override
+  @JsonKey(name: 'verifier_sla_breaches')
+  int get slaBreaches;
+  @override
+  @JsonKey(ignore: true)
+  _$$PlatformHealthImplCopyWith<_$PlatformHealthImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

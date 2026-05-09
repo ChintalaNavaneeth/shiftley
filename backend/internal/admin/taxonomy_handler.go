@@ -101,12 +101,31 @@ func (h *TaxonomyHandler) UpdateCategory(c *gin.Context) {
 		updates["is_active"] = *req.IsActive
 	}
 
-	if err := h.db.Model(&taxonomy.Category{}).Where("id = ?", id).Updates(updates).Error; err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update category", nil)
+	if err := h.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Update the category
+		if err := tx.Model(&taxonomy.Category{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+			return err
+		}
+
+		// 2. If category is being disabled, cascade to all its skills
+		if isActive, ok := updates["is_active"].(bool); ok && !isActive {
+			if err := tx.Model(&taxonomy.Skill{}).Where("category_id = ?", id).Update("is_active", false).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update category with cascade", nil)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{"id": id, "updates": updates}, nil)
+	var updatedCat taxonomy.Category
+	if err := h.db.Preload("Skills").First(&updatedCat, "id = ?", id).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Category not found", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, updatedCat, nil)
 }
 
 type CreateSkillRequest struct {
@@ -183,5 +202,11 @@ func (h *TaxonomyHandler) UpdateSkill(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{"id": id, "updates": updates}, nil)
+	var updatedSkill taxonomy.Skill
+	if err := h.db.First(&updatedSkill, "id = ?", id).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Skill not found", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, updatedSkill, nil)
 }

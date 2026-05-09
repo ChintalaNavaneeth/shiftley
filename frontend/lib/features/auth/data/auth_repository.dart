@@ -9,7 +9,7 @@ class AuthRepository {
   Future<AuthResponse> sendOtp(SendOtpRequest request) async {
     try {
       final response = await _dio.post(
-        '/auth/otp/send',
+        'auth/otp/send',
         data: request.toJson(),
         options: Options(contentType: Headers.formUrlEncodedContentType),
       );
@@ -22,7 +22,7 @@ class AuthRepository {
   Future<AuthResponse> verifyOtp(VerifyOtpRequest request) async {
     try {
       final response = await _dio.post(
-        '/auth/otp/verify',
+        'auth/otp/verify',
         data: request.toJson(),
         options: Options(contentType: Headers.formUrlEncodedContentType),
       );
@@ -35,7 +35,7 @@ class AuthRepository {
   Future<AuthResponse> refreshToken(String refreshToken) async {
     try {
       final response = await _dio.post(
-        '/auth/token/refresh',
+        'auth/token/refresh',
         data: {'refresh_token': refreshToken},
         options: Options(contentType: Headers.formUrlEncodedContentType),
       );
@@ -47,7 +47,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      await _dio.post('/auth/logout', options: Options(extra: {'no-retry': true}));
+      await _dio.post('auth/logout', options: Options(extra: {'no-retry': true}));
     } catch (e) {
       rethrow;
     }

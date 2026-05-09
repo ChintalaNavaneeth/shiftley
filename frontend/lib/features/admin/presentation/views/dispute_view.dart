@@ -15,21 +15,9 @@ class DisputeView extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Pending Disputes',
-              style: ShiftleyTokens.h2,
-            ),
-            ShiftleyButton(
-              onPressed: () => ref.refresh(pendingDisputesProvider),
-              icon: Icons.refresh,
-              label: 'Refresh',
-              isPrimary: false,
-              size: ShiftleyButtonSize.small,
-            ),
-          ],
+        const Text(
+          'Pending Disputes',
+          style: ShiftleyTokens.h2,
         ),
         const SizedBox(height: ShiftleyTokens.spaceL),
         

@@ -9,8 +9,8 @@ part of 'admin_models.dart';
 _$CategoryImpl _$$CategoryImplFromJson(Map<String, dynamic> json) =>
     _$CategoryImpl(
       id: json['id'] as String,
-      name: json['name'] as String,
-      isActive: json['is_active'] as bool,
+      name: json['name'] as String?,
+      isActive: json['is_active'] as bool? ?? true,
       skills: (json['skills'] as List<dynamic>?)
               ?.map((e) => Skill.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -27,9 +27,9 @@ Map<String, dynamic> _$$CategoryImplToJson(_$CategoryImpl instance) =>
 
 _$SkillImpl _$$SkillImplFromJson(Map<String, dynamic> json) => _$SkillImpl(
       id: json['id'] as String,
-      categoryId: json['category_id'] as String,
-      name: json['name'] as String,
-      isActive: json['is_active'] as bool,
+      categoryId: json['category_id'] as String?,
+      name: json['name'] as String?,
+      isActive: json['is_active'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$$SkillImplToJson(_$SkillImpl instance) =>
@@ -121,35 +121,42 @@ Map<String, dynamic> _$$DisputeImplToJson(_$DisputeImpl instance) =>
 _$AnalyticsOverviewImpl _$$AnalyticsOverviewImplFromJson(
         Map<String, dynamic> json) =>
     _$AnalyticsOverviewImpl(
-      totalGigs: (json['total_gigs'] as num).toInt(),
-      activeWorkers: (json['active_workers'] as num).toInt(),
-      activeBusinesses: (json['active_businesses'] as num).toInt(),
-      totalRevenuePaise: (json['total_revenue_paise'] as num).toInt(),
+      totalGigs: (json['gigs_posted'] as num?)?.toInt() ?? 0,
+      activeWorkers: (json['total_active_workers'] as num?)?.toInt() ?? 0,
+      activeBusinesses:
+          (json['total_verified_employers'] as num?)?.toInt() ?? 0,
+      completedGigs: (json['gigs_completed'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$$AnalyticsOverviewImplToJson(
         _$AnalyticsOverviewImpl instance) =>
     <String, dynamic>{
-      'total_gigs': instance.totalGigs,
-      'active_workers': instance.activeWorkers,
-      'active_businesses': instance.activeBusinesses,
-      'total_revenue_paise': instance.totalRevenuePaise,
+      'gigs_posted': instance.totalGigs,
+      'total_active_workers': instance.activeWorkers,
+      'total_verified_employers': instance.activeBusinesses,
+      'gigs_completed': instance.completedGigs,
     };
 
 _$FinancialMetricsImpl _$$FinancialMetricsImplFromJson(
         Map<String, dynamic> json) =>
     _$FinancialMetricsImpl(
-      escrowBalancePaise: (json['escrow_balance_paise'] as num).toInt(),
-      totalPayoutsPaise: (json['total_payouts_paise'] as num).toInt(),
-      commissionEarnedPaise: (json['commission_earned_paise'] as num).toInt(),
+      escrowBalancePaise:
+          (json['current_escrow_load_paise'] as num?)?.toInt() ?? 0,
+      subscriptionRevenuePaise:
+          (json['subscription_revenue_paise'] as num?)?.toInt() ?? 0,
+      fineRevenuePaise:
+          (json['retained_cancellation_fines_paise'] as num?)?.toInt() ?? 0,
+      totalWorkerGmvPaise:
+          (json['total_worker_gmv_paise'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$$FinancialMetricsImplToJson(
         _$FinancialMetricsImpl instance) =>
     <String, dynamic>{
-      'escrow_balance_paise': instance.escrowBalancePaise,
-      'total_payouts_paise': instance.totalPayoutsPaise,
-      'commission_earned_paise': instance.commissionEarnedPaise,
+      'current_escrow_load_paise': instance.escrowBalancePaise,
+      'subscription_revenue_paise': instance.subscriptionRevenuePaise,
+      'retained_cancellation_fines_paise': instance.fineRevenuePaise,
+      'total_worker_gmv_paise': instance.totalWorkerGmvPaise,
     };
 
 _$ExpenditureImpl _$$ExpenditureImplFromJson(Map<String, dynamic> json) =>
@@ -168,4 +175,55 @@ Map<String, dynamic> _$$ExpenditureImplToJson(_$ExpenditureImpl instance) =>
       'amount_paise': instance.amountPaise,
       'description': instance.description,
       'created_at': instance.createdAt.toIso8601String(),
+    };
+
+_$PnLSummaryImpl _$$PnLSummaryImplFromJson(Map<String, dynamic> json) =>
+    _$PnLSummaryImpl(
+      month: json['month'] as String,
+      grossRevenue: json['gross_revenue'] as Map<String, dynamic>? ?? const {},
+      expenditures: json['expenditures'] as Map<String, dynamic>? ?? const {},
+      netProfitPaise: (json['net_profit_paise'] as num?)?.toInt() ?? 0,
+      profitMarginPercentage:
+          (json['profit_margin_percentage'] as num?)?.toDouble() ?? 0.0,
+    );
+
+Map<String, dynamic> _$$PnLSummaryImplToJson(_$PnLSummaryImpl instance) =>
+    <String, dynamic>{
+      'month': instance.month,
+      'gross_revenue': instance.grossRevenue,
+      'expenditures': instance.expenditures,
+      'net_profit_paise': instance.netProfitPaise,
+      'profit_margin_percentage': instance.profitMarginPercentage,
+    };
+
+_$LiquidityMetricsImpl _$$LiquidityMetricsImplFromJson(
+        Map<String, dynamic> json) =>
+    _$LiquidityMetricsImpl(
+      fillRate: (json['gig_fill_rate_percentage'] as num).toDouble(),
+      workerRatio: (json['worker_to_gig_ratio'] as num).toDouble(),
+      topSkill: json['most_demanded_skill'] as String,
+    );
+
+Map<String, dynamic> _$$LiquidityMetricsImplToJson(
+        _$LiquidityMetricsImpl instance) =>
+    <String, dynamic>{
+      'gig_fill_rate_percentage': instance.fillRate,
+      'worker_to_gig_ratio': instance.workerRatio,
+      'most_demanded_skill': instance.topSkill,
+    };
+
+_$PlatformHealthImpl _$$PlatformHealthImplFromJson(Map<String, dynamic> json) =>
+    _$PlatformHealthImpl(
+      noShowRate: (json['no_show_rate_percentage'] as num).toDouble(),
+      emergencyRate:
+          (json['emergency_trigger_rate_percentage'] as num).toDouble(),
+      slaBreaches: (json['verifier_sla_breaches'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$$PlatformHealthImplToJson(
+        _$PlatformHealthImpl instance) =>
+    <String, dynamic>{
+      'no_show_rate_percentage': instance.noShowRate,
+      'emergency_trigger_rate_percentage': instance.emergencyRate,
+      'verifier_sla_breaches': instance.slaBreaches,
     };

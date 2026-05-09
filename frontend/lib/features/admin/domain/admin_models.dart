@@ -7,8 +7,8 @@ part 'admin_models.g.dart';
 class Category with _$Category {
   const factory Category({
     required String id,
-    required String name,
-    @JsonKey(name: 'is_active') required bool isActive,
+    String? name,
+    @JsonKey(name: 'is_active') @Default(true) bool isActive,
     @Default([]) List<Skill> skills,
   }) = _Category;
 
@@ -19,9 +19,9 @@ class Category with _$Category {
 class Skill with _$Skill {
   const factory Skill({
     required String id,
-    @JsonKey(name: 'category_id') required String categoryId,
-    required String name,
-    @JsonKey(name: 'is_active') required bool isActive,
+    @JsonKey(name: 'category_id') String? categoryId,
+    String? name,
+    @JsonKey(name: 'is_active') @Default(true) bool isActive,
   }) = _Skill;
 
   factory Skill.fromJson(Map<String, dynamic> json) => _$SkillFromJson(json);
@@ -77,10 +77,10 @@ class Dispute with _$Dispute {
 @freezed
 class AnalyticsOverview with _$AnalyticsOverview {
   const factory AnalyticsOverview({
-    @JsonKey(name: 'total_gigs') required int totalGigs,
-    @JsonKey(name: 'active_workers') required int activeWorkers,
-    @JsonKey(name: 'active_businesses') required int activeBusinesses,
-    @JsonKey(name: 'total_revenue_paise') required int totalRevenuePaise,
+    @JsonKey(name: 'gigs_posted') @Default(0) int totalGigs,
+    @JsonKey(name: 'total_active_workers') @Default(0) int activeWorkers,
+    @JsonKey(name: 'total_verified_employers') @Default(0) int activeBusinesses,
+    @JsonKey(name: 'gigs_completed') @Default(0) int completedGigs,
   }) = _AnalyticsOverview;
 
   factory AnalyticsOverview.fromJson(Map<String, dynamic> json) => _$AnalyticsOverviewFromJson(json);
@@ -89,9 +89,10 @@ class AnalyticsOverview with _$AnalyticsOverview {
 @freezed
 class FinancialMetrics with _$FinancialMetrics {
   const factory FinancialMetrics({
-    @JsonKey(name: 'escrow_balance_paise') required int escrowBalancePaise,
-    @JsonKey(name: 'total_payouts_paise') required int totalPayoutsPaise,
-    @JsonKey(name: 'commission_earned_paise') required int commissionEarnedPaise,
+    @JsonKey(name: 'current_escrow_load_paise') @Default(0) int escrowBalancePaise,
+    @JsonKey(name: 'subscription_revenue_paise') @Default(0) int subscriptionRevenuePaise,
+    @JsonKey(name: 'retained_cancellation_fines_paise') @Default(0) int fineRevenuePaise,
+    @JsonKey(name: 'total_worker_gmv_paise') @Default(0) int totalWorkerGmvPaise,
   }) = _FinancialMetrics;
 
   factory FinancialMetrics.fromJson(Map<String, dynamic> json) => _$FinancialMetricsFromJson(json);
@@ -108,4 +109,39 @@ class Expenditure with _$Expenditure {
   }) = _Expenditure;
 
   factory Expenditure.fromJson(Map<String, dynamic> json) => _$ExpenditureFromJson(json);
+}
+
+@freezed
+class PnLSummary with _$PnLSummary {
+  const factory PnLSummary({
+    required String month,
+    @JsonKey(name: 'gross_revenue') @Default({}) Map<String, dynamic> grossRevenue,
+    @JsonKey(name: 'expenditures') @Default({}) Map<String, dynamic> expenditures,
+    @JsonKey(name: 'net_profit_paise') @Default(0) int netProfitPaise,
+    @JsonKey(name: 'profit_margin_percentage') @Default(0.0) double profitMarginPercentage,
+  }) = _PnLSummary;
+
+  factory PnLSummary.fromJson(Map<String, dynamic> json) => _$PnLSummaryFromJson(json);
+}
+
+@freezed
+class LiquidityMetrics with _$LiquidityMetrics {
+  const factory LiquidityMetrics({
+    @JsonKey(name: 'gig_fill_rate_percentage') required double fillRate,
+    @JsonKey(name: 'worker_to_gig_ratio') required double workerRatio,
+    @JsonKey(name: 'most_demanded_skill') required String topSkill,
+  }) = _LiquidityMetrics;
+
+  factory LiquidityMetrics.fromJson(Map<String, dynamic> json) => _$LiquidityMetricsFromJson(json);
+}
+
+@freezed
+class PlatformHealth with _$PlatformHealth {
+  const factory PlatformHealth({
+    @JsonKey(name: 'no_show_rate_percentage') required double noShowRate,
+    @JsonKey(name: 'emergency_trigger_rate_percentage') required double emergencyRate,
+    @JsonKey(name: 'verifier_sla_breaches') required int slaBreaches,
+  }) = _PlatformHealth;
+
+  factory PlatformHealth.fromJson(Map<String, dynamic> json) => _$PlatformHealthFromJson(json);
 }
