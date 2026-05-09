@@ -10,6 +10,7 @@ class ShiftleyTokens {
   static const Color paperWhite    = Color(0xFFFFFFFF);
   static const Color mutedText     = Color(0xFF6B6B6B);
   static const Color errorRed      = Color(0xFFCC0000);
+  static const Color saveBlue      = Color(0xFF2D5AF7);
 
   // ─── Spacing ──────────────────────────────────────────────
   static const double spaceXS  =  4.0;

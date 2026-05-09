@@ -65,17 +65,31 @@ Map<String, dynamic> _$$ManagementUserImplToJson(
 
 _$PlatformConfigImpl _$$PlatformConfigImplFromJson(Map<String, dynamic> json) =>
     _$PlatformConfigImpl(
-      feePercentage: (json['fee_percentage'] as num).toDouble(),
-      minWagePaise: (json['min_wage_paise'] as num).toInt(),
-      maxWorkersPerGig: (json['max_workers_per_gig'] as num).toInt(),
+      employerSubscriptionMonthly:
+          (json['employer_subscription_monthly'] as num).toDouble(),
+      employerSubscriptionWeekly:
+          (json['employer_subscription_weekly'] as num).toDouble(),
+      employerSubscriptionDaily:
+          (json['employer_subscription_daily'] as num).toDouble(),
+      workerNoShowPenalty: (json['worker_no_show_penalty'] as num).toDouble(),
+      employerCancelPenalty6h:
+          (json['employer_cancel_penalty_6h'] as num).toDouble(),
+      employerCancelPenalty3h:
+          (json['employer_cancel_penalty_3h'] as num).toDouble(),
+      employerCancelPenalty1h:
+          (json['employer_cancel_penalty_1h'] as num).toDouble(),
     );
 
 Map<String, dynamic> _$$PlatformConfigImplToJson(
         _$PlatformConfigImpl instance) =>
     <String, dynamic>{
-      'fee_percentage': instance.feePercentage,
-      'min_wage_paise': instance.minWagePaise,
-      'max_workers_per_gig': instance.maxWorkersPerGig,
+      'employer_subscription_monthly': instance.employerSubscriptionMonthly,
+      'employer_subscription_weekly': instance.employerSubscriptionWeekly,
+      'employer_subscription_daily': instance.employerSubscriptionDaily,
+      'worker_no_show_penalty': instance.workerNoShowPenalty,
+      'employer_cancel_penalty_6h': instance.employerCancelPenalty6h,
+      'employer_cancel_penalty_3h': instance.employerCancelPenalty3h,
+      'employer_cancel_penalty_1h': instance.employerCancelPenalty1h,
     };
 
 _$DisputeImpl _$$DisputeImplFromJson(Map<String, dynamic> json) =>

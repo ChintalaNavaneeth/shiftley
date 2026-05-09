@@ -107,8 +107,24 @@ class PlatformConfigNotifier extends AsyncNotifier<PlatformConfig> {
     return await ref.watch(adminRepositoryProvider).getPlatformConfig();
   }
 
-  Future<void> updateFees(double feePercentage) async {
-    await ref.read(adminRepositoryProvider).updatePlatformConfig(feePercentage);
+  Future<void> updateConfig({
+    double? employerSubscriptionMonthly,
+    double? employerSubscriptionWeekly,
+    double? employerSubscriptionDaily,
+    double? workerNoShowPenalty,
+    double? employerCancelPenalty6h,
+    double? employerCancelPenalty3h,
+    double? employerCancelPenalty1h,
+  }) async {
+    await ref.read(adminRepositoryProvider).updatePlatformConfig(
+          employerSubscriptionMonthly: employerSubscriptionMonthly,
+          employerSubscriptionWeekly: employerSubscriptionWeekly,
+          employerSubscriptionDaily: employerSubscriptionDaily,
+          workerNoShowPenalty: workerNoShowPenalty,
+          employerCancelPenalty6h: employerCancelPenalty6h,
+          employerCancelPenalty3h: employerCancelPenalty3h,
+          employerCancelPenalty1h: employerCancelPenalty1h,
+        );
     state = await AsyncValue.guard(() => ref.read(adminRepositoryProvider).getPlatformConfig());
   }
 }

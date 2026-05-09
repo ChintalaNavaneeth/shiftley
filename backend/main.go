@@ -277,7 +277,8 @@ func main() {
 			}
 
 			// Platform Config
-			adminGroup.PATCH("/config/fees", middleware.RequireRoles(string(auth.RoleSuperAdmin)), adminHandler.UpdatePlatformConfig)
+			adminGroup.GET("/config", middleware.RequireRoles(string(auth.RoleSuperAdmin)), adminHandler.GetPlatformConfig)
+			adminGroup.PATCH("/config", middleware.RequireRoles(string(auth.RoleSuperAdmin)), adminHandler.UpdatePlatformConfig)
 
 			// Dispute Resolution (Super Admin only for now)
 			disputeGroup := adminGroup.Group("/disputes")

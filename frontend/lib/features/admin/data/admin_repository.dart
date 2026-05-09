@@ -140,10 +140,24 @@ class AdminRepository {
     throw Exception('Failed to fetch platform config');
   }
 
-  Future<void> updatePlatformConfig(double feePercentage) async {
+  Future<void> updatePlatformConfig({
+    double? employerSubscriptionMonthly,
+    double? employerSubscriptionWeekly,
+    double? employerSubscriptionDaily,
+    double? workerNoShowPenalty,
+    double? employerCancelPenalty6h,
+    double? employerCancelPenalty3h,
+    double? employerCancelPenalty1h,
+  }) async {
     final response = await _client.dio.patch('/admin/config', data: {
-      'fee_percentage': feePercentage,
-    });
+      'employer_subscription_monthly': employerSubscriptionMonthly,
+      'employer_subscription_weekly': employerSubscriptionWeekly,
+      'employer_subscription_daily': employerSubscriptionDaily,
+      'worker_no_show_penalty': workerNoShowPenalty,
+      'employer_cancel_penalty_6h': employerCancelPenalty6h,
+      'employer_cancel_penalty_3h': employerCancelPenalty3h,
+      'employer_cancel_penalty_1h': employerCancelPenalty1h,
+    }..removeWhere((_, value) => value == null));
     if (response.statusCode != 200) {
       throw Exception('Failed to update platform config');
     }

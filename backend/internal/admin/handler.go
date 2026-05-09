@@ -200,11 +200,21 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 type ConfigUpdateRequest struct {
 	EmployerSubscriptionMonthly float64 `json:"employer_subscription_monthly"`
 	EmployerSubscriptionWeekly  float64 `json:"employer_subscription_weekly"`
-	EmployerPerDayFee           float64 `json:"employer_per_day_fee"`
-	WorkerCancelPenalty         float64 `json:"worker_cancel_penalty"`
+	EmployerSubscriptionDaily   float64 `json:"employer_subscription_daily"`
+	WorkerNoShowPenalty         float64 `json:"worker_no_show_penalty"`
+	EmployerCancelPenalty6h     float64 `json:"employer_cancel_penalty_6h"`
+	EmployerCancelPenalty3h     float64 `json:"employer_cancel_penalty_3h"`
+	EmployerCancelPenalty1h     float64 `json:"employer_cancel_penalty_1h"`
 }
 
-// UpdatePlatformConfig handles PATCH /api/v1/admin/config/fees
+// GetPlatformConfig handles GET /api/v1/admin/config
+func (h *Handler) GetPlatformConfig(c *gin.Context) {
+	var conf config.PlatformConfig
+	h.db.FirstOrCreate(&conf)
+	utils.RespondSuccess(c, http.StatusOK, conf, nil)
+}
+
+// UpdatePlatformConfig handles PATCH /api/v1/admin/config
 // @Summary Update Platform Configuration
 // @Description Updates global business variables like platform cuts or fees.
 // @Tags Admin
@@ -213,7 +223,7 @@ type ConfigUpdateRequest struct {
 // @Param request body ConfigUpdateRequest true "Config Updates"
 // @Success 200 {object} utils.SuccessResponse
 // @Security ApiKeyAuth
-// @Router /admin/config/fees [patch]
+// @Router /admin/config [patch]
 func (h *Handler) UpdatePlatformConfig(c *gin.Context) {
 	var req ConfigUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -231,11 +241,20 @@ func (h *Handler) UpdatePlatformConfig(c *gin.Context) {
 	if req.EmployerSubscriptionWeekly > 0 {
 		conf.EmployerSubscriptionWeekly = req.EmployerSubscriptionWeekly
 	}
-	if req.EmployerPerDayFee > 0 {
-		conf.EmployerPerDayFee = req.EmployerPerDayFee
+	if req.EmployerSubscriptionDaily > 0 {
+		conf.EmployerSubscriptionDaily = req.EmployerSubscriptionDaily
 	}
-	if req.WorkerCancelPenalty > 0 {
-		conf.WorkerCancelPenalty = req.WorkerCancelPenalty
+	if req.WorkerNoShowPenalty > 0 {
+		conf.WorkerNoShowPenalty = req.WorkerNoShowPenalty
+	}
+	if req.EmployerCancelPenalty6h > 0 {
+		conf.EmployerCancelPenalty6h = req.EmployerCancelPenalty6h
+	}
+	if req.EmployerCancelPenalty3h > 0 {
+		conf.EmployerCancelPenalty3h = req.EmployerCancelPenalty3h
+	}
+	if req.EmployerCancelPenalty1h > 0 {
+		conf.EmployerCancelPenalty1h = req.EmployerCancelPenalty1h
 	}
 
 	if err := h.db.Save(&conf).Error; err != nil {
@@ -243,7 +262,7 @@ func (h *Handler) UpdatePlatformConfig(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, conf, nil)
+	utils.RespondSuccess(c, http.StatusOK, conf, "Configuration updated successfully")
 }
 
 

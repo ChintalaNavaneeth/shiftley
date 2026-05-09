@@ -710,12 +710,20 @@ PlatformConfig _$PlatformConfigFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$PlatformConfig {
-  @JsonKey(name: 'fee_percentage')
-  double get feePercentage => throw _privateConstructorUsedError;
-  @JsonKey(name: 'min_wage_paise')
-  int get minWagePaise => throw _privateConstructorUsedError;
-  @JsonKey(name: 'max_workers_per_gig')
-  int get maxWorkersPerGig => throw _privateConstructorUsedError;
+  @JsonKey(name: 'employer_subscription_monthly')
+  double get employerSubscriptionMonthly => throw _privateConstructorUsedError;
+  @JsonKey(name: 'employer_subscription_weekly')
+  double get employerSubscriptionWeekly => throw _privateConstructorUsedError;
+  @JsonKey(name: 'employer_subscription_daily')
+  double get employerSubscriptionDaily => throw _privateConstructorUsedError;
+  @JsonKey(name: 'worker_no_show_penalty')
+  double get workerNoShowPenalty => throw _privateConstructorUsedError;
+  @JsonKey(name: 'employer_cancel_penalty_6h')
+  double get employerCancelPenalty6h => throw _privateConstructorUsedError;
+  @JsonKey(name: 'employer_cancel_penalty_3h')
+  double get employerCancelPenalty3h => throw _privateConstructorUsedError;
+  @JsonKey(name: 'employer_cancel_penalty_1h')
+  double get employerCancelPenalty1h => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -730,9 +738,19 @@ abstract class $PlatformConfigCopyWith<$Res> {
       _$PlatformConfigCopyWithImpl<$Res, PlatformConfig>;
   @useResult
   $Res call(
-      {@JsonKey(name: 'fee_percentage') double feePercentage,
-      @JsonKey(name: 'min_wage_paise') int minWagePaise,
-      @JsonKey(name: 'max_workers_per_gig') int maxWorkersPerGig});
+      {@JsonKey(name: 'employer_subscription_monthly')
+      double employerSubscriptionMonthly,
+      @JsonKey(name: 'employer_subscription_weekly')
+      double employerSubscriptionWeekly,
+      @JsonKey(name: 'employer_subscription_daily')
+      double employerSubscriptionDaily,
+      @JsonKey(name: 'worker_no_show_penalty') double workerNoShowPenalty,
+      @JsonKey(name: 'employer_cancel_penalty_6h')
+      double employerCancelPenalty6h,
+      @JsonKey(name: 'employer_cancel_penalty_3h')
+      double employerCancelPenalty3h,
+      @JsonKey(name: 'employer_cancel_penalty_1h')
+      double employerCancelPenalty1h});
 }
 
 /// @nodoc
@@ -748,23 +766,43 @@ class _$PlatformConfigCopyWithImpl<$Res, $Val extends PlatformConfig>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? feePercentage = null,
-    Object? minWagePaise = null,
-    Object? maxWorkersPerGig = null,
+    Object? employerSubscriptionMonthly = null,
+    Object? employerSubscriptionWeekly = null,
+    Object? employerSubscriptionDaily = null,
+    Object? workerNoShowPenalty = null,
+    Object? employerCancelPenalty6h = null,
+    Object? employerCancelPenalty3h = null,
+    Object? employerCancelPenalty1h = null,
   }) {
     return _then(_value.copyWith(
-      feePercentage: null == feePercentage
-          ? _value.feePercentage
-          : feePercentage // ignore: cast_nullable_to_non_nullable
+      employerSubscriptionMonthly: null == employerSubscriptionMonthly
+          ? _value.employerSubscriptionMonthly
+          : employerSubscriptionMonthly // ignore: cast_nullable_to_non_nullable
               as double,
-      minWagePaise: null == minWagePaise
-          ? _value.minWagePaise
-          : minWagePaise // ignore: cast_nullable_to_non_nullable
-              as int,
-      maxWorkersPerGig: null == maxWorkersPerGig
-          ? _value.maxWorkersPerGig
-          : maxWorkersPerGig // ignore: cast_nullable_to_non_nullable
-              as int,
+      employerSubscriptionWeekly: null == employerSubscriptionWeekly
+          ? _value.employerSubscriptionWeekly
+          : employerSubscriptionWeekly // ignore: cast_nullable_to_non_nullable
+              as double,
+      employerSubscriptionDaily: null == employerSubscriptionDaily
+          ? _value.employerSubscriptionDaily
+          : employerSubscriptionDaily // ignore: cast_nullable_to_non_nullable
+              as double,
+      workerNoShowPenalty: null == workerNoShowPenalty
+          ? _value.workerNoShowPenalty
+          : workerNoShowPenalty // ignore: cast_nullable_to_non_nullable
+              as double,
+      employerCancelPenalty6h: null == employerCancelPenalty6h
+          ? _value.employerCancelPenalty6h
+          : employerCancelPenalty6h // ignore: cast_nullable_to_non_nullable
+              as double,
+      employerCancelPenalty3h: null == employerCancelPenalty3h
+          ? _value.employerCancelPenalty3h
+          : employerCancelPenalty3h // ignore: cast_nullable_to_non_nullable
+              as double,
+      employerCancelPenalty1h: null == employerCancelPenalty1h
+          ? _value.employerCancelPenalty1h
+          : employerCancelPenalty1h // ignore: cast_nullable_to_non_nullable
+              as double,
     ) as $Val);
   }
 }
@@ -778,9 +816,19 @@ abstract class _$$PlatformConfigImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {@JsonKey(name: 'fee_percentage') double feePercentage,
-      @JsonKey(name: 'min_wage_paise') int minWagePaise,
-      @JsonKey(name: 'max_workers_per_gig') int maxWorkersPerGig});
+      {@JsonKey(name: 'employer_subscription_monthly')
+      double employerSubscriptionMonthly,
+      @JsonKey(name: 'employer_subscription_weekly')
+      double employerSubscriptionWeekly,
+      @JsonKey(name: 'employer_subscription_daily')
+      double employerSubscriptionDaily,
+      @JsonKey(name: 'worker_no_show_penalty') double workerNoShowPenalty,
+      @JsonKey(name: 'employer_cancel_penalty_6h')
+      double employerCancelPenalty6h,
+      @JsonKey(name: 'employer_cancel_penalty_3h')
+      double employerCancelPenalty3h,
+      @JsonKey(name: 'employer_cancel_penalty_1h')
+      double employerCancelPenalty1h});
 }
 
 /// @nodoc
@@ -794,23 +842,43 @@ class __$$PlatformConfigImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? feePercentage = null,
-    Object? minWagePaise = null,
-    Object? maxWorkersPerGig = null,
+    Object? employerSubscriptionMonthly = null,
+    Object? employerSubscriptionWeekly = null,
+    Object? employerSubscriptionDaily = null,
+    Object? workerNoShowPenalty = null,
+    Object? employerCancelPenalty6h = null,
+    Object? employerCancelPenalty3h = null,
+    Object? employerCancelPenalty1h = null,
   }) {
     return _then(_$PlatformConfigImpl(
-      feePercentage: null == feePercentage
-          ? _value.feePercentage
-          : feePercentage // ignore: cast_nullable_to_non_nullable
+      employerSubscriptionMonthly: null == employerSubscriptionMonthly
+          ? _value.employerSubscriptionMonthly
+          : employerSubscriptionMonthly // ignore: cast_nullable_to_non_nullable
               as double,
-      minWagePaise: null == minWagePaise
-          ? _value.minWagePaise
-          : minWagePaise // ignore: cast_nullable_to_non_nullable
-              as int,
-      maxWorkersPerGig: null == maxWorkersPerGig
-          ? _value.maxWorkersPerGig
-          : maxWorkersPerGig // ignore: cast_nullable_to_non_nullable
-              as int,
+      employerSubscriptionWeekly: null == employerSubscriptionWeekly
+          ? _value.employerSubscriptionWeekly
+          : employerSubscriptionWeekly // ignore: cast_nullable_to_non_nullable
+              as double,
+      employerSubscriptionDaily: null == employerSubscriptionDaily
+          ? _value.employerSubscriptionDaily
+          : employerSubscriptionDaily // ignore: cast_nullable_to_non_nullable
+              as double,
+      workerNoShowPenalty: null == workerNoShowPenalty
+          ? _value.workerNoShowPenalty
+          : workerNoShowPenalty // ignore: cast_nullable_to_non_nullable
+              as double,
+      employerCancelPenalty6h: null == employerCancelPenalty6h
+          ? _value.employerCancelPenalty6h
+          : employerCancelPenalty6h // ignore: cast_nullable_to_non_nullable
+              as double,
+      employerCancelPenalty3h: null == employerCancelPenalty3h
+          ? _value.employerCancelPenalty3h
+          : employerCancelPenalty3h // ignore: cast_nullable_to_non_nullable
+              as double,
+      employerCancelPenalty1h: null == employerCancelPenalty1h
+          ? _value.employerCancelPenalty1h
+          : employerCancelPenalty1h // ignore: cast_nullable_to_non_nullable
+              as double,
     ));
   }
 }
@@ -819,26 +887,49 @@ class __$$PlatformConfigImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$PlatformConfigImpl implements _PlatformConfig {
   const _$PlatformConfigImpl(
-      {@JsonKey(name: 'fee_percentage') required this.feePercentage,
-      @JsonKey(name: 'min_wage_paise') required this.minWagePaise,
-      @JsonKey(name: 'max_workers_per_gig') required this.maxWorkersPerGig});
+      {@JsonKey(name: 'employer_subscription_monthly')
+      required this.employerSubscriptionMonthly,
+      @JsonKey(name: 'employer_subscription_weekly')
+      required this.employerSubscriptionWeekly,
+      @JsonKey(name: 'employer_subscription_daily')
+      required this.employerSubscriptionDaily,
+      @JsonKey(name: 'worker_no_show_penalty')
+      required this.workerNoShowPenalty,
+      @JsonKey(name: 'employer_cancel_penalty_6h')
+      required this.employerCancelPenalty6h,
+      @JsonKey(name: 'employer_cancel_penalty_3h')
+      required this.employerCancelPenalty3h,
+      @JsonKey(name: 'employer_cancel_penalty_1h')
+      required this.employerCancelPenalty1h});
 
   factory _$PlatformConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$PlatformConfigImplFromJson(json);
 
   @override
-  @JsonKey(name: 'fee_percentage')
-  final double feePercentage;
+  @JsonKey(name: 'employer_subscription_monthly')
+  final double employerSubscriptionMonthly;
   @override
-  @JsonKey(name: 'min_wage_paise')
-  final int minWagePaise;
+  @JsonKey(name: 'employer_subscription_weekly')
+  final double employerSubscriptionWeekly;
   @override
-  @JsonKey(name: 'max_workers_per_gig')
-  final int maxWorkersPerGig;
+  @JsonKey(name: 'employer_subscription_daily')
+  final double employerSubscriptionDaily;
+  @override
+  @JsonKey(name: 'worker_no_show_penalty')
+  final double workerNoShowPenalty;
+  @override
+  @JsonKey(name: 'employer_cancel_penalty_6h')
+  final double employerCancelPenalty6h;
+  @override
+  @JsonKey(name: 'employer_cancel_penalty_3h')
+  final double employerCancelPenalty3h;
+  @override
+  @JsonKey(name: 'employer_cancel_penalty_1h')
+  final double employerCancelPenalty1h;
 
   @override
   String toString() {
-    return 'PlatformConfig(feePercentage: $feePercentage, minWagePaise: $minWagePaise, maxWorkersPerGig: $maxWorkersPerGig)';
+    return 'PlatformConfig(employerSubscriptionMonthly: $employerSubscriptionMonthly, employerSubscriptionWeekly: $employerSubscriptionWeekly, employerSubscriptionDaily: $employerSubscriptionDaily, workerNoShowPenalty: $workerNoShowPenalty, employerCancelPenalty6h: $employerCancelPenalty6h, employerCancelPenalty3h: $employerCancelPenalty3h, employerCancelPenalty1h: $employerCancelPenalty1h)';
   }
 
   @override
@@ -846,18 +937,41 @@ class _$PlatformConfigImpl implements _PlatformConfig {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$PlatformConfigImpl &&
-            (identical(other.feePercentage, feePercentage) ||
-                other.feePercentage == feePercentage) &&
-            (identical(other.minWagePaise, minWagePaise) ||
-                other.minWagePaise == minWagePaise) &&
-            (identical(other.maxWorkersPerGig, maxWorkersPerGig) ||
-                other.maxWorkersPerGig == maxWorkersPerGig));
+            (identical(other.employerSubscriptionMonthly,
+                    employerSubscriptionMonthly) ||
+                other.employerSubscriptionMonthly ==
+                    employerSubscriptionMonthly) &&
+            (identical(other.employerSubscriptionWeekly,
+                    employerSubscriptionWeekly) ||
+                other.employerSubscriptionWeekly ==
+                    employerSubscriptionWeekly) &&
+            (identical(other.employerSubscriptionDaily,
+                    employerSubscriptionDaily) ||
+                other.employerSubscriptionDaily == employerSubscriptionDaily) &&
+            (identical(other.workerNoShowPenalty, workerNoShowPenalty) ||
+                other.workerNoShowPenalty == workerNoShowPenalty) &&
+            (identical(
+                    other.employerCancelPenalty6h, employerCancelPenalty6h) ||
+                other.employerCancelPenalty6h == employerCancelPenalty6h) &&
+            (identical(
+                    other.employerCancelPenalty3h, employerCancelPenalty3h) ||
+                other.employerCancelPenalty3h == employerCancelPenalty3h) &&
+            (identical(
+                    other.employerCancelPenalty1h, employerCancelPenalty1h) ||
+                other.employerCancelPenalty1h == employerCancelPenalty1h));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, feePercentage, minWagePaise, maxWorkersPerGig);
+  int get hashCode => Object.hash(
+      runtimeType,
+      employerSubscriptionMonthly,
+      employerSubscriptionWeekly,
+      employerSubscriptionDaily,
+      workerNoShowPenalty,
+      employerCancelPenalty6h,
+      employerCancelPenalty3h,
+      employerCancelPenalty1h);
 
   @JsonKey(ignore: true)
   @override
@@ -876,23 +990,45 @@ class _$PlatformConfigImpl implements _PlatformConfig {
 
 abstract class _PlatformConfig implements PlatformConfig {
   const factory _PlatformConfig(
-      {@JsonKey(name: 'fee_percentage') required final double feePercentage,
-      @JsonKey(name: 'min_wage_paise') required final int minWagePaise,
-      @JsonKey(name: 'max_workers_per_gig')
-      required final int maxWorkersPerGig}) = _$PlatformConfigImpl;
+      {@JsonKey(name: 'employer_subscription_monthly')
+      required final double employerSubscriptionMonthly,
+      @JsonKey(name: 'employer_subscription_weekly')
+      required final double employerSubscriptionWeekly,
+      @JsonKey(name: 'employer_subscription_daily')
+      required final double employerSubscriptionDaily,
+      @JsonKey(name: 'worker_no_show_penalty')
+      required final double workerNoShowPenalty,
+      @JsonKey(name: 'employer_cancel_penalty_6h')
+      required final double employerCancelPenalty6h,
+      @JsonKey(name: 'employer_cancel_penalty_3h')
+      required final double employerCancelPenalty3h,
+      @JsonKey(name: 'employer_cancel_penalty_1h')
+      required final double employerCancelPenalty1h}) = _$PlatformConfigImpl;
 
   factory _PlatformConfig.fromJson(Map<String, dynamic> json) =
       _$PlatformConfigImpl.fromJson;
 
   @override
-  @JsonKey(name: 'fee_percentage')
-  double get feePercentage;
+  @JsonKey(name: 'employer_subscription_monthly')
+  double get employerSubscriptionMonthly;
   @override
-  @JsonKey(name: 'min_wage_paise')
-  int get minWagePaise;
+  @JsonKey(name: 'employer_subscription_weekly')
+  double get employerSubscriptionWeekly;
   @override
-  @JsonKey(name: 'max_workers_per_gig')
-  int get maxWorkersPerGig;
+  @JsonKey(name: 'employer_subscription_daily')
+  double get employerSubscriptionDaily;
+  @override
+  @JsonKey(name: 'worker_no_show_penalty')
+  double get workerNoShowPenalty;
+  @override
+  @JsonKey(name: 'employer_cancel_penalty_6h')
+  double get employerCancelPenalty6h;
+  @override
+  @JsonKey(name: 'employer_cancel_penalty_3h')
+  double get employerCancelPenalty3h;
+  @override
+  @JsonKey(name: 'employer_cancel_penalty_1h')
+  double get employerCancelPenalty1h;
   @override
   @JsonKey(ignore: true)
   _$$PlatformConfigImplCopyWith<_$PlatformConfigImpl> get copyWith =>

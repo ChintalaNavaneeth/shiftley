@@ -45,9 +45,13 @@ class ManagementUser with _$ManagementUser {
 @freezed
 class PlatformConfig with _$PlatformConfig {
   const factory PlatformConfig({
-    @JsonKey(name: 'fee_percentage') required double feePercentage,
-    @JsonKey(name: 'min_wage_paise') required int minWagePaise,
-    @JsonKey(name: 'max_workers_per_gig') required int maxWorkersPerGig,
+    @JsonKey(name: 'employer_subscription_monthly') required double employerSubscriptionMonthly,
+    @JsonKey(name: 'employer_subscription_weekly') required double employerSubscriptionWeekly,
+    @JsonKey(name: 'employer_subscription_daily') required double employerSubscriptionDaily,
+    @JsonKey(name: 'worker_no_show_penalty') required double workerNoShowPenalty,
+    @JsonKey(name: 'employer_cancel_penalty_6h') required double employerCancelPenalty6h,
+    @JsonKey(name: 'employer_cancel_penalty_3h') required double employerCancelPenalty3h,
+    @JsonKey(name: 'employer_cancel_penalty_1h') required double employerCancelPenalty1h,
   }) = _PlatformConfig;
 
   factory PlatformConfig.fromJson(Map<String, dynamic> json) => _$PlatformConfigFromJson(json);
