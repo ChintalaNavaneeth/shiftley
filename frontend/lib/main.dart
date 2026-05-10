@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shiftley_frontend/core/network/api_providers.dart';
 
 import 'features/auth/presentation/splash_screen.dart';
 import 'features/auth/presentation/landing_screen.dart';
@@ -106,8 +108,17 @@ final _router = GoRouter(
   ],
 );
 
-void main() {
-  runApp(const ProviderScope(child: ShiftleyApp()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const ShiftleyApp(),
+    ),
+  );
 }
 
 class ShiftleyApp extends StatelessWidget {

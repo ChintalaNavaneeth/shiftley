@@ -227,8 +227,13 @@ func main() {
 				kycGroup.POST("/aadhaar-xml", authHandler.VerifyAadhaarXML)
 			}
 
-			// Logout - Protected by Session Token
-			authGroup.POST("/logout", middleware.RequireAuth(cfg.JWTSecret, rdb), authHandler.Logout)
+			// Protected Auth Actions
+			protectedAuth := authGroup.Group("")
+			protectedAuth.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"))
+			{
+				protectedAuth.GET("/me", authHandler.GetMe)
+				protectedAuth.POST("/logout", authHandler.Logout)
+			}
 		}
 
 		// Onboarding - Strictly for users with a registration token (or session for pre-verified staff)
@@ -342,6 +347,7 @@ func main() {
 			verifierGroup.GET("/queue", verifierHandler.GetQueue)
 			verifierGroup.GET("/history", verifierHandler.GetHistory)
 			verifierGroup.GET("/profile", verifierHandler.GetProfile)
+			verifierGroup.GET("/employers/:id", verifierHandler.GetEmployerDetails)
 			verifierGroup.POST("/employers/:id/verify", verifierHandler.VerifyEmployer)
 			verifierGroup.POST("/employees/:id/verify", verifierHandler.VerifyEmployee)
 		}

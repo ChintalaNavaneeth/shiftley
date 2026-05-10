@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"time"
 	"shiftley/internal/auth"
 	"shiftley/internal/verifier"
 	"shiftley/pkg/notify"
@@ -208,6 +209,22 @@ func (h *Handler) OnboardEmployer(c *gin.Context) {
 		return
 	}
 
+	// 6. Create KYC Session for Verifier Queue
+	kycSession := auth.KYCSession{
+		UserID:        userID,
+		Provider:      "PHYSICAL_VISIT",
+		Status:        "PENDING",
+		MaskedAadhaar: employerProfile.AadhaarLast4,
+	}
+	if err := tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}},
+		UpdateAll: true,
+	}).Create(&kycSession).Error; err != nil {
+		tx.Rollback()
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to create KYC session", nil)
+		return
+	}
+
 	tx.Commit()
 
 	h.notify.SendEmployerVerificationPending(employerPhone, fullName, businessName)
@@ -335,9 +352,10 @@ func (h *Handler) OnboardEmployee(c *gin.Context) {
 	tx := h.db.Begin()
 
 	if err := tx.Model(&auth.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-		"full_name":   fullName,
-		"email":       email,
-		"is_verified": true, // Employee auto-verified for MVP (or should it be false?)
+		"full_name":         fullName,
+		"email":             email,
+		"profile_photo_url": uploadedUrls["profile_picture"],
+		"is_verified":       true,
 		"is_initial_setup_complete": true,
 	}).Error; err != nil {
 		tx.Rollback()
@@ -363,6 +381,23 @@ func (h *Handler) OnboardEmployee(c *gin.Context) {
 	}).Create(&workerProfile).Error; err != nil {
 		tx.Rollback()
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to save worker profile", nil)
+		return
+	}
+
+	// 7. Create Auto-Verified KYC Session for Employee
+	now := time.Now()
+	kycSession := auth.KYCSession{
+		UserID:     userID,
+		Provider:   "AUTO_VERIFY",
+		Status:     "VERIFIED",
+		VerifiedAt: &now,
+	}
+	if err := tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}},
+		UpdateAll: true,
+	}).Create(&kycSession).Error; err != nil {
+		tx.Rollback()
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to create KYC session", nil)
 		return
 	}
 
@@ -446,7 +481,8 @@ func (h *Handler) OnboardVerifier(c *gin.Context) {
 
 	if err := tx.Model(&auth.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
 		"is_initial_setup_complete": true,
-		"is_verified":               true, // Verifiers are pre-approved or auto-verified for onboarding
+		"is_verified":               true,
+		"profile_photo_url":         uploadedUrls["profile_image"],
 	}).Error; err != nil {
 		tx.Rollback()
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update user", nil)

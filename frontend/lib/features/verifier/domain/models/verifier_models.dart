@@ -14,6 +14,8 @@ class QueueItem {
   final String kycStatus;
   @JsonKey(name: 'masked_aadhaar')
   final String maskedAadhaar;
+  @JsonKey(name: 'phone_number', defaultValue: '')
+  final String phoneNumber;
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
@@ -24,6 +26,7 @@ class QueueItem {
     required this.role,
     required this.kycStatus,
     required this.maskedAadhaar,
+    required this.phoneNumber,
     required this.createdAt,
   });
 

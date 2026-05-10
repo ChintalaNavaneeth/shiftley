@@ -255,3 +255,45 @@ func (h *Handler) Logout(c *gin.Context) {
 	utils.RespondSuccess(c, http.StatusOK, "Logged out successfully", nil)
 }
 
+// GetMe handles GET /api/v1/auth/me
+func (h *Handler) GetMe(c *gin.Context) {
+	userIDVal, _ := c.Get("userID")
+	userIDStr := userIDVal.(string)
+
+	var user User
+	if err := h.db.First(&user, "id = ?", userIDStr).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "User not found", nil)
+		return
+	}
+
+	photoURL := user.ProfilePhotoURL
+	if photoURL == "" {
+		// Fallback to role-specific profile
+		switch user.Role {
+		case "WORKER":
+			var wp WorkerProfile
+			if err := h.db.First(&wp, "user_id = ?", user.ID).Error; err == nil {
+				photoURL = wp.ProfilePhotoURL
+			}
+		case "VERIFIER":
+			// Need to import verifier package or use raw SQL/table name since it's in a different package
+			var profile struct {
+				ProfilePhotoURL string `gorm:"column:profile_photo_url"`
+			}
+			if err := h.db.Table("shiftley.verifier_profiles").Select("profile_photo_url").Where("user_id = ?", user.ID).First(&profile).Error; err == nil {
+				photoURL = profile.ProfilePhotoURL
+			}
+		}
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"id":                user.ID,
+		"full_name":         user.FullName,
+		"email":             user.Email,
+		"phone_number":      user.PhoneNumber,
+		"role":              user.Role,
+		"profile_photo_url": photoURL,
+		"kyc_status":        user.IsVerified,
+	}, nil)
+}
+

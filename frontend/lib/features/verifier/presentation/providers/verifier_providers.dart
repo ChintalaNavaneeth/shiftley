@@ -1,20 +1,20 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shiftley_frontend/features/employer/domain/models/employer_models.dart';
 import 'package:shiftley_frontend/features/verifier/data/verifier_repository_provider.dart';
 import 'package:shiftley_frontend/features/verifier/domain/models/verifier_models.dart';
 
-part 'verifier_providers.g.dart';
+final verifierQueueListProvider = FutureProvider.family<List<QueueItem>, ({String? type, String? status})>((ref, args) {
+  return ref.watch(verifierRepositoryProvider).getQueue(type: args.type, status: args.status);
+});
 
-@riverpod
-Future<List<QueueItem>> verifierQueue(VerifierQueueRef ref, {String? type}) {
-  return ref.watch(verifierRepositoryProvider).getQueue(type: type);
-}
-
-@riverpod
-Future<List<VerificationAudit>> verifierHistory(VerifierHistoryRef ref) {
+final verifierHistoryProvider = FutureProvider<List<VerificationAudit>>((ref) {
   return ref.watch(verifierRepositoryProvider).getHistory();
-}
+});
 
-@riverpod
-Future<VerifierProfile> verifierProfile(VerifierProfileRef ref) {
+final verifierProfileProvider = FutureProvider<VerifierProfile>((ref) {
   return ref.watch(verifierRepositoryProvider).getProfile();
-}
+});
+
+final employerDetailsProvider = FutureProvider.family<EmployerProfile, String>((ref, id) {
+  return ref.watch(verifierRepositoryProvider).getEmployerDetails(id);
+});

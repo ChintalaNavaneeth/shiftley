@@ -4,5 +4,6 @@ import 'auth_repository.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final dio = ref.watch(dioProvider);
-  return AuthRepository(dio);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return AuthRepository(dio, prefs);
 });

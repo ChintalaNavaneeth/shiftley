@@ -31,7 +31,7 @@ class _EmployerScreenState extends ConsumerState<EmployerScreen> {
     final businessName = dashboardAsync.when(
       data: (data) => data.profile.businessName,
       loading: () => null,
-      error: (_, __) => null,
+      error: (err, stack) => null,
     );
 
     return GestureDetector(

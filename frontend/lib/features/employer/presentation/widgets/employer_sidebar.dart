@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/network/api_providers.dart';
 import 'package:shiftley_frontend/features/auth/data/auth_repository_provider.dart';
+import 'package:shiftley_frontend/features/auth/presentation/providers/profile_provider.dart';
 import '../employer_screen.dart';
 
 class EmployerSidebar extends ConsumerWidget {
@@ -45,6 +46,38 @@ class EmployerSidebar extends ConsumerWidget {
                     color: ShiftleyTokens.primaryRed,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: ShiftleyTokens.spaceL),
+                ref.watch(userProfileProvider).when(
+                  loading: () => const LinearProgressIndicator(color: ShiftleyTokens.primaryRed),
+                  error: (err, stack) => const SizedBox(),
+                  data: (profile) => Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: ShiftleyTokens.background,
+                          border: ShiftleyTokens.primaryBorder,
+                          borderRadius: BorderRadius.circular(8),
+                          image: profile['profile_photo_url'] != null
+                            ? DecorationImage(image: NetworkImage(profile['profile_photo_url']), fit: BoxFit.cover)
+                            : null,
+                        ),
+                        child: profile['profile_photo_url'] == null ? const Icon(Icons.person, size: 20) : null,
+                      ),
+                      const SizedBox(width: ShiftleyTokens.spaceM),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(profile['full_name'] ?? 'Employer', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                            Text(profile['email'] ?? '', style: ShiftleyTokens.caption.copyWith(fontSize: 10)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

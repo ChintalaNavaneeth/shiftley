@@ -189,5 +189,134 @@ final verifierProfileProvider =
 );
 
 typedef VerifierProfileRef = AutoDisposeFutureProviderRef<VerifierProfile>;
+String _$employerDetailsHash() => r'dc31ab5d627e706de3b77e0645252e0f8c93070d';
+
+/// See also [employerDetails].
+@ProviderFor(employerDetails)
+const employerDetailsProvider = EmployerDetailsFamily();
+
+/// See also [employerDetails].
+class EmployerDetailsFamily extends Family<AsyncValue<EmployerProfile>> {
+  /// See also [employerDetails].
+  const EmployerDetailsFamily();
+
+  /// See also [employerDetails].
+  EmployerDetailsProvider call(
+    String id,
+  ) {
+    return EmployerDetailsProvider(
+      id,
+    );
+  }
+
+  @override
+  EmployerDetailsProvider getProviderOverride(
+    covariant EmployerDetailsProvider provider,
+  ) {
+    return call(
+      provider.id,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'employerDetailsProvider';
+}
+
+/// See also [employerDetails].
+class EmployerDetailsProvider
+    extends AutoDisposeFutureProvider<EmployerProfile> {
+  /// See also [employerDetails].
+  EmployerDetailsProvider(
+    String id,
+  ) : this._internal(
+          (ref) => employerDetails(
+            ref as EmployerDetailsRef,
+            id,
+          ),
+          from: employerDetailsProvider,
+          name: r'employerDetailsProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$employerDetailsHash,
+          dependencies: EmployerDetailsFamily._dependencies,
+          allTransitiveDependencies:
+              EmployerDetailsFamily._allTransitiveDependencies,
+          id: id,
+        );
+
+  EmployerDetailsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.id,
+  }) : super.internal();
+
+  final String id;
+
+  @override
+  Override overrideWith(
+    FutureOr<EmployerProfile> Function(EmployerDetailsRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: EmployerDetailsProvider._internal(
+        (ref) => create(ref as EmployerDetailsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        id: id,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<EmployerProfile> createElement() {
+    return _EmployerDetailsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is EmployerDetailsProvider && other.id == id;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, id.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+mixin EmployerDetailsRef on AutoDisposeFutureProviderRef<EmployerProfile> {
+  /// The parameter `id` of this provider.
+  String get id;
+}
+
+class _EmployerDetailsProviderElement
+    extends AutoDisposeFutureProviderElement<EmployerProfile>
+    with EmployerDetailsRef {
+  _EmployerDetailsProviderElement(super.provider);
+
+  @override
+  String get id => (origin as EmployerDetailsProvider).id;
+}
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member

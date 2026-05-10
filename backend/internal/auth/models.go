@@ -32,6 +32,7 @@ type User struct {
 	IsSuspended  bool           `gorm:"default:false" json:"is_suspended"`
 	UnpaidFinePaise int64        `gorm:"default:0" json:"unpaid_fine_paise"`
 	UPIID        string         `json:"upi_id"`
+	ProfilePhotoURL string      `json:"profile_photo_url"`
 	BankAccount  string         `json:"bank_account"`
 	BankIFSC     string         `json:"bank_ifsc"`
 	LastLoginAt  *time.Time     `json:"last_login_at"`
@@ -107,6 +108,8 @@ type EmployerProfile struct {
 	BusinessName      string         `gorm:"not null" json:"business_name"`
 	BusinessType      string         `gorm:"not null" json:"business_type"`
 	GSTNumber         string         `json:"gst_number"`
+	Email             string         `gorm:"<-:false" json:"email"`
+	PhoneNumber       string         `gorm:"<-:false" json:"phone_number"`
 	BusinessAddress   string         `gorm:"type:text;not null" json:"business_address"`
 	Lat               float64        `gorm:"type:decimal(10,8)" json:"lat"`
 	Lng               float64        `gorm:"type:decimal(11,8)" json:"lng"`

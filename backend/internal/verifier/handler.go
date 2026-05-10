@@ -45,10 +45,11 @@ func NewHandler(repo Repository, storage storage.Storage, bucketKYC string, noti
 // @Router /verifier/queue [get]
 func (h *Handler) GetQueue(c *gin.Context) {
 	userType := c.Query("type")
+	status := c.Query("status")
 	limitStr := c.DefaultQuery("limit", "20")
 	limit, _ := strconv.Atoi(limitStr)
 
-	items, err := h.repo.GetPendingQueue(c.Request.Context(), userType, limit)
+	items, err := h.repo.GetPendingQueue(c.Request.Context(), userType, status, limit)
 	if err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to fetch queue", nil)
 		return
@@ -161,13 +162,12 @@ func (h *Handler) VerifyEmployer(c *gin.Context) {
 		return
 	}
 
-	// Update Employer Profile location if overridden
-	if lat != 0 && lng != 0 {
-		h.repo.(*repository).db.Model(&auth.EmployerProfile{}).Where("user_id = ?", userID).Updates(map[string]interface{}{
-			"lat": lat,
-			"lng": lng,
-		})
-	}
+	// Update Employer Profile location and status
+	h.repo.(*repository).db.Model(&auth.EmployerProfile{}).Where("user_id = ?", userID).Updates(map[string]interface{}{
+		"lat":                 lat,
+		"lng":                 lng,
+		"verification_status": kycStatus,
+	})
 
 	// Fetch user for notification
 	var user auth.User
@@ -258,6 +258,27 @@ func (h *Handler) GetHistory(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, history, nil)
+}
+
+// GetEmployerDetails handles GET /api/v1/verifier/employers/:id
+func (h *Handler) GetEmployerDetails(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid user ID", nil)
+		return
+	}
+
+	profile, err := h.repo.GetEmployerDetails(c.Request.Context(), userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Employer profile not found", nil)
+			return
+		}
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to fetch employer profile", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, profile, nil)
 }
 
 // GetProfile handles GET /api/v1/verifier/profile

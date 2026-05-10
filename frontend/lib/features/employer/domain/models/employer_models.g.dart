@@ -14,10 +14,13 @@ EmployerProfile _$EmployerProfileFromJson(Map<String, dynamic> json) =>
       businessType: json['business_type'] as String,
       gstNumber: json['gst_number'] as String?,
       businessAddress: json['business_address'] as String,
+      email: json['email'] as String? ?? '',
+      phoneNumber: json['phone_number'] as String? ?? '',
       lat: (json['lat'] as num).toDouble(),
       lng: (json['lng'] as num).toDouble(),
       verificationStatus: json['verification_status'] as String,
       aadhaarLast4: json['aadhaar_last_4'] as String?,
+      aadhaarUrl: json['aadhaar_url'] as String?,
       photoUrls: (json['photo_urls'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
@@ -31,10 +34,13 @@ Map<String, dynamic> _$EmployerProfileToJson(EmployerProfile instance) =>
       'business_type': instance.businessType,
       'gst_number': instance.gstNumber,
       'business_address': instance.businessAddress,
+      'email': instance.email,
+      'phone_number': instance.phoneNumber,
       'lat': instance.lat,
       'lng': instance.lng,
       'verification_status': instance.verificationStatus,
       'aadhaar_last_4': instance.aadhaarLast4,
+      'aadhaar_url': instance.aadhaarUrl,
       'photo_urls': instance.photoUrls,
     };
 

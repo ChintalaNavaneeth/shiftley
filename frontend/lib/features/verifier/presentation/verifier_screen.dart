@@ -12,6 +12,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shiftley_frontend/features/verifier/presentation/providers/verifier_providers.dart';
 import 'package:shiftley_frontend/features/auth/presentation/providers/auth_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shiftley_frontend/features/verifier/data/verifier_repository_provider.dart';
+import 'package:shiftley_frontend/features/auth/presentation/providers/profile_provider.dart';
+import 'package:shiftley_frontend/features/verifier/presentation/widgets/selfie_capture_screen.dart';
+import 'dart:io';
 
 enum VerifierView { queue, details, history, rejection, verifyFlow, success, support, faq, settings }
 
@@ -32,9 +39,36 @@ class _VerifierScreenState extends State<VerifierScreen> {
   bool _isGpsCaptured = false;
   bool _isGpsValid = false;
 
+  // Capture State
+  XFile? _selfieFile;
+  final List<XFile> _businessPhotos = [];
+  Position? _currentPosition;
+  final ImagePicker _picker = ImagePicker();
+
   // History Filters
   DateTime? _fromDate;
   DateTime? _toDate;
+
+  @override
+  void initState() {
+    super.initState();
+    // Lock orientation to portrait
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    // Reset orientation to system defaults
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,15 +97,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
         drawer: _currentView == VerifierView.queue ? _buildDrawer() : null,
         body: Consumer(
           builder: (context, ref, child) {
-            return SRefreshable(
-              onRefresh: () async {
-                ref.invalidate(verifierQueueProvider);
-                ref.invalidate(verifierHistoryProvider);
-                ref.invalidate(verifierProfileProvider);
-                await Future.delayed(const Duration(seconds: 1));
-              },
-              child: _buildBody(ref),
-            );
+            return _buildBody(ref);
           },
         ),
       ),
@@ -107,10 +133,10 @@ class _VerifierScreenState extends State<VerifierScreen> {
   Widget _buildBody(WidgetRef ref) {
     switch (_currentView) {
       case VerifierView.queue: return _buildQueueView(ref);
-      case VerifierView.details: return _buildDetailsView(_selectedEmployerId!);
+      case VerifierView.details: return _buildDetailsView(ref, _selectedEmployerId!);
       case VerifierView.history: return _buildHistoryView(ref);
       case VerifierView.rejection: return _buildRejectionView();
-      case VerifierView.verifyFlow: return _buildVerifyFlow();
+      case VerifierView.verifyFlow: return _buildVerifyFlow(ref);
       case VerifierView.success: return _buildSuccessView();
       case VerifierView.support: return const Padding(padding: EdgeInsets.all(16), child: SupportView());
       case VerifierView.faq: return const Padding(padding: EdgeInsets.all(16), child: FAQView());
@@ -166,10 +192,14 @@ class _VerifierScreenState extends State<VerifierScreen> {
   }
 
   // ── Verify Flow ─────────────────────────────────────────────
-  Widget _buildVerifyFlow() {
-    bool canProceed = true;
-    if (_verifyStep == 3) {
-      canProceed = _isGpsValid;
+  Widget _buildVerifyFlow(WidgetRef ref) {
+    bool canProceed = false;
+    if (_verifyStep == 1) {
+      canProceed = _selfieFile != null;
+    } else if (_verifyStep == 2) {
+      canProceed = _businessPhotos.length >= 3;
+    } else if (_verifyStep == 3) {
+      canProceed = _isGpsValid && _currentPosition != null;
     }
 
     return Padding(
@@ -186,7 +216,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
           else
             ShiftleyGuidance(
             isActive: !canProceed,
-            message: 'Please capture and verify GPS location first.',
+            message: _verifyStep == 1 ? 'Please capture a selfie first.' : (_verifyStep == 2 ? 'Please capture all 3 business photos.' : 'Please capture and verify GPS location first.'),
             child: SButton(
               text: _verifyStep < 3 ? 'Next Step' : 'Complete Verification',
               type: SButtonType.primary,
@@ -194,12 +224,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
                 if (_verifyStep < 3) {
                   setState(() => _verifyStep++);
                 } else {
-                  setState(() => _isVerifying = true);
-                  await Future.delayed(const Duration(seconds: 2)); 
-                  setState(() {
-                    _isVerifying = false;
-                    _currentView = VerifierView.success;
-                  });
+                  _submitVerification(ref);
                 }
               } : null,
             ),
@@ -208,6 +233,91 @@ class _VerifierScreenState extends State<VerifierScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _submitVerification(WidgetRef ref) async {
+    if (_selectedEmployerId == null || _selfieFile == null || _businessPhotos.length < 3 || _currentPosition == null) return;
+
+    setState(() => _isVerifying = true);
+    try {
+      await ref.read(verifierRepositoryProvider).verifyEmployer(
+        employerId: _selectedEmployerId!,
+        selfie: _selfieFile!,
+        businessPhotos: _businessPhotos,
+        lat: _currentPosition!.latitude,
+        lng: _currentPosition!.longitude,
+        isApproved: true,
+      );
+      setState(() {
+        _isVerifying = false;
+        _currentView = VerifierView.success;
+      });
+    } catch (e) {
+      setState(() => _isVerifying = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _captureImage(bool isSelfie) async {
+    try {
+      XFile? image;
+      
+      if (isSelfie) {
+        // Use custom camera for selfie to enforce front lens
+        image = await Navigator.push<XFile>(
+          context,
+          MaterialPageRoute(builder: (context) => const SelfieCaptureScreen()),
+        );
+      } else {
+        // Use standard picker for business photos
+        image = await _picker.pickImage(
+          source: ImageSource.camera,
+          preferredCameraDevice: CameraDevice.rear,
+          imageQuality: 70,
+        );
+      }
+
+      if (image != null) {
+        setState(() {
+          if (isSelfie) {
+            _selfieFile = image;
+          } else {
+            if (_businessPhotos.length < 3) {
+              _businessPhotos.add(image!);
+            }
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    }
+  }
+
+  Future<void> _captureLocation() async {
+    setState(() => _isVerifying = true);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        );
+        setState(() {
+          _currentPosition = position;
+          _isGpsCaptured = true;
+          _isGpsValid = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error getting location: $e');
+    } finally {
+      setState(() => _isVerifying = false);
+    }
   }
 
   Widget _buildVerifyStepContent() {
@@ -224,6 +334,9 @@ class _VerifierScreenState extends State<VerifierScreen> {
   }
 
   Widget _buildStepLayout(String title, String desc, IconData icon, {bool isMulti = false}) {
+    final bool hasImage = isMulti ? _businessPhotos.isNotEmpty : _selfieFile != null;
+    final file = isMulti ? (_businessPhotos.isNotEmpty ? _businessPhotos.last : null) : _selfieFile;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -231,17 +344,33 @@ class _VerifierScreenState extends State<VerifierScreen> {
         const SizedBox(height: 8),
         Text(desc, style: ShiftleyTokens.bodyMedium.copyWith(color: ShiftleyTokens.mutedText)),
         const SizedBox(height: ShiftleyTokens.spaceXL),
-        Container(
-          width: double.infinity,
-          height: 250,
-          decoration: BoxDecoration(color: ShiftleyTokens.paperWhite, border: ShiftleyTokens.primaryBorder, borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 48, color: ShiftleyTokens.mutedText),
-              const SizedBox(height: 16),
-              if (isMulti) const Text('0 / 3 Photos Captured', style: ShiftleyTokens.caption) else const Text('Tap to open camera', style: ShiftleyTokens.caption),
-            ],
+        GestureDetector(
+          onTap: () => _captureImage(!isMulti),
+          child: Container(
+            width: double.infinity,
+            height: 250,
+            decoration: BoxDecoration(
+              color: ShiftleyTokens.paperWhite, 
+              border: ShiftleyTokens.primaryBorder, 
+              borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+              image: hasImage ? DecorationImage(image: FileImage(File(file!.path)), fit: BoxFit.cover) : null,
+            ),
+            child: !hasImage ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 48, color: ShiftleyTokens.mutedText),
+                const SizedBox(height: 16),
+                if (isMulti) const Text('0 / 3 Photos Captured', style: ShiftleyTokens.caption) else const Text('Tap to open camera', style: ShiftleyTokens.caption),
+              ],
+            ) : (isMulti ? Container(
+              alignment: Alignment.bottomRight,
+              padding: const EdgeInsets.all(8),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                color: Colors.black54,
+                child: Text('${_businessPhotos.length} / 3 Captured', style: const TextStyle(color: Colors.white, fontSize: 12)),
+              ),
+            ) : null),
           ),
         ),
       ],
@@ -257,6 +386,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
         Text('Sync your current GPS coordinates to verify physical existence.', style: ShiftleyTokens.bodyMedium.copyWith(color: ShiftleyTokens.mutedText)),
         const SizedBox(height: ShiftleyTokens.spaceXL),
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
           decoration: BoxDecoration(color: ShiftleyTokens.paperWhite, border: ShiftleyTokens.primaryBorder, borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
           child: Column(
@@ -271,34 +401,23 @@ class _VerifierScreenState extends State<VerifierScreen> {
                     SButton(
                       text: 'Capture GPS Location',
                       type: SButtonType.primary, 
-                      onPressed: () async {
-                        HapticFeedback.mediumImpact();
-                        setState(() => _isGpsCaptured = true);
-                        await Future.delayed(const Duration(seconds: 1)); // Simulate capture
-                        setState(() => _isGpsValid = true);
-                      },
+                      onPressed: _captureLocation,
                     ),
                   ],
                 )
               else
                 Column(
                   children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.gps_fixed, color: ShiftleyTokens.primaryRed, size: 20),
-                        SizedBox(width: 12),
-                        Text('Current GPS Signal: EXCELLENT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      ],
-                    ),
+                    const Icon(Icons.check_circle, size: 48, color: Colors.green),
                     const SizedBox(height: 16),
-                    _buildDetailItem('Current Lat', '17.4148° N'),
-                    _buildDetailItem('Current Long', '78.4485° E'),
-                    _buildDetailItem('Distance to Target', '12 meters'),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.green[50], border: Border.all(color: Colors.green), borderRadius: BorderRadius.circular(4)),
-                      child: Row(children: const [Icon(Icons.check_circle, color: Colors.green, size: 16), SizedBox(width: 8), Text('Location Verified (within 100m range)', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11))]),
+                    Text('Location Captured Successfully', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text('Lat: ${_currentPosition?.latitude.toStringAsFixed(6)}, Lng: ${_currentPosition?.longitude.toStringAsFixed(6)}', style: ShiftleyTokens.caption),
+                    const SizedBox(height: 24),
+                    SButton(
+                      text: 'Re-capture Location',
+                      type: SButtonType.secondary, 
+                      onPressed: _captureLocation,
                     ),
                   ],
                 ),
@@ -313,7 +432,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   Widget _buildDrawer() {
     return Consumer(
       builder: (context, ref, child) {
-        final profileAsync = ref.watch(verifierProfileProvider);
+        final profileAsync = ref.watch(userProfileProvider);
 
         return Drawer(
           backgroundColor: ShiftleyTokens.paperWhite,
@@ -339,30 +458,33 @@ class _VerifierScreenState extends State<VerifierScreen> {
                         height: 84,
                         decoration: BoxDecoration(
                           color: ShiftleyTokens.secondaryCyan,
-                          border: Border.all(color: ShiftleyTokens.paperWhite, width: 3),
+                          border: Border.all(color: ShiftleyTokens.inkBlack, width: 3),
                           shape: BoxShape.circle,
-                          image: DecorationImage(
-                            image: NetworkImage(_getFullUrl(profile.profilePhotoUrl)),
-                            fit: BoxFit.cover,
-                          ),
+                          image: (profile['profile_photo_url'] != null && profile['profile_photo_url'].isNotEmpty) 
+                            ? DecorationImage(
+                                image: NetworkImage(_getFullUrl(profile['profile_photo_url'])),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
                         ),
+                        child: (profile['profile_photo_url'] == null || profile['profile_photo_url'].isEmpty)
+                          ? const Icon(Icons.person, size: 48, color: ShiftleyTokens.inkBlack)
+                          : null,
                       ),
                       const SizedBox(height: ShiftleyTokens.spaceL),
                       Text(
-                        profile.fullName ?? 'Verifier Staff',
+                        profile['full_name'] ?? 'Verifier Staff',
                         style: const TextStyle(color: ShiftleyTokens.paperWhite, fontSize: 24, fontWeight: FontWeight.w900, fontFamily: 'Figtree'),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        profile.email ?? 'auditor@shiftley.in',
+                        profile['email'] ?? 'auditor@shiftley.in',
                         style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.secondaryCyan, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       const SizedBox(height: ShiftleyTokens.spaceL),
-                      _buildProfileMeta(Icons.phone_outlined, profile.phoneNumber ?? '+91 00000 00000'),
+                      _buildProfileMeta(Icons.phone_outlined, profile['phone_number'] ?? '+91 00000 00000'),
                       const SizedBox(height: 8),
-                      _buildProfileMeta(Icons.badge_outlined, profile.role ?? 'VERIFIER'),
-                      const SizedBox(height: 8),
-                      _buildProfileMeta(Icons.location_on_outlined, '${profile.lat.toStringAsFixed(4)}, ${profile.lng.toStringAsFixed(4)}'),
+                      _buildProfileMeta(Icons.badge_outlined, profile['role'] ?? 'VERIFIER'),
                       const SizedBox(height: 8),
                       _buildProfileMeta(Icons.verified_user_outlined, 'Aadhaar Verified', iconColor: Colors.greenAccent),
                     ],
@@ -425,43 +547,52 @@ class _VerifierScreenState extends State<VerifierScreen> {
 
   // ── Other Helpers ───────────────────────────────────────────
   Widget _buildQueueView(WidgetRef ref) {
-    final String roleFilter = _activeTabIndex == 0 ? 'EMPLOYER' : 'EMPLOYEE';
-    final queueAsync = ref.watch(verifierQueueProvider(type: roleFilter));
+    const String roleFilter = 'EMPLOYER';
+    final String statusFilter = _activeTabIndex == 0 ? 'PENDING' : 'VERIFIED';
+    final queueAsync = ref.watch(verifierQueueListProvider((type: roleFilter, status: statusFilter)));
 
-    return queueAsync.when(
-      loading: () => const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed))),
-      error: (err, stack) => Center(child: Padding(padding: const EdgeInsets.all(32.0), child: Text('Error: $err', style: ShiftleyTokens.caption))),
-      data: (items) {
-        return Column(
-          children: [
-            _buildStatusTabs(),
-            Padding(
-              padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Showing ${items.length} tasks', style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
-                  const Icon(Icons.filter_list, size: 16),
-                ],
-              ),
-            ),
-            if (items.isEmpty)
-              Center(child: Padding(padding: const EdgeInsets.all(64.0), child: Text('No $roleFilter tasks found', style: ShiftleyTokens.caption)))
-            else
-              Column(
-                children: items.map((item) {
-                  return _buildQueueItem(
-                    id: item.userId,
-                    name: item.fullName,
-                    details: item.kycStatus,
-                    status: item.role,
-                    time: _formatDate(item.createdAt),
-                  );
-                }).toList(),
-              ),
-          ],
-        );
+    return SRefreshable(
+      onRefresh: () async {
+        ref.invalidate(verifierQueueListProvider);
+        ref.invalidate(userProfileProvider);
+        await Future.delayed(const Duration(seconds: 1));
       },
+      child: queueAsync.when(
+        loading: () => const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed))),
+        error: (err, stack) => Center(child: Padding(padding: const EdgeInsets.all(32.0), child: Text('Error: $err', style: ShiftleyTokens.caption))),
+        data: (items) {
+          return Column(
+            children: [
+              _buildStatusTabs(),
+              Padding(
+                padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Showing ${items.length} tasks', style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
+                    const Icon(Icons.filter_list, size: 16),
+                  ],
+                ),
+              ),
+              if (items.isEmpty)
+                Center(child: Padding(padding: const EdgeInsets.all(64.0), child: Text('No $roleFilter tasks found', style: ShiftleyTokens.caption)))
+              else
+                Column(
+                  children: items.map((item) {
+                    return _buildQueueItem(
+                      id: item.userId,
+                      name: item.fullName,
+                      details: item.kycStatus,
+                      status: item.role,
+                      time: _formatDate(item.createdAt),
+                      phoneNumber: item.phoneNumber,
+                    );
+                  }).toList(),
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -472,29 +603,63 @@ class _VerifierScreenState extends State<VerifierScreen> {
     return '${diff.inDays}d ago';
   }
 
-  Widget _buildDetailsView(String id) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('General Information', style: ShiftleyTokens.h2), _buildStatusChip('Pending')]),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-          _buildDetailSection('Business Details', [_buildDetailItem('Legal Business Name', 'Taj Banjara Pvt Ltd'), _buildDetailItem('Trade Name', 'Taj Banjara'), _buildDetailItem('Business Type', 'Hospitality / Hotel'), _buildDetailItem('GST Number', '36AAAAA0000A1Z5'), _buildDetailItem('PAN Number', 'AAAAA0000A')]),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-          _buildDetailSection('Contact Information', [_buildDetailItem('Contact Person', 'Rajesh Gupta'), _buildDetailItem('Designation', 'General Manager'), _buildDetailItem('Phone Number', '+91 98765 43210'), _buildDetailItem('Official Email', 'admin@tajbanjara.com')]),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-          _buildDetailSection('Operational Address', [_buildDetailItem('Address Line 1', 'Road No. 1, Banjara Hills'), _buildDetailItem('City', 'Hyderabad'), _buildDetailItem('State', 'Telangana'), _buildDetailItem('PIN Code', '500034')]),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-          _buildDetailSection('Geo Location', [_buildDetailItem('Latitude', '17.4147° N'), _buildDetailItem('Longitude', '78.4484° E'), const SizedBox(height: ShiftleyTokens.spaceS), SButton(text: 'View on Google Maps', type: SButtonType.secondary, onPressed: () {})]),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-          _buildDetailSection('Bank Account Details', [_buildDetailItem('Account Holder', 'Taj Banjara Pvt Ltd'), _buildDetailItem('Account Number', '0011223344556677'), _buildDetailItem('IFSC Code', 'ICIC0000011'), _buildDetailItem('Bank Name', 'ICICI Bank'), _buildDetailItem('Account Type', 'Current Account')]),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-          _buildDetailSection('Uploaded Documents', [_buildDocumentItem('GST Certificate', 'gst_cert_36a.pdf'), _buildDocumentItem('PAN Card Copy', 'pan_card_taj.jpg'), _buildDocumentItem('FSSAI License', 'fssai_882.pdf'), _buildDocumentItem('Address Proof', 'utility_bill.pdf')]),
-          const SizedBox(height: ShiftleyTokens.spaceXXL),
-          Row(children: [Expanded(child: OutlinedButton(onPressed: () => setState(() => _currentView = VerifierView.rejection), style: OutlinedButton.styleFrom(foregroundColor: ShiftleyTokens.primaryRed, side: const BorderSide(color: ShiftleyTokens.primaryRed, width: 1.5), minimumSize: const Size(double.infinity, 54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('Reject Onboarding', style: TextStyle(fontWeight: FontWeight.bold)))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: ElevatedButton(onPressed: () => setState(() { _verifyStep = 1; _currentView = VerifierView.verifyFlow; }), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('Verify Now', style: TextStyle(fontWeight: FontWeight.bold))))]),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-        ],
+  Widget _buildDetailsView(WidgetRef ref, String id) {
+    final detailsAsync = ref.watch(employerDetailsProvider(id));
+
+    return detailsAsync.when(
+      loading: () => const Center(child: Padding(padding: EdgeInsets.all(64.0), child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed))),
+      error: (err, stack) => Center(child: Padding(padding: const EdgeInsets.all(32.0), child: Text('Error loading details: $err', style: ShiftleyTokens.caption))),
+      data: (profile) => SingleChildScrollView(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('General Information', style: ShiftleyTokens.h2), _buildStatusChip(profile.verificationStatus)]),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            _buildDetailSection('Business Details', [
+              _buildDetailItem('Legal Business Name', profile.businessName),
+              _buildDetailItem('Business Type', profile.businessType),
+              _buildDetailItem('GST Number', profile.gstNumber ?? 'N/A'),
+              _buildDetailItem('Aadhaar Last 4', profile.aadhaarLast4 ?? 'N/A'),
+            ]),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            _buildDetailSection('Contact Information', [
+              _buildDetailItem('Phone Number', profile.phoneNumber),
+              _buildDetailItem('Email Address', profile.email),
+            ]),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            _buildDetailSection('Operational Address', [
+              _buildDetailItem('Full Address', profile.businessAddress),
+            ]),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            _buildDetailSection('Geo Location', [
+              _buildDetailItem('Latitude', profile.lat.toStringAsFixed(6)),
+              _buildDetailItem('Longitude', profile.lng.toStringAsFixed(6)),
+              const SizedBox(height: ShiftleyTokens.spaceS),
+              SButton(
+                text: 'View on Google Maps', 
+                type: SButtonType.secondary, 
+                onPressed: () => _launchUrl('https://www.google.com/maps/search/?api=1&query=${profile.lat},${profile.lng}'),
+              ),
+            ]),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            _buildDetailSection('Uploaded Documents', [
+              if (profile.aadhaarUrl != null)
+                _buildDocumentItem('Aadhaar Document', 'aadhaar_proof.pdf', url: profile.aadhaarUrl),
+              ...profile.photoUrls.asMap().entries.map((entry) {
+                return _buildDocumentItem('Business Photo ${entry.key + 1}', 'business_${entry.key + 1}.jpg', url: entry.value);
+              }),
+            ]),
+            const SizedBox(height: ShiftleyTokens.spaceXXL),
+            if (profile.verificationStatus == 'PENDING')
+              Row(children: [
+                Expanded(child: OutlinedButton(onPressed: () => setState(() => _currentView = VerifierView.rejection), style: OutlinedButton.styleFrom(foregroundColor: ShiftleyTokens.primaryRed, side: const BorderSide(color: ShiftleyTokens.primaryRed, width: 1.5), minimumSize: const Size(double.infinity, 54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('Reject Onboarding', style: TextStyle(fontWeight: FontWeight.bold)))),
+                const SizedBox(width: ShiftleyTokens.spaceM),
+                Expanded(child: ElevatedButton(onPressed: () => setState(() { _verifyStep = 1; _currentView = VerifierView.verifyFlow; }), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0), minimumSize: const Size(double.infinity, 54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('Verify Now', style: TextStyle(fontWeight: FontWeight.bold)))),
+              ]),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+          ],
+        ),
       ),
     );
   }
@@ -507,30 +672,38 @@ class _VerifierScreenState extends State<VerifierScreen> {
   Widget _buildHistoryView(WidgetRef ref) {
     final historyAsync = ref.watch(verifierHistoryProvider);
 
-    return Column(children: [
-      Container(color: ShiftleyTokens.paperWhite, padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(children: [Row(children: [Expanded(child: _buildDatePicker('From Date', _fromDate, (date) => setState(() => _fromDate = date))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: _buildDatePicker('To Date', _toDate, (date) => setState(() => _toDate = date)))]), const SizedBox(height: ShiftleyTokens.spaceM), SizedBox(height: 48, child: TextField(decoration: InputDecoration(hintText: 'Search history...', prefixIcon: const Icon(Icons.search, size: 20), filled: true, fillColor: ShiftleyTokens.background, border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, contentPadding: EdgeInsets.zero)))])), 
-      const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1),
-      Padding(
-        padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
-        child: historyAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),
-          error: (err, stack) => Text('Error: $err'),
-          data: (audits) {
-            if (audits.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: Text('No history found', style: ShiftleyTokens.caption)));
-            return Column(
-              children: audits.map((audit) {
-                return _buildHistoryItem(
-                  'User: ${audit.userId.substring(0, 8)}',
-                  audit.status,
-                  _formatDate(audit.createdAt),
-                  audit.notes,
+    return SRefreshable(
+      onRefresh: () async {
+        ref.invalidate(verifierHistoryProvider);
+        await Future.delayed(const Duration(seconds: 1));
+      },
+      child: Column(
+        children: [
+          Container(color: ShiftleyTokens.paperWhite, padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(children: [Row(children: [Expanded(child: _buildDatePicker('From Date', _fromDate, (date) => setState(() => _fromDate = date))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: _buildDatePicker('To Date', _toDate, (date) => setState(() => _toDate = date)))]), const SizedBox(height: ShiftleyTokens.spaceM), SizedBox(height: 48, child: TextField(decoration: InputDecoration(hintText: 'Search history...', prefixIcon: const Icon(Icons.search, size: 20), filled: true, fillColor: ShiftleyTokens.background, border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, contentPadding: EdgeInsets.zero)))])), 
+          const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1),
+          Padding(
+            padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+            child: historyAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),
+              error: (err, stack) => Text('Error: $err'),
+              data: (audits) {
+                if (audits.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: Text('No history found', style: ShiftleyTokens.caption)));
+                return Column(
+                  children: audits.map((audit) {
+                    return _buildHistoryItem(
+                      'User: ${audit.userId.substring(0, 8)}',
+                      audit.status,
+                      _formatDate(audit.createdAt),
+                      audit.notes,
+                    );
+                  }).toList(),
                 );
-              }).toList(),
-            );
-          },
-        ),
+              },
+            ),
+          ),
+        ],
       ),
-    ]);
+    );
   }
 
   Widget _buildDatePicker(String label, DateTime? date, Function(DateTime) onSelect) {
@@ -549,13 +722,11 @@ class _VerifierScreenState extends State<VerifierScreen> {
         color: ShiftleyTokens.paperWhite, 
         border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 1.5))
       ), 
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal, 
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceL), 
         child: Row(
           children: [
             _buildTab('PENDING', 0), 
-            _buildTab('IN PROGRESS', 1), 
             _buildTab('COMPLETED', 2)
           ]
         )
@@ -568,13 +739,39 @@ class _VerifierScreenState extends State<VerifierScreen> {
     return GestureDetector(onTap: () => setState(() => _activeTabIndex = index), child: Container(padding: const EdgeInsets.symmetric(horizontal: ShiftleyTokens.spaceM, vertical: 16), decoration: BoxDecoration(border: Border(bottom: BorderSide(color: isActive ? ShiftleyTokens.primaryRed : Colors.transparent, width: 3))), child: Text(label, style: TextStyle(color: isActive ? ShiftleyTokens.inkBlack : ShiftleyTokens.mutedText, fontWeight: isActive ? FontWeight.bold : FontWeight.w500, fontSize: 13))));
   }
 
-  Widget _buildQueueItem({required String id, required String name, required String details, required String status, required String time}) {
-    return Container(margin: const EdgeInsets.only(bottom: ShiftleyTokens.spaceL), padding: const EdgeInsets.all(ShiftleyTokens.spaceL), decoration: BoxDecoration(color: ShiftleyTokens.paperWhite, border: ShiftleyTokens.primaryBorder, borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)), child: Column(children: [Row(children: [Container(padding: const EdgeInsets.all(ShiftleyTokens.spaceS), decoration: BoxDecoration(color: ShiftleyTokens.secondaryCyan, border: Border.all(color: ShiftleyTokens.inkBlack, width: 1.5), shape: BoxShape.circle), child: const Icon(Icons.business_outlined, color: ShiftleyTokens.inkBlack, size: 20)), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: ShiftleyTokens.bodyLarge), const SizedBox(height: 2), Text('EMPLOYER • $details', style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold))])), Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(time, style: ShiftleyTokens.caption), const SizedBox(height: 4), _buildStatusChip(status)])]), const SizedBox(height: ShiftleyTokens.spaceXL), Row(children: [Expanded(child: OutlinedButton(onPressed: () => setState(() { _selectedEmployerId = id; _currentView = VerifierView.details; }), style: OutlinedButton.styleFrom(foregroundColor: ShiftleyTokens.inkBlack, side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 1.5), minimumSize: const Size(double.infinity, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: ElevatedButton(onPressed: () => setState(() { _selectedEmployerId = id; _verifyStep = 1; _currentView = VerifierView.verifyFlow; }), style: ElevatedButton.styleFrom(backgroundColor: ShiftleyTokens.inkBlack, foregroundColor: ShiftleyTokens.paperWhite, minimumSize: const Size(double.infinity, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('Verify Now', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))))])]));
+  Widget _buildQueueItem({required String id, required String name, required String details, required String status, required String time, required String phoneNumber}) {
+    return Container(margin: const EdgeInsets.only(bottom: ShiftleyTokens.spaceL), padding: const EdgeInsets.all(ShiftleyTokens.spaceL), decoration: BoxDecoration(color: ShiftleyTokens.paperWhite, border: ShiftleyTokens.primaryBorder, borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)), child: Column(children: [Row(children: [Container(padding: const EdgeInsets.all(ShiftleyTokens.spaceS), decoration: BoxDecoration(color: ShiftleyTokens.secondaryCyan, border: Border.all(color: ShiftleyTokens.inkBlack, width: 1.5), shape: BoxShape.circle), child: const Icon(Icons.business_outlined, color: ShiftleyTokens.inkBlack, size: 20)), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: ShiftleyTokens.bodyLarge), const SizedBox(height: 2), Text('EMPLOYER • $details', style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)), const SizedBox(height: 2), Text(phoneNumber, style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.w600))])), Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(time, style: ShiftleyTokens.caption), const SizedBox(height: 4), _buildStatusChip(status)])]), const SizedBox(height: ShiftleyTokens.spaceXL), Row(children: [Expanded(child: OutlinedButton(onPressed: () => setState(() { _selectedEmployerId = id; _currentView = VerifierView.details; }), style: OutlinedButton.styleFrom(foregroundColor: ShiftleyTokens.inkBlack, side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 1.5), minimumSize: const Size(double.infinity, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: ElevatedButton(onPressed: () => _launchUrl('tel:$phoneNumber'), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: ShiftleyTokens.paperWhite, side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0), minimumSize: const Size(double.infinity, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('Call Now', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))))])]));
   }
 
   Widget _buildStatusChip(String status) {
-    final bool isInProgress = status == 'In Progress';
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: isInProgress ? ShiftleyTokens.secondaryCyan : ShiftleyTokens.background, border: Border.all(color: ShiftleyTokens.inkBlack, width: 1.0), borderRadius: BorderRadius.circular(4)), child: Text(status.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.inkBlack)));
+    Color bgColor = ShiftleyTokens.background;
+    Color textColor = ShiftleyTokens.inkBlack;
+    
+    final upperStatus = status.toUpperCase();
+    
+    if (upperStatus == 'VERIFIED' || upperStatus == 'APPROVED') {
+      bgColor = Colors.green[100]!;
+      textColor = Colors.green[900]!;
+    } else if (upperStatus == 'REJECTED') {
+      bgColor = Colors.red[100]!;
+      textColor = Colors.red[900]!;
+    } else if (upperStatus == 'PENDING' || upperStatus == 'IN PROGRESS') {
+      bgColor = ShiftleyTokens.secondaryCyan;
+      textColor = ShiftleyTokens.inkBlack;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
+      decoration: BoxDecoration(
+        color: bgColor, 
+        border: Border.all(color: ShiftleyTokens.inkBlack, width: 1.0), 
+        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal / 2)
+      ), 
+      child: Text(
+        upperStatus, 
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: textColor)
+      )
+    );
   }
 
   Widget _buildDetailSection(String title, List<Widget> items) {
@@ -585,8 +782,40 @@ class _VerifierScreenState extends State<VerifierScreen> {
     return Padding(padding: const EdgeInsets.symmetric(vertical: 8.0), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(flex: 2, child: Text(label, style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold))), Expanded(flex: 3, child: Text(value, style: ShiftleyTokens.bodyMedium))]));
   }
 
-  Widget _buildDocumentItem(String label, String fileName) {
-    return Padding(padding: const EdgeInsets.symmetric(vertical: 8.0), child: Row(children: [const Icon(Icons.description_outlined, size: 20, color: ShiftleyTokens.mutedText), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)), Text(fileName, style: ShiftleyTokens.caption)])), TextButton(onPressed: () {}, child: const Text('VIEW', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue)))]));
+  Widget _buildDocumentItem(String label, String fileName, {String? url}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0), 
+      child: Row(
+        children: [
+          const Icon(Icons.description_outlined, size: 20, color: ShiftleyTokens.mutedText), 
+          const SizedBox(width: 12), 
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, 
+              children: [
+                Text(label, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)), 
+                Text(fileName, style: ShiftleyTokens.caption)
+              ]
+            )
+          ), 
+          TextButton(
+            onPressed: url != null ? () => _launchUrl(_getFullUrl(url)) : null, 
+            child: const Text('VIEW', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue))
+          )
+        ]
+      )
+    );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch URL')),
+        );
+      }
+    }
   }
 
   Widget _buildDrawerItem(IconData icon, String label, bool isActive, {bool isDestructive = false, required VoidCallback onTap}) {

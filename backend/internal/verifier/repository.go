@@ -11,10 +11,11 @@ import (
 )
 
 type Repository interface {
-	GetPendingQueue(ctx context.Context, userType string, limit int) ([]QueueItem, error)
+	GetPendingQueue(ctx context.Context, userType string, status string, limit int) ([]QueueItem, error)
 	SubmitVerification(ctx context.Context, audit *VerificationAudit, kycStatus string) error
 	GetVerificationHistory(ctx context.Context, verifierID uuid.UUID, limit int) ([]VerificationAudit, error)
 	GetVerifierProfile(ctx context.Context, userID uuid.UUID) (*VerifierProfile, error)
+	GetEmployerDetails(ctx context.Context, userID uuid.UUID) (*auth.EmployerProfile, error)
 }
 
 type QueueItem struct {
@@ -24,6 +25,7 @@ type QueueItem struct {
 	Role          string    `json:"role"`
 	KYCStatus     string    `json:"kyc_status"`
 	MaskedAadhaar string    `json:"masked_aadhaar"`
+	PhoneNumber   string    `json:"phone_number"`
 	CreatedAt     time.Time `json:"created_at"`
 }
 
@@ -35,13 +37,17 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) GetPendingQueue(ctx context.Context, userType string, limit int) ([]QueueItem, error) {
+func (r *repository) GetPendingQueue(ctx context.Context, userType string, status string, limit int) ([]QueueItem, error) {
 	var items []QueueItem
 	
+	if status == "" {
+		status = "PENDING"
+	}
+
 	query := r.db.WithContext(ctx).Table("shiftley.users").
-		Select("shiftley.users.id as user_id, shiftley.users.full_name, shiftley.users.email, shiftley.users.role, shiftley.kyc_sessions.status as kyc_status, shiftley.kyc_sessions.masked_aadhaar, shiftley.users.created_at").
+		Select("shiftley.users.id as user_id, shiftley.users.full_name, shiftley.users.email, shiftley.users.phone_number, shiftley.users.role, shiftley.kyc_sessions.status as kyc_status, shiftley.kyc_sessions.masked_aadhaar, shiftley.users.created_at").
 		Joins("JOIN shiftley.kyc_sessions ON shiftley.kyc_sessions.user_id = shiftley.users.id").
-		Where("shiftley.kyc_sessions.status = ?", "PENDING")
+		Where("shiftley.kyc_sessions.status = ?", status)
 
 	if userType != "" {
 		query = query.Where("shiftley.users.role = ?", userType)
@@ -90,6 +96,19 @@ func (r *repository) GetVerifierProfile(ctx context.Context, userID uuid.UUID) (
 		Select("shiftley.verifier_profiles.id, shiftley.verifier_profiles.user_id, shiftley.verifier_profiles.profile_photo_url, shiftley.verifier_profiles.aadhaar_url, shiftley.verifier_profiles.lat, shiftley.verifier_profiles.lng, shiftley.verifier_profiles.created_at, shiftley.users.full_name, shiftley.users.email, shiftley.users.phone_number, shiftley.users.role").
 		Joins("JOIN shiftley.users ON shiftley.users.id = shiftley.verifier_profiles.user_id").
 		Where("shiftley.verifier_profiles.user_id = ?", userID).
+		First(&profile).Error
+	if err != nil {
+		return nil, err
+	}
+	return &profile, nil
+}
+
+func (r *repository) GetEmployerDetails(ctx context.Context, userID uuid.UUID) (*auth.EmployerProfile, error) {
+	var profile auth.EmployerProfile
+	err := r.db.WithContext(ctx).Table("shiftley.employer_profiles").
+		Select("shiftley.employer_profiles.*, shiftley.users.email as email, shiftley.users.phone_number as phone_number").
+		Joins("JOIN shiftley.users ON shiftley.users.id = shiftley.employer_profiles.user_id").
+		Where("shiftley.employer_profiles.user_id = ?", userID).
 		First(&profile).Error
 	if err != nil {
 		return nil, err

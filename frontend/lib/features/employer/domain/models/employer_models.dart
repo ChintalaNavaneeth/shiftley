@@ -15,12 +15,18 @@ class EmployerProfile {
   final String? gstNumber;
   @JsonKey(name: 'business_address')
   final String businessAddress;
+  @JsonKey(defaultValue: '')
+  final String email;
+  @JsonKey(name: 'phone_number', defaultValue: '')
+  final String phoneNumber;
   final double lat;
   final double lng;
   @JsonKey(name: 'verification_status')
   final String verificationStatus;
   @JsonKey(name: 'aadhaar_last_4')
   final String? aadhaarLast4;
+  @JsonKey(name: 'aadhaar_url')
+  final String? aadhaarUrl;
   @JsonKey(name: 'photo_urls')
   final List<String> photoUrls;
 
@@ -31,10 +37,13 @@ class EmployerProfile {
     required this.businessType,
     this.gstNumber,
     required this.businessAddress,
+    required this.email,
+    required this.phoneNumber,
     required this.lat,
     required this.lng,
     required this.verificationStatus,
     this.aadhaarLast4,
+    this.aadhaarUrl,
     required this.photoUrls,
   });
 

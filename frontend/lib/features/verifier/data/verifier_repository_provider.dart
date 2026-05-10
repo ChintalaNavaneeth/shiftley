@@ -4,5 +4,6 @@ import 'verifier_repository.dart';
 
 final verifierRepositoryProvider = Provider<VerifierRepository>((ref) {
   final dio = ref.watch(dioProvider);
-  return VerifierRepository(dio);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return VerifierRepository(dio, prefs);
 });

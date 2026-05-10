@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/models/auth_models.dart';
 
 class AuthRepository {
   final Dio _dio;
+  final SharedPreferences _prefs;
 
-  AuthRepository(this._dio);
+  AuthRepository(this._dio, this._prefs);
 
   Future<AuthResponse> sendOtp(SendOtpRequest request) async {
     try {
@@ -48,6 +51,30 @@ class AuthRepository {
   Future<void> logout() async {
     try {
       await _dio.post('auth/logout', options: Options(extra: {'no-retry': true}));
+    } finally {
+      // Always clear local cache on logout regardless of API success
+      await _prefs.clear(); 
+    }
+  }
+
+  Future<Map<String, dynamic>> getMe() async {
+    try {
+      const profileKey = 'cached_user_profile';
+      
+      // 1. Try cache
+      final cachedJson = _prefs.getString(profileKey);
+      if (cachedJson != null) {
+        return jsonDecode(cachedJson);
+      }
+
+      // 2. Fetch API
+      final response = await _dio.get('auth/me');
+      final data = response.data['data'];
+      
+      // 3. Store cache
+      await _prefs.setString(profileKey, jsonEncode(data));
+      
+      return data;
     } catch (e) {
       rethrow;
     }
@@ -55,7 +82,7 @@ class AuthRepository {
 
   Future<List<Category>> getTaxonomy() async {
     try {
-      final response = await _dio.get('auth/taxonomy');
+      final response = await _dio.get('taxonomy');
       final List<dynamic> data = response.data['data'];
       return data.map((e) => Category.fromJson(e)).toList();
     } catch (e) {

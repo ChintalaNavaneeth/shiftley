@@ -13,6 +13,7 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
       role: json['role'] as String,
       kycStatus: json['kyc_status'] as String,
       maskedAadhaar: json['masked_aadhaar'] as String,
+      phoneNumber: json['phone_number'] as String? ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
 
@@ -23,6 +24,7 @@ Map<String, dynamic> _$QueueItemToJson(QueueItem instance) => <String, dynamic>{
       'role': instance.role,
       'kyc_status': instance.kycStatus,
       'masked_aadhaar': instance.maskedAadhaar,
+      'phone_number': instance.phoneNumber,
       'created_at': instance.createdAt.toIso8601String(),
     };
 
