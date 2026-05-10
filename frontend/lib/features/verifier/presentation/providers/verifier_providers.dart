@@ -7,8 +7,8 @@ final verifierQueueListProvider = FutureProvider.family<List<QueueItem>, ({Strin
   return ref.watch(verifierRepositoryProvider).getQueue(type: args.type, status: args.status);
 });
 
-final verifierHistoryProvider = FutureProvider<List<VerificationAudit>>((ref) {
-  return ref.watch(verifierRepositoryProvider).getHistory();
+final verifierHistoryListProvider = FutureProvider.family<List<VerificationAudit>, ({String? from, String? to, String? query})>((ref, args) {
+  return ref.watch(verifierRepositoryProvider).getHistory(from: args.from, to: args.to, query: args.query);
 });
 
 final verifierProfileProvider = FutureProvider<VerifierProfile>((ref) {

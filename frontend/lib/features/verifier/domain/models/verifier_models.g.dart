@@ -32,6 +32,7 @@ VerificationAudit _$VerificationAuditFromJson(Map<String, dynamic> json) =>
     VerificationAudit(
       id: json['id'] as String,
       userId: json['user_id'] as String,
+      userFullName: json['user_full_name'] as String?,
       verifierId: json['verifier_id'] as String,
       status: json['status'] as String,
       notes: json['notes'] as String,
@@ -46,6 +47,7 @@ Map<String, dynamic> _$VerificationAuditToJson(VerificationAudit instance) =>
     <String, dynamic>{
       'id': instance.id,
       'user_id': instance.userId,
+      'user_full_name': instance.userFullName,
       'verifier_id': instance.verifierId,
       'status': instance.status,
       'notes': instance.notes,

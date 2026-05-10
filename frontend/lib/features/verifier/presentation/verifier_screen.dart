@@ -19,8 +19,9 @@ import 'package:shiftley_frontend/features/verifier/data/verifier_repository_pro
 import 'package:shiftley_frontend/features/auth/presentation/providers/profile_provider.dart';
 import 'package:shiftley_frontend/features/verifier/presentation/widgets/selfie_capture_screen.dart';
 import 'dart:io';
+import 'package:shiftley_frontend/features/verifier/domain/models/verifier_models.dart';
 
-enum VerifierView { queue, details, history, rejection, verifyFlow, success, support, faq, settings }
+enum VerifierView { queue, details, history, historyDetails, rejection, verifyFlow, success, support, faq, settings }
 
 class VerifierScreen extends StatefulWidget {
   const VerifierScreen({super.key});
@@ -33,6 +34,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   VerifierView _currentView = VerifierView.queue;
   int _activeTabIndex = 0;
   String? _selectedEmployerId;
+  VerificationAudit? _selectedAudit;
   String _rejectionReason = '';
   int _verifyStep = 1; 
   bool _isVerifying = false;
@@ -48,6 +50,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   // History Filters
   DateTime? _fromDate;
   DateTime? _toDate;
+  String _historySearchQuery = '';
 
   @override
   void initState() {
@@ -108,6 +111,8 @@ class _VerifierScreenState extends State<VerifierScreen> {
     setState(() {
       if (_currentView == VerifierView.rejection || _currentView == VerifierView.verifyFlow) {
         _currentView = VerifierView.details;
+      } else if (_currentView == VerifierView.historyDetails) {
+        _currentView = VerifierView.history;
       } else if (_currentView == VerifierView.support || _currentView == VerifierView.faq || _currentView == VerifierView.settings) {
         _currentView = VerifierView.queue;
       } else {
@@ -121,6 +126,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
       case VerifierView.queue: return 'Verification Queue';
       case VerifierView.details: return 'Employer Details';
       case VerifierView.history: return 'Audit History';
+      case VerifierView.historyDetails: return 'Audit Details';
       case VerifierView.rejection: return 'Reject Onboarding';
       case VerifierView.verifyFlow: return 'On-Site Verification';
       case VerifierView.success: return 'Verification Complete';
@@ -135,6 +141,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
       case VerifierView.queue: return _buildQueueView(ref);
       case VerifierView.details: return _buildDetailsView(ref, _selectedEmployerId!);
       case VerifierView.history: return _buildHistoryView(ref);
+      case VerifierView.historyDetails: return _buildHistoryDetailsView();
       case VerifierView.rejection: return _buildRejectionView();
       case VerifierView.verifyFlow: return _buildVerifyFlow(ref);
       case VerifierView.success: return _buildSuccessView();
@@ -670,16 +677,54 @@ class _VerifierScreenState extends State<VerifierScreen> {
   }
 
   Widget _buildHistoryView(WidgetRef ref) {
-    final historyAsync = ref.watch(verifierHistoryProvider);
+    final String? fromStr = _fromDate?.toIso8601String().split('T')[0];
+    final String? toStr = _toDate?.toIso8601String().split('T')[0];
+    
+    final historyAsync = ref.watch(verifierHistoryListProvider((
+      from: fromStr, 
+      to: toStr, 
+      query: _historySearchQuery.isEmpty ? null : _historySearchQuery
+    )));
 
     return SRefreshable(
       onRefresh: () async {
-        ref.invalidate(verifierHistoryProvider);
+        ref.invalidate(verifierHistoryListProvider);
         await Future.delayed(const Duration(seconds: 1));
       },
       child: Column(
         children: [
-          Container(color: ShiftleyTokens.paperWhite, padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(children: [Row(children: [Expanded(child: _buildDatePicker('From Date', _fromDate, (date) => setState(() => _fromDate = date))), const SizedBox(width: ShiftleyTokens.spaceM), Expanded(child: _buildDatePicker('To Date', _toDate, (date) => setState(() => _toDate = date)))]), const SizedBox(height: ShiftleyTokens.spaceM), SizedBox(height: 48, child: TextField(decoration: InputDecoration(hintText: 'Search history...', prefixIcon: const Icon(Icons.search, size: 20), filled: true, fillColor: ShiftleyTokens.background, border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, contentPadding: EdgeInsets.zero)))])), 
+          Container(
+            color: ShiftleyTokens.paperWhite, 
+            padding: const EdgeInsets.all(ShiftleyTokens.spaceL), 
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: _buildDatePicker('From Date', _fromDate, (date) => setState(() => _fromDate = date))), 
+                    const SizedBox(width: ShiftleyTokens.spaceM), 
+                    Expanded(child: _buildDatePicker('To Date', _toDate, (date) => setState(() => _toDate = date)))
+                  ]
+                ), 
+                const SizedBox(height: ShiftleyTokens.spaceM), 
+                SizedBox(
+                  height: 48, 
+                  child: TextField(
+                    onChanged: (v) => setState(() => _historySearchQuery = v),
+                    decoration: InputDecoration(
+                      hintText: 'Search by user name...', 
+                      prefixIcon: const Icon(Icons.search, size: 20), 
+                      filled: true, 
+                      fillColor: ShiftleyTokens.background, 
+                      border: ShiftleyTokens.primaryInputBorder, 
+                      enabledBorder: ShiftleyTokens.primaryInputBorder, 
+                      focusedBorder: ShiftleyTokens.focusInputBorder, 
+                      contentPadding: EdgeInsets.zero
+                    )
+                  )
+                )
+              ]
+            )
+          ), 
           const Divider(color: ShiftleyTokens.inkBlack, thickness: 1.5, height: 1),
           Padding(
             padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
@@ -691,10 +736,14 @@ class _VerifierScreenState extends State<VerifierScreen> {
                 return Column(
                   children: audits.map((audit) {
                     return _buildHistoryItem(
-                      'User: ${audit.userId.substring(0, 8)}',
+                      audit.userFullName ?? 'User: ${audit.userId.substring(0, 8)}',
                       audit.status,
                       _formatDate(audit.createdAt),
                       audit.notes,
+                      onTap: () => setState(() {
+                        _selectedAudit = audit;
+                        _currentView = VerifierView.historyDetails;
+                      }),
                     );
                   }).toList(),
                 );
@@ -706,13 +755,128 @@ class _VerifierScreenState extends State<VerifierScreen> {
     );
   }
 
+  Widget _buildHistoryDetailsView() {
+    if (_selectedAudit == null) return const Center(child: Text('No audit selected'));
+    final audit = _selectedAudit!;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Audit Evidence', style: ShiftleyTokens.h2),
+              _buildStatusChip(audit.status),
+            ],
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+          
+          _buildDetailSection('Business Information', [
+            _buildDetailItem('User ID', audit.userId),
+            _buildDetailItem('Full Name', audit.userFullName ?? 'N/A'),
+            _buildDetailItem('Audited On', _formatDate(audit.createdAt)),
+            _buildDetailItem('Status', audit.status),
+          ]),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+
+          _buildDetailSection('Verification Evidence', [
+            if (audit.verifierSelfieUrl != null)
+              _buildEvidenceItem('Auditor Selfie', audit.verifierSelfieUrl!),
+            if (audit.locationPhoto1Url != null)
+              _buildEvidenceItem('Business Photo 1', audit.locationPhoto1Url!),
+            const SizedBox(height: 8),
+            _buildDetailItem('Coordinates', '${audit.verifiedLat?.toStringAsFixed(6)}, ${audit.verifiedLng?.toStringAsFixed(6)}'),
+          ]),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+
+          _buildDetailSection('Audit Notes', [
+            Text(
+              audit.notes.isEmpty ? 'No notes provided.' : audit.notes,
+              style: ShiftleyTokens.bodyMedium,
+            ),
+          ]),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+          
+          SButton(
+            text: 'Back to History',
+            type: SButtonType.secondary,
+            onPressed: () => setState(() => _currentView = VerifierView.history),
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEvidenceItem(String label, String url) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Container(
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              border: ShiftleyTokens.primaryBorder,
+              borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+              image: DecorationImage(
+                image: NetworkImage(_getFullUrl(url)),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDatePicker(String label, DateTime? date, Function(DateTime) onSelect) {
     return GestureDetector(onTap: () async { final picked = await showDatePicker(context: context, initialDate: date ?? DateTime.now(), firstDate: DateTime(2023), lastDate: DateTime.now()); if (picked != null) onSelect(picked); }, child: Container(height: 48, padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: ShiftleyTokens.background, border: ShiftleyTokens.primaryBorder, borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(date == null ? label : '${date.day}/${date.month}/${date.year}', style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.bold)), const Icon(Icons.calendar_today, size: 16)])));
   }
 
-  Widget _buildHistoryItem(String name, String status, String date, String note) {
+  Widget _buildHistoryItem(String name, String status, String date, String note, {VoidCallback? onTap}) {
     final bool isApproved = status == 'APPROVED';
-    return Container(margin: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM), padding: const EdgeInsets.all(ShiftleyTokens.spaceM), decoration: BoxDecoration(color: ShiftleyTokens.paperWhite, border: ShiftleyTokens.primaryBorder, borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: ShiftleyTokens.bodyLarge), Text(note, style: ShiftleyTokens.caption), const SizedBox(height: 4), Text('Audited on $date', style: ShiftleyTokens.caption.copyWith(fontSize: 10))])), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: isApproved ? Colors.green[50] : Colors.red[50], border: Border.all(color: isApproved ? Colors.green : Colors.red), borderRadius: BorderRadius.circular(4)), child: Text(status, style: TextStyle(color: isApproved ? Colors.green[800] : Colors.red[800], fontWeight: FontWeight.bold, fontSize: 10)))]));
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM), 
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceM), 
+        decoration: BoxDecoration(
+          color: ShiftleyTokens.paperWhite, 
+          border: ShiftleyTokens.primaryBorder, 
+          borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)
+        ), 
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, 
+                children: [
+                  Text(name, style: ShiftleyTokens.bodyLarge), 
+                  Text(note, style: ShiftleyTokens.caption, maxLines: 1, overflow: TextOverflow.ellipsis), 
+                  const SizedBox(height: 4), 
+                  Text('Audited on $date', style: ShiftleyTokens.caption.copyWith(fontSize: 10))
+                ]
+              )
+            ), 
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+              decoration: BoxDecoration(
+                color: isApproved ? Colors.green[50] : Colors.red[50], 
+                border: Border.all(color: isApproved ? Colors.green : Colors.red), 
+                borderRadius: BorderRadius.circular(4)
+              ), 
+              child: Text(status, style: TextStyle(color: isApproved ? Colors.green[800] : Colors.red[800], fontWeight: FontWeight.bold, fontSize: 10))
+            )
+          ]
+        )
+      ),
+    );
   }
 
   Widget _buildStatusTabs() {

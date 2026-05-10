@@ -36,9 +36,14 @@ class VerifierRepository {
     }
   }
 
-  Future<List<VerificationAudit>> getHistory() async {
+  Future<List<VerificationAudit>> getHistory({String? from, String? to, String? query}) async {
     try {
-      final response = await _dio.get('verifier/history');
+      final Map<String, dynamic> params = {};
+      if (from != null) params['from'] = from;
+      if (to != null) params['to'] = to;
+      if (query != null) params['query'] = query;
+      
+      final response = await _dio.get('verifier/history', queryParameters: params);
       final List? data = response.data['data'];
       if (data == null) return [];
       return data.map((item) => VerificationAudit.fromJson(item)).toList();

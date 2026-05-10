@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"shiftley/internal/auth"
 	"shiftley/pkg/notify"
@@ -243,15 +244,31 @@ func (h *Handler) VerifyEmployee(c *gin.Context) {
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"status": kycStatus}, nil)
 }
 
-// GetHistory handles GET /api/v1/verifier/history
 func (h *Handler) GetHistory(c *gin.Context) {
 	verifierIDStr, _ := c.Get("userID")
 	verifierID, _ := uuid.Parse(verifierIDStr.(string))
 
+	fromStr := c.Query("from")
+	toStr := c.Query("to")
+	searchQuery := c.Query("query")
 	limitStr := c.DefaultQuery("limit", "20")
 	limit, _ := strconv.Atoi(limitStr)
 
-	history, err := h.repo.GetVerificationHistory(c.Request.Context(), verifierID, limit)
+	var from, to *time.Time
+	if fromStr != "" {
+		if t, err := time.Parse("2006-01-02", fromStr); err == nil {
+			from = &t
+		}
+	}
+	if toStr != "" {
+		if t, err := time.Parse("2006-01-02", toStr); err == nil {
+			// Set to end of day
+			t = t.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+			to = &t
+		}
+	}
+
+	history, err := h.repo.GetVerificationHistory(c.Request.Context(), verifierID, from, to, searchQuery, limit)
 	if err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to fetch history", nil)
 		return

@@ -39,6 +39,8 @@ class VerificationAudit {
   final String id;
   @JsonKey(name: 'user_id')
   final String userId;
+  @JsonKey(name: 'user_full_name')
+  final String? userFullName;
   @JsonKey(name: 'verifier_id')
   final String verifierId;
   final String status;
@@ -57,6 +59,7 @@ class VerificationAudit {
   VerificationAudit({
     required this.id,
     required this.userId,
+    this.userFullName,
     required this.verifierId,
     required this.status,
     required this.notes,

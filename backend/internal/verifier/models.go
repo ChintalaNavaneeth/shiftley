@@ -10,6 +10,7 @@ import (
 type VerificationAudit struct {
 	ID               uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	UserID           uuid.UUID      `gorm:"type:uuid;not null;index" json:"user_id"`
+	UserFullName     string         `gorm:"->" json:"user_full_name"`
 	VerifierID       uuid.UUID      `gorm:"type:uuid;not null;index" json:"verifier_id"`
 	Status           string         `gorm:"type:varchar(20);not null" json:"status"` // APPROVED, REJECTED
 	Notes            string         `gorm:"type:text" json:"notes"`

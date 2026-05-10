@@ -13,7 +13,7 @@ import (
 type Repository interface {
 	GetPendingQueue(ctx context.Context, userType string, status string, limit int) ([]QueueItem, error)
 	SubmitVerification(ctx context.Context, audit *VerificationAudit, kycStatus string) error
-	GetVerificationHistory(ctx context.Context, verifierID uuid.UUID, limit int) ([]VerificationAudit, error)
+	GetVerificationHistory(ctx context.Context, verifierID uuid.UUID, from, to *time.Time, query string, limit int) ([]VerificationAudit, error)
 	GetVerifierProfile(ctx context.Context, userID uuid.UUID) (*VerifierProfile, error)
 	GetEmployerDetails(ctx context.Context, userID uuid.UUID) (*auth.EmployerProfile, error)
 }
@@ -84,9 +84,25 @@ func (r *repository) SubmitVerification(ctx context.Context, audit *Verification
 	})
 }
 
-func (r *repository) GetVerificationHistory(ctx context.Context, verifierID uuid.UUID, limit int) ([]VerificationAudit, error) {
+func (r *repository) GetVerificationHistory(ctx context.Context, verifierID uuid.UUID, from, to *time.Time, query string, limit int) ([]VerificationAudit, error) {
 	var audits []VerificationAudit
-	err := r.db.WithContext(ctx).Where("verifier_id = ?", verifierID).Order("created_at DESC").Limit(limit).Find(&audits).Error
+	
+	dbQuery := r.db.WithContext(ctx).Table("shiftley.verification_audits").
+		Select("shiftley.verification_audits.*, shiftley.users.full_name as user_full_name").
+		Joins("JOIN shiftley.users ON shiftley.users.id = shiftley.verification_audits.user_id").
+		Where("verifier_id = ?", verifierID)
+
+	if from != nil {
+		dbQuery = dbQuery.Where("shiftley.verification_audits.created_at >= ?", from)
+	}
+	if to != nil {
+		dbQuery = dbQuery.Where("shiftley.verification_audits.created_at <= ?", to)
+	}
+	if query != "" {
+		dbQuery = dbQuery.Where("shiftley.users.full_name ILIKE ?", "%"+query+"%")
+	}
+
+	err := dbQuery.Order("shiftley.verification_audits.created_at DESC").Limit(limit).Scan(&audits).Error
 	return audits, err
 }
 
