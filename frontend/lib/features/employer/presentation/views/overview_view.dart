@@ -1,18 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shiftley_frontend/features/employer/data/employer_repository.dart';
+import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import 'attendance_view.dart';
 
-class OverviewView extends StatelessWidget {
+class OverviewView extends ConsumerWidget {
   const OverviewView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dashboardAsync = ref.watch(employerDashboardProvider);
+
+    return dashboardAsync.when(
+      data: (data) {
+        if (data.profile.verificationStatus == 'PENDING') {
+          return _buildPendingScreen();
+        }
+        if (data.profile.verificationStatus == 'REJECTED') {
+          return _buildRejectedScreen();
+        }
+        return _buildDashboard(context, data);
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+    );
+  }
+
+  Widget _buildDashboard(BuildContext context, dynamic data) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: ShiftleyTokens.spaceM),
-
-        // Upcoming Gigs Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -24,12 +43,80 @@ class OverviewView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: ShiftleyTokens.spaceM),
-
-        // Gig List
         _buildGigItem(context, 'Housekeeping Staff', 'Tomorrow, 09:00 AM', '4 Workers', 'OPEN'),
         _buildGigItem(context, 'Kitchen Assistant', 'May 06, 06:00 PM', '2 Workers', 'FILLED'),
         _buildGigItem(context, 'Front Desk Support', 'May 08, 10:00 AM', '1 Worker', 'DRAFT'),
       ],
+    );
+  }
+
+  Widget _buildPendingScreen() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.hourglass_empty, size: 80, color: ShiftleyTokens.primaryRed),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            const Text('VERIFICATION PENDING', style: ShiftleyTokens.h2, textAlign: TextAlign.center),
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            const Text(
+              'Your business profile is currently being reviewed by our auditors. This usually takes 24-48 hours.',
+              style: ShiftleyTokens.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            Container(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+              decoration: BoxDecoration(
+                color: ShiftleyTokens.secondaryCyan.withValues(alpha: 0.1),
+                border: Border.all(color: ShiftleyTokens.secondaryCyan, width: 2),
+                borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: ShiftleyTokens.secondaryCyan),
+                  SizedBox(width: ShiftleyTokens.spaceM),
+                  Expanded(
+                    child: Text(
+                      'You will be notified once your account is activated.',
+                      style: TextStyle(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRejectedScreen() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 80, color: ShiftleyTokens.primaryRed),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            const Text('VERIFICATION REJECTED', style: ShiftleyTokens.h2, textAlign: TextAlign.center),
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            const Text(
+              'Unfortunately, your business verification was not successful. Please review the comments below or contact support.',
+              style: ShiftleyTokens.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            SButton(
+              text: 'CONTACT SUPPORT',
+              onPressed: () {},
+            ),
+          ],
+        ),
+      ),
     );
   }
 

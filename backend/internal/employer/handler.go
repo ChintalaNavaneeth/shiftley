@@ -34,9 +34,9 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	userIDStr, _ := c.Get("userID")
 	userID, _ := uuid.Parse(userIDStr.(string))
 
-	var user auth.User
-	if err := h.db.First(&user, userID).Error; err != nil {
-		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "User not found", nil)
+	var profile auth.EmployerProfile
+	if err := h.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Employer profile not found", nil)
 		return
 	}
 
@@ -66,7 +66,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
-		"profile": user,
+		"profile": profile,
 		"stats":   stats,
 	}, nil)
 }

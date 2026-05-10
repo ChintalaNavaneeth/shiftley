@@ -69,32 +69,46 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
         if (mounted) {
           final authData = AuthData.fromJson(response.data as Map<String, dynamic>);
-          if (authData.isNewUser) {
-            // Navigate to onboarding
+          final actualRole = authData.user?.role;
+
+          // 1. Handle New Users (No account exists yet in DB)
+          if (authData.isNewUser && actualRole == null) {
             if (widget.role == 'WORKER') {
-              context.go('/onboarding/employee');
+              context.go('/onboarding/employee?phone=${Uri.encodeComponent(widget.phoneNumber)}');
             } else {
-              context.go('/onboarding/employer');
+              context.go('/onboarding/employer?phone=${Uri.encodeComponent(widget.phoneNumber)}');
+            }
+            return;
+          }
+
+          // 2. Handle Existing Users based on ACTUAL role from server
+          if (actualRole == 'WORKER') {
+            if (authData.isInitialSetupComplete == false) {
+              context.go('/onboarding/employee?phone=${Uri.encodeComponent(widget.phoneNumber)}');
+            } else {
+              context.go('/employee');
+            }
+          } else if (actualRole == 'EMPLOYER') {
+            if (authData.isInitialSetupComplete == false) {
+              context.go('/onboarding/employer?phone=${Uri.encodeComponent(widget.phoneNumber)}');
+            } else {
+              context.go('/employer');
+            }
+          } else if (actualRole == 'VERIFIER') {
+            if (authData.isInitialSetupComplete == false) {
+              context.go('/verifier/setup');
+            } else {
+              context.go('/verifier');
+            }
+          } else if (actualRole == 'SUPER_ADMIN' || actualRole == 'ADMIN') {
+            if (authData.isInitialSetupComplete == false) {
+              context.go('/admin/setup');
+            } else {
+              context.go('/admin');
             }
           } else {
-            // Navigate to dashboard based on role
-            if (widget.role == 'WORKER') {
-              context.go('/employee');
-            } else if (widget.role == 'EMPLOYER') {
-              context.go('/employer');
-            } else if (widget.role == 'VERIFIER') {
-              if (authData.isInitialSetupComplete == false) {
-                context.go('/verifier/setup');
-              } else {
-                context.go('/verifier');
-              }
-            } else {
-              if (authData.isInitialSetupComplete == false) {
-                context.go('/admin/setup');
-              } else {
-                context.go('/admin');
-              }
-            }
+            // Fallback for any other roles
+            context.go('/dev');
           }
         }
       } catch (e) {

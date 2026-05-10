@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // OnboardEmployerRequest represents the multipart/form-data for employer onboarding.
@@ -49,9 +50,10 @@ type Handler struct {
 	bucketLogos    string
 	bucketKYC      string
 	notify         *notify.NotifyService
+	authSvc        auth.Service
 }
 
-func NewHandler(db *gorm.DB, storage storage.Storage, bucketProfiles, bucketLogos, bucketKYC string, notifySvc *notify.NotifyService) *Handler {
+func NewHandler(db *gorm.DB, storage storage.Storage, bucketProfiles, bucketLogos, bucketKYC string, notifySvc *notify.NotifyService, authSvc auth.Service) *Handler {
 	return &Handler{
 		db:             db,
 		storage:        storage,
@@ -59,6 +61,7 @@ func NewHandler(db *gorm.DB, storage storage.Storage, bucketProfiles, bucketLogo
 		bucketLogos:    bucketLogos,
 		bucketKYC:      bucketKYC,
 		notify:         notifySvc,
+		authSvc:        authSvc,
 	}
 }
 
@@ -171,6 +174,7 @@ func (h *Handler) OnboardEmployer(c *gin.Context) {
 		"full_name":   fullName,
 		"email":       email,
 		"is_verified": false, // Stays unverified until physical check
+		"is_initial_setup_complete": true,
 	}).Error; err != nil {
 		tx.Rollback()
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update user", nil)
@@ -195,9 +199,12 @@ func (h *Handler) OnboardEmployer(c *gin.Context) {
 		},
 	}
 
-	if err := tx.Create(&employerProfile).Error; err != nil {
+	if err := tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}},
+		UpdateAll: true,
+	}).Create(&employerProfile).Error; err != nil {
 		tx.Rollback()
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to create employer profile", nil)
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to save employer profile", nil)
 		return
 	}
 
@@ -205,7 +212,23 @@ func (h *Handler) OnboardEmployer(c *gin.Context) {
 
 	h.notify.SendEmployerVerificationPending(employerPhone, fullName, businessName)
 
-	utils.RespondSuccess(c, http.StatusCreated, employerProfile, nil)
+	// Generate Session Tokens
+	accessToken, err := h.authSvc.GenerateToken(userID, "EMPLOYER", "session", 24)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to generate access token", nil)
+		return
+	}
+	refreshToken, err := h.authSvc.GenerateToken(userID, "EMPLOYER", "refresh", 24*7)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to generate refresh token", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusCreated, gin.H{
+		"profile":       employerProfile,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	}, nil)
 }
 
 // OnboardEmployee handles POST /api/v1/onboarding/employee
@@ -315,6 +338,7 @@ func (h *Handler) OnboardEmployee(c *gin.Context) {
 		"full_name":   fullName,
 		"email":       email,
 		"is_verified": true, // Employee auto-verified for MVP (or should it be false?)
+		"is_initial_setup_complete": true,
 	}).Error; err != nil {
 		tx.Rollback()
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update user", nil)
@@ -333,15 +357,34 @@ func (h *Handler) OnboardEmployee(c *gin.Context) {
 		Skills:          skillIds,
 	}
 
-	if err := tx.Create(&workerProfile).Error; err != nil {
+	if err := tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}},
+		UpdateAll: true,
+	}).Create(&workerProfile).Error; err != nil {
 		tx.Rollback()
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to create worker profile", nil)
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to save worker profile", nil)
 		return
 	}
 
 	tx.Commit()
 
-	utils.RespondSuccess(c, http.StatusCreated, workerProfile, nil)
+	// Generate Session Tokens
+	accessToken, err := h.authSvc.GenerateToken(userID, "WORKER", "session", 24)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to generate access token", nil)
+		return
+	}
+	refreshToken, err := h.authSvc.GenerateToken(userID, "WORKER", "refresh", 24*7)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to generate refresh token", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusCreated, gin.H{
+		"profile":       workerProfile,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	}, nil)
 }
 
 // OnboardVerifier handles POST /api/v1/onboarding/verifier
@@ -419,13 +462,32 @@ func (h *Handler) OnboardVerifier(c *gin.Context) {
 		Location:        fmt.Sprintf("POINT(%f %f)", lng, lat),
 	}
 
-	if err := tx.Create(&verifierProfile).Error; err != nil {
+	if err := tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}},
+		UpdateAll: true,
+	}).Create(&verifierProfile).Error; err != nil {
 		tx.Rollback()
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to create verifier profile", nil)
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to save verifier profile", nil)
 		return
 	}
 
 	tx.Commit()
 
-	utils.RespondSuccess(c, http.StatusCreated, verifierProfile, nil)
+	// Generate Session Tokens
+	accessToken, err := h.authSvc.GenerateToken(userID, "VERIFIER", "session", 24)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to generate access token", nil)
+		return
+	}
+	refreshToken, err := h.authSvc.GenerateToken(userID, "VERIFIER", "refresh", 24*7)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to generate refresh token", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusCreated, gin.H{
+		"profile":       verifierProfile,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	}, nil)
 }

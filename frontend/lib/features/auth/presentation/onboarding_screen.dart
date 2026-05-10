@@ -152,7 +152,45 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  bool _validateCurrentStep() {
+    if (_currentStep == 0) {
+      if (_fullNameController.text.trim().isEmpty) return _showError('Full Name is required');
+      if (_emailController.text.trim().isEmpty) return _showError('Email is required');
+      if (_phoneController.text.trim().isEmpty) return _showError('Phone Number is required');
+    } else if (_currentStep == 1) {
+      if (widget.role == 'WORKER') {
+        if (_selectedSkillIds.isEmpty) return _showError('Please select at least one skill');
+        if (_degreeController.text.trim().isEmpty) return _showError('Highest Degree is required');
+        if (_specializationController.text.trim().isEmpty) return _showError('Specialization is required');
+        if (_passingYearController.text.trim().isEmpty) return _showError('Passing Year is required');
+      } else {
+        if (_businessNameController.text.trim().isEmpty) return _showError('Business Name is required');
+        if (_businessTypeController.text.trim().isEmpty) return _showError('Business Type is required');
+        if (_businessAddressController.text.trim().isEmpty) return _showError('Business Address is required');
+        if (_businessPhoneController.text.trim().isEmpty) return _showError('Business Phone is required');
+      }
+    } else if (_currentStep == 2) {
+      if (widget.role == 'WORKER') {
+        if (_profilePicture == null) return _showError('Selfie is required');
+        if (_workerAadhaarPath == null) return _showError('Aadhaar Card PDF is required');
+      } else {
+        if (_aadhaarNumberController.text.trim().isEmpty) return _showError('Aadhaar Number is required');
+        if (_employerAadhaarPath == null) return _showError('Aadhaar Card PDF is required');
+        if (_businessPhotos.any((photo) => photo == null)) return _showError('All 3 Business Photos are required');
+      }
+      if (_currentPosition == null) return _showError('Location access is required');
+    }
+    return true;
+  }
+
+  bool _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: ShiftleyTokens.primaryRed));
+    return false;
+  }
+
   void _nextStep() {
+    if (!_validateCurrentStep()) return;
+
     if (_currentStep < 2) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -282,7 +320,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Shiftley.', style: ShiftleyTokens.h1),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () {
+                      if (_currentStep > 0) {
+                        _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                        setState(() => _currentStep--);
+                      } else {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/landing');
+                        }
+                      }
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: ShiftleyTokens.spaceS),
+                  const Text('Shiftley.', style: ShiftleyTokens.h1),
+                ],
+              ),
               Text('STEP ${_currentStep + 1} OF 3', style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
             ],
           ),
@@ -308,7 +368,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: ShiftleyTokens.spaceXL),
           _buildTextField('Full Name', _fullNameController, hint: 'As per Aadhaar'),
           _buildTextField('Email Address', _emailController, hint: 'name@example.com'),
-          _buildTextField('Phone Number', _phoneController, hint: '+91', enabled: false),
+          _buildTextField('Phone Number', _phoneController, hint: '+91 (Required)', readOnly: true),
         ],
       ),
     );
@@ -472,7 +532,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {String? hint, int maxLines = 1, bool enabled = true, TextInputType? keyboardType}) {
+  Widget _buildTextField(String label, TextEditingController controller, {String? hint, int maxLines = 1, bool enabled = true, bool readOnly = false, TextInputType? keyboardType}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
       child: Column(
@@ -484,6 +544,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             controller: controller,
             maxLines: maxLines,
             enabled: enabled,
+            readOnly: readOnly,
             keyboardType: keyboardType,
             decoration: InputDecoration(
               hintText: hint,

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/core/network/api_providers.dart';
+import 'package:shiftley_frontend/features/auth/data/auth_repository_provider.dart';
 import '../employer_screen.dart';
 
-class EmployerSidebar extends StatelessWidget {
+class EmployerSidebar extends ConsumerWidget {
   final EmployerTab activeTab;
   final Function(EmployerTab) onTabChanged;
 
@@ -13,7 +17,7 @@ class EmployerSidebar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Drawer(
       backgroundColor: ShiftleyTokens.paperWhite,
       child: Column(
@@ -34,6 +38,7 @@ class EmployerSidebar extends StatelessWidget {
                     letterSpacing: -1.0,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   'EMPLOYER',
                   style: ShiftleyTokens.caption.copyWith(
@@ -100,13 +105,23 @@ class EmployerSidebar extends StatelessWidget {
           // Subscription Usage Widget in Sidebar
           _buildSubscriptionStatus(),
 
-          const Divider(color: ShiftleyTokens.inkBlack, thickness: 1),
+          const Divider(color: ShiftleyTokens.inkBlack, thickness: 1, height: 1),
           _SidebarItem(
             icon: Icons.logout,
             label: 'Logout',
             isActive: false,
-            onTap: () {
-              // Handle logout
+            onTap: () async {
+              try {
+                // Show loading indicator or block UI if needed
+                await ref.read(authRepositoryProvider).logout();
+              } catch (e) {
+                debugPrint('Logout error: $e');
+              } finally {
+                await ref.read(tokenStorageProvider).clearTokens();
+                if (context.mounted) {
+                  context.go('/landing');
+                }
+              }
             },
           ),
           const SizedBox(height: ShiftleyTokens.spaceL),

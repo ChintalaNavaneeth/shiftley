@@ -17,6 +17,8 @@ import 'features/verifier/presentation/verifier_auth_screen.dart';
 import 'features/verifier/presentation/verifier_setup_screen.dart';
 
 
+import 'features/auth/presentation/onboarding_screen.dart';
+
 final _router = GoRouter(
   initialLocation: '/dev', // Temporary dev entry point
   routes: [
@@ -53,6 +55,20 @@ final _router = GoRouter(
           role: data['role'] as String,
           isSignUp: data['isSignUp'] as bool,
         );
+      },
+    ),
+    GoRoute(
+      path: '/onboarding/employee',
+      builder: (context, state) {
+        final phone = state.uri.queryParameters['phone'] ?? '';
+        return OnboardingScreen(role: 'WORKER', phoneNumber: phone);
+      },
+    ),
+    GoRoute(
+      path: '/onboarding/employer',
+      builder: (context, state) {
+        final phone = state.uri.queryParameters['phone'] ?? '';
+        return OnboardingScreen(role: 'EMPLOYER', phoneNumber: phone);
       },
     ),
     GoRoute(

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -90,7 +91,7 @@ type WorkerProfile struct {
 	Degree            string         `json:"degree"`
 	Specialization    string         `json:"specialization"`
 	PassingYear       int            `json:"passing_year"`
-	Skills            []string       `gorm:"type:text[]" json:"skill_ids"` // Simplified Skill IDs
+	Skills            pq.StringArray `gorm:"type:text[]" json:"skill_ids"` // Simplified Skill IDs
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
 	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`
@@ -113,7 +114,7 @@ type EmployerProfile struct {
 	VerificationStatus string         `gorm:"default:'PENDING'" json:"verification_status"`
 	AadhaarLast4      string         `json:"aadhaar_last_4"`
 	AadhaarURL        string         `json:"aadhaar_url"`
-	PhotoURLs         []string       `gorm:"type:text[]" json:"photo_urls"`
+	PhotoURLs         pq.StringArray `gorm:"type:text[]" json:"photo_urls"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
 	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`

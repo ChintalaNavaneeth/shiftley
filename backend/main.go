@@ -134,7 +134,7 @@ func main() {
 	authSvc := auth.NewService(authRepo, cfg.JWTSecret)
 	authHandler := auth.NewHandler(authSvc, notifySvc, db)
 
-	onboardingHandler := onboarding.NewHandler(db, storageSvc, cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC, notifySvc)
+	onboardingHandler := onboarding.NewHandler(db, storageSvc, cfg.BucketProfiles, cfg.BucketLogos, cfg.BucketKYC, notifySvc, authSvc)
 
 	adminHandler := admin.NewHandler(db, rdb)
 	taxonomyAdminHandler := admin.NewTaxonomyHandler(db)

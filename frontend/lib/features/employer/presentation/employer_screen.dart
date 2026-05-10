@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/features/employer/data/employer_repository.dart';
 import 'widgets/employer_sidebar.dart';
 import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 import 'views/overview_view.dart';
@@ -13,24 +15,31 @@ import 'views/settings_view.dart';
 
 enum EmployerTab { overview, shifts, post, subscription, profile, support, faq, settings }
 
-class EmployerScreen extends StatefulWidget {
+class EmployerScreen extends ConsumerStatefulWidget {
   const EmployerScreen({super.key});
 
   @override
-  State<EmployerScreen> createState() => _EmployerScreenState();
+  ConsumerState<EmployerScreen> createState() => _EmployerScreenState();
 }
 
-class _EmployerScreenState extends State<EmployerScreen> {
+class _EmployerScreenState extends ConsumerState<EmployerScreen> {
   EmployerTab _activeTab = EmployerTab.overview;
 
   @override
   Widget build(BuildContext context) {
+    final dashboardAsync = ref.watch(employerDashboardProvider);
+    final businessName = dashboardAsync.when(
+      data: (data) => data.profile.businessName,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: ShiftleyTokens.background,
-        appBar: _buildAppBar(),
+        appBar: _buildAppBar(businessName),
         drawer: EmployerSidebar(
           activeTab: _activeTab,
           onTabChanged: (tab) {
@@ -41,8 +50,8 @@ class _EmployerScreenState extends State<EmployerScreen> {
         body: SafeArea(
           child: SRefreshable(
             onRefresh: () async {
-              // Simulate network delay
-              await Future.delayed(const Duration(seconds: 1));
+              // Refresh dashboard data
+              return ref.refresh(employerDashboardProvider.future);
             },
             child: Padding(
               padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
@@ -54,13 +63,13 @@ class _EmployerScreenState extends State<EmployerScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(String? businessName) {
     return AppBar(
       backgroundColor: ShiftleyTokens.paperWhite,
       elevation: 0,
       iconTheme: const IconThemeData(color: ShiftleyTokens.inkBlack),
       title: Text(
-        _getTabTitle(_activeTab),
+        _getTabTitle(_activeTab, businessName),
         style: ShiftleyTokens.h1.copyWith(fontSize: ShiftleyTokens.h1.fontSize! * 0.8),
         overflow: TextOverflow.ellipsis,
       ),
@@ -78,10 +87,10 @@ class _EmployerScreenState extends State<EmployerScreen> {
     );
   }
 
-  String _getTabTitle(EmployerTab tab) {
+  String _getTabTitle(EmployerTab tab, String? businessName) {
     switch (tab) {
       case EmployerTab.overview:
-        return 'Taj Banjara';
+        return businessName ?? 'Dashboard';
       case EmployerTab.shifts:
         return 'Manage GIGS';
       case EmployerTab.post:

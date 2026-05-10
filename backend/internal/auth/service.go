@@ -18,6 +18,7 @@ type Service interface {
 	VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, string, bool, *User, error)
 	RefreshToken(ctx context.Context, refreshToken string) (string, string, error)
 	Logout(ctx context.Context, userID string) error
+	GenerateToken(userID uuid.UUID, role string, tokenType string, expHours int) (string, error)
 }
 
 type service struct {
@@ -196,4 +197,16 @@ func (s *service) Logout(ctx context.Context, userID string) error {
 	// Revoke Refresh Token
 	_ = s.repo.DeleteRefreshToken(ctx, userID)
 	return nil
+}
+
+func (s *service) GenerateToken(userID uuid.UUID, role string, tokenType string, expHours int) (string, error) {
+	claims := jwt.MapClaims{
+		"sub":  userID.String(),
+		"role": role,
+		"type": tokenType,
+		"jti":  uuid.New().String(),
+		"exp":  time.Now().Add(time.Duration(expHours) * time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(s.jwtSecret))
 }
