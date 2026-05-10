@@ -1,0 +1,7 @@
+# vendor/ removed
+bin/
+*.exe
+*.test
+.git/
+.gitignore
+Dockerfile

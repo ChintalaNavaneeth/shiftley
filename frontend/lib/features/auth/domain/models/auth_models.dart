@@ -7,11 +7,13 @@ class SendOtpRequest {
   final String identifier;
   final String type;
   final String role;
+  final String? intent;
 
   SendOtpRequest({
     required this.identifier,
     required this.type,
     required this.role,
+    this.intent,
   });
 
   factory SendOtpRequest.fromJson(Map<String, dynamic> json) => _$SendOtpRequestFromJson(json);
@@ -97,4 +99,27 @@ class UserData {
 
   factory UserData.fromJson(Map<String, dynamic> json) => _$UserDataFromJson(json);
   Map<String, dynamic> toJson() => _$UserDataToJson(this);
+}
+
+@JsonSerializable()
+class Category {
+  final String id;
+  final String name;
+  final List<Skill> skills;
+
+  Category({required this.id, required this.name, required this.skills});
+
+  factory Category.fromJson(Map<String, dynamic> json) => _$CategoryFromJson(json);
+  Map<String, dynamic> toJson() => _$CategoryToJson(this);
+}
+
+@JsonSerializable()
+class Skill {
+  final String id;
+  final String name;
+
+  Skill({required this.id, required this.name});
+
+  factory Skill.fromJson(Map<String, dynamic> json) => _$SkillFromJson(json);
+  Map<String, dynamic> toJson() => _$SkillToJson(this);
 }

@@ -20,12 +20,13 @@ class Auth extends _$Auth {
     return null;
   }
 
-  Future<AuthResponse> sendOtp(String identifier, String type, String role) async {
+  Future<AuthResponse> sendOtp(String identifier, String type, String role, {String? intent}) async {
     final repo = ref.read(authRepositoryProvider);
     return await repo.sendOtp(SendOtpRequest(
       identifier: identifier,
       type: type,
       role: role,
+      intent: intent,
     ));
   }
 

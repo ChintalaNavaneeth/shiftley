@@ -52,4 +52,40 @@ class AuthRepository {
       rethrow;
     }
   }
+
+  Future<List<Category>> getTaxonomy() async {
+    try {
+      final response = await _dio.get('auth/taxonomy');
+      final List<dynamic> data = response.data['data'];
+      return data.map((e) => Category.fromJson(e)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<AuthResponse> completeEmployeeOnboarding(FormData data) async {
+    try {
+      final response = await _dio.post(
+        'onboarding/employee',
+        data: data,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+      return AuthResponse.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<AuthResponse> completeEmployerOnboarding(FormData data) async {
+    try {
+      final response = await _dio.post(
+        'onboarding/employer',
+        data: data,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+      return AuthResponse.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

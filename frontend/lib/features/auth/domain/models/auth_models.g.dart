@@ -11,6 +11,7 @@ SendOtpRequest _$SendOtpRequestFromJson(Map<String, dynamic> json) =>
       identifier: json['identifier'] as String,
       type: json['type'] as String,
       role: json['role'] as String,
+      intent: json['intent'] as String?,
     );
 
 Map<String, dynamic> _$SendOtpRequestToJson(SendOtpRequest instance) =>
@@ -18,6 +19,7 @@ Map<String, dynamic> _$SendOtpRequestToJson(SendOtpRequest instance) =>
       'identifier': instance.identifier,
       'type': instance.type,
       'role': instance.role,
+      'intent': instance.intent,
     };
 
 VerifyOtpRequest _$VerifyOtpRequestFromJson(Map<String, dynamic> json) =>
@@ -77,4 +79,28 @@ Map<String, dynamic> _$UserDataToJson(UserData instance) => <String, dynamic>{
       'id': instance.id,
       'role': instance.role,
       'is_verified': instance.isVerified,
+    };
+
+Category _$CategoryFromJson(Map<String, dynamic> json) => Category(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      skills: (json['skills'] as List<dynamic>)
+          .map((e) => Skill.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$CategoryToJson(Category instance) => <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'skills': instance.skills,
+    };
+
+Skill _$SkillFromJson(Map<String, dynamic> json) => Skill(
+      id: json['id'] as String,
+      name: json['name'] as String,
+    );
+
+Map<String, dynamic> _$SkillToJson(Skill instance) => <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
     };
