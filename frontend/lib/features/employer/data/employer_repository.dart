@@ -62,6 +62,16 @@ class EmployerRepository {
     final response = await _apiClient.dio.get('/gigs/$gigId/attendance-qr');
     return response.data['data']['qr_code'];
   }
+
+  Future<void> purchaseSubscription(String planId, String paymentId) async {
+    await _apiClient.dio.post(
+      '/employers/me/subscription',
+      data: {
+        'plan_id': planId,
+        'payment_id': paymentId,
+      },
+    );
+  }
 }
 
 final employerRepositoryProvider = Provider<EmployerRepository>((ref) {

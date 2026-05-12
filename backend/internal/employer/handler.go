@@ -85,46 +85,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	}, nil)
 }
 
-func (h *Handler) PurchaseSubscription(c *gin.Context) {
-	userIDStr, _ := c.Get("userID")
-	userID, _ := uuid.Parse(userIDStr.(string))
 
-	var req struct {
-		PlanID string `json:"plan_id" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid plan_id", nil)
-		return
-	}
-
-	var plan SubscriptionPlanMeta
-	if err := h.db.Where("id = ?", req.PlanID).First(&plan).Error; err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Plan not found", nil)
-		return
-	}
-
-	// For testing, we immediately create the subscription as if payment succeeded
-	now := time.Now()
-	sub := Subscription{
-		EmployerID: userID,
-		PlanID:     plan.ID,
-		Status:     "ACTIVE",
-		StartsAt:   now,
-		ExpiresAt:  now.AddDate(0, 0, plan.DurationDay),
-	}
-
-	if err := h.db.Create(&sub).Error; err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to activate subscription", nil)
-		return
-	}
-
-	utils.RespondSuccess(c, http.StatusCreated, gin.H{
-		"subscription_id": sub.ID,
-		"status":          sub.Status,
-		"expires_at":      sub.ExpiresAt,
-		"message":         fmt.Sprintf("Plan %s activated successfully. You can now post up to %d gigs.", plan.Name, plan.MaxGigs),
-	}, nil)
-}
 
 // GetMyGigs handles GET /api/v1/employers/me/gigs
 // @Summary View My Gigs (History & Active)
@@ -184,5 +145,67 @@ func (h *Handler) GetEmployeeProfile(c *gin.Context) {
 		"profile":         employee,
 		"recent_feedback": reviews,
 	}, nil)
+}
+
+type PurchaseSubscriptionRequest struct {
+	PlanID    string `json:"plan_id" binding:"required"`
+	PaymentID string `json:"payment_id" binding:"required"`
+}
+
+// PurchaseSubscription handles POST /api/v1/employers/subscriptions/purchase
+func (h *Handler) PurchaseSubscription(c *gin.Context) {
+	userIDVal, _ := c.Get("userID")
+	employerID, _ := uuid.Parse(userIDVal.(string))
+
+	var req PurchaseSubscriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid request payload", nil)
+		return
+	}
+
+	// 1. Verify Plan exists
+	var plan SubscriptionPlanMeta
+	if err := h.db.Where("id = ? AND is_active = ?", req.PlanID, true).First(&plan).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Subscription plan not found", nil)
+		return
+	}
+
+	// 2. Mock payment verification
+	// In production, verify req.PaymentID with Razorpay SDK
+
+	// 3. Create Subscription
+	now := time.Now()
+	expiry := now.AddDate(0, 0, plan.DurationDay)
+
+	sub := Subscription{
+		EmployerID: employerID,
+		PlanID:     plan.ID,
+		Status:     "ACTIVE",
+		StartsAt:   now,
+		ExpiresAt:  expiry,
+	}
+
+	// Transaction to deactivate old plans and activate new one
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		// Deactivate current active plans
+		if err := tx.Model(&Subscription{}).
+			Where("employer_id = ? AND status = ?", employerID, "ACTIVE").
+			Update("status", "EXPIRED").Error; err != nil {
+			return err
+		}
+
+		// Create new subscription
+		if err := tx.Create(&sub).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to activate subscription", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusCreated, sub, "Subscription activated successfully")
 }
 

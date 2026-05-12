@@ -47,6 +47,7 @@ class SubscriptionView extends ConsumerWidget {
                 child: _buildPlanCard(
                   context,
                   ref,
+                  plan.id,
                   plan.name.toUpperCase(),
                   '₹ ${(plan.pricePaise / 100).toStringAsFixed(0)}',
                   '${plan.maxGigs} Gig Posts included',
@@ -61,6 +62,26 @@ class SubscriptionView extends ConsumerWidget {
         );
       },
     );
+  }
+
+  String _formatPlanName(String planId) {
+    if (planId == 'NONE') return 'No Active Plan';
+    if (planId.toLowerCase().contains('daily')) return 'Daily';
+    if (planId.toLowerCase().contains('weekly')) return 'Weekly';
+    if (planId.toLowerCase().contains('monthly')) return 'Monthly';
+    return planId.split('_').first.toUpperCase();
+  }
+
+  String _formatExpiry(DateTime expiry) {
+    final diff = expiry.difference(DateTime.now());
+    if (diff.isNegative) return 'Expired';
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    
+    if (days > 0) {
+      return '$days Day${days > 1 ? 's' : ''} $hours Hour${hours != 1 ? 's' : ''}';
+    }
+    return '$hours Hour${hours != 1 ? 's' : ''}';
   }
 
   Widget _buildCurrentPlanCard(EmployerStats data) {
@@ -84,16 +105,19 @@ class SubscriptionView extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('CURRENT PLAN', style: TextStyle(color: ShiftleyTokens.secondaryCyan, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.5)),
-                  const SizedBox(height: 4),
-                  Text(
-                    hasPlan ? '${data.activePlan} Plan' : 'No Active Plan', 
-                    style: const TextStyle(color: ShiftleyTokens.paperWhite, fontSize: 32, fontWeight: FontWeight.w900, fontFamily: 'Figtree')
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('CURRENT PLAN', style: TextStyle(color: ShiftleyTokens.secondaryCyan, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.5)),
+                    const SizedBox(height: 4),
+                    Text(
+                      hasPlan ? '${_formatPlanName(data.activePlan)} Plan' : 'No Active Plan', 
+                      style: const TextStyle(color: ShiftleyTokens.paperWhite, fontSize: 26, fontWeight: FontWeight.w900),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
               if (hasPlan)
                 Container(
@@ -113,7 +137,7 @@ class SubscriptionView extends ConsumerWidget {
                 _buildLargeStat('$remaining / $maxVal', 'POSTS REMAINING'),
                 const SizedBox(width: ShiftleyTokens.spaceXXL),
                 if (data.planExpiresAt != null)
-                  _buildLargeStat('${data.planExpiresAt!.difference(DateTime.now()).inDays} Days', 'UNTIL EXPIRY'),
+                  _buildLargeStat(_formatExpiry(data.planExpiresAt!), 'UNTIL EXPIRY'),
               ],
             ),
             const SizedBox(height: ShiftleyTokens.spaceXL),
@@ -148,6 +172,7 @@ class SubscriptionView extends ConsumerWidget {
   Widget _buildPlanCard(
     BuildContext context, 
     WidgetRef ref,
+    String planId,
     String name, 
     String price, 
     String posts, 
@@ -214,7 +239,7 @@ class SubscriptionView extends ConsumerWidget {
           else
             ShiftleyButton(
               label: 'ACTIVATE PLAN',
-              onPressed: () => _showPurchaseDialog(context, ref, name),
+              onPressed: () => _showPurchaseDialog(context, ref, planId, name),
               isFullWidth: true,
             ),
         ],
@@ -222,16 +247,28 @@ class SubscriptionView extends ConsumerWidget {
     );
   }
 
-  void _showPurchaseDialog(BuildContext context, WidgetRef ref, String planName) {
+  void _showPurchaseDialog(BuildContext context, WidgetRef ref, String planId, String planName) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _RazorpayMockModal(
         planName: planName,
-        onSuccess: () {
-          Navigator.pop(context);
-          _showSuccessScreen(context, ref, planName);
+        onSuccess: (paymentId) async {
+          // Call backend to activate plan
+          try {
+            await ref.read(employerRepositoryProvider).purchaseSubscription(planId, paymentId);
+            if (context.mounted) {
+              Navigator.pop(context);
+              _showSuccessScreen(context, ref, planName);
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to activate plan: $e')),
+              );
+            }
+          }
         },
       ),
     );
@@ -254,7 +291,7 @@ class SubscriptionView extends ConsumerWidget {
 
 class _RazorpayMockModal extends StatelessWidget {
   final String planName;
-  final VoidCallback onSuccess;
+  final Function(String) onSuccess;
 
   const _RazorpayMockModal({required this.planName, required this.onSuccess});
 
@@ -310,8 +347,8 @@ class _RazorpayMockModal extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(20),
             child: ShiftleyButton(
-              label: 'PAY SECURELY',
-              onPressed: onSuccess,
+              label: 'PAY NOW', 
+              onPressed: () => onSuccess('pay_mock_${DateTime.now().millisecondsSinceEpoch}'),
               isFullWidth: true,
             ),
           ),
