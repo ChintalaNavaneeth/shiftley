@@ -1,72 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/features/employer/data/employer_repository.dart';
+import 'package:shiftley_frontend/features/employer/domain/models/employer_models.dart';
 
-class ProfileView extends StatelessWidget {
+class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Manage your business profile and account details.', style: ShiftleyTokens.bodyMedium),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dashboardAsync = ref.watch(employerDashboardProvider);
 
-          _buildProfileHeader(),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+    return dashboardAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),
+      error: (err, stack) => Center(child: Text('Error loading profile: $err')),
+      data: (data) => SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Manage your business profile and account details.', style: ShiftleyTokens.bodyMedium),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
 
-          _buildDetailSection('Business Information', [
-            _buildDetailItem('Legal Business Name', 'Taj Banjara Pvt Ltd'),
-            _buildDetailItem('Trade Name', 'Taj Banjara'),
-            _buildDetailItem('Business Type', 'Hospitality / Hotel'),
-            _buildDetailItem('GST Number', '36AAAAA0000A1Z5'),
-            _buildDetailItem('PAN Number', 'AAAAA0000A'),
-          ]),
-          
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+            _buildProfileHeader(data.profile),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
 
-          _buildDetailSection('Contact Information', [
-            _buildDetailItem('Primary Contact', 'Rajesh Gupta'),
-            _buildDetailItem('Designation', 'General Manager'),
-            _buildDetailItem('Email', 'admin@tajbanjara.com'),
-            _buildDetailItem('Phone', '+91 98765 43210'),
-          ]),
+            _buildDetailSection('Business Information', [
+              _buildDetailItem('Legal Business Name', data.profile.businessName),
+              _buildDetailItem('Business Type', data.profile.businessType),
+              _buildDetailItem('GST Number', data.profile.gstNumber ?? 'N/A'),
+              _buildDetailItem('Aadhaar Number', '********${data.profile.aadhaarLast4 ?? "----"}'),
+            ]),
+            
+            const SizedBox(height: ShiftleyTokens.spaceXL),
 
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+            _buildDetailSection('Contact Information', [
+              _buildDetailItem('Email', data.profile.email),
+              _buildDetailItem('Phone', data.profile.phoneNumber),
+              _buildDetailItem('Verification Status', data.profile.verificationStatus),
+            ]),
 
-          _buildDetailSection('Operational Address', [
-            _buildDetailItem('Address Line 1', 'Road No. 1, Banjara Hills'),
-            _buildDetailItem('City', 'Hyderabad'),
-            _buildDetailItem('State', 'Telangana'),
-            _buildDetailItem('PIN Code', '500034'),
-          ]),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
 
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+            _buildDetailSection('Operational Address', [
+              _buildDetailItem('Full Address', data.profile.businessAddress),
+              _buildDetailItem('Latitude', data.profile.lat.toStringAsFixed(6)),
+              _buildDetailItem('Longitude', data.profile.lng.toStringAsFixed(6)),
+            ]),
 
-          _buildDetailSection('Bank Details', [
-            _buildDetailItem('Account Holder', 'Taj Banjara Pvt Ltd'),
-            _buildDetailItem('Bank Name', 'ICICI Bank'),
-            _buildDetailItem('Account Number', '0011223344556677'),
-            _buildDetailItem('IFSC Code', 'ICIC0000011'),
-          ]),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
 
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+            _buildDetailSection('Uploaded Documents', [
+              if (data.profile.aadhaarUrl != null)
+                _buildDocumentItem('Aadhaar Document', 'aadhaar_proof.pdf'),
+              ...data.profile.photoUrls.asMap().entries.map((entry) {
+                return _buildDocumentItem('Business Photo ${entry.key + 1}', 'photo_${entry.key + 1}.jpg');
+              }),
+            ]),
 
-          _buildDetailSection('Uploaded Documents', [
-            _buildDocumentItem('GST Certificate', 'gst_cert_36a.pdf'),
-            _buildDocumentItem('PAN Card Copy', 'pan_card_taj.jpg'),
-            _buildDocumentItem('FSSAI License', 'fssai_882.pdf'),
-            _buildDocumentItem('Address Proof', 'utility_bill.pdf'),
-          ]),
-
-          const SizedBox(height: ShiftleyTokens.spaceXXL),
-        ],
+            const SizedBox(height: ShiftleyTokens.spaceXXL),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(EmployerProfile profile) {
     return Container(
       padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
       decoration: BoxDecoration(
@@ -91,10 +89,14 @@ class ProfileView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Taj Banjara', style: ShiftleyTokens.h1),
-                Text('Verified Employer', style: ShiftleyTokens.caption.copyWith(color: Colors.green, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text('Member since April 2024', style: ShiftleyTokens.caption),
+                Text(profile.businessName, style: ShiftleyTokens.h1, maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(
+                  profile.verificationStatus == 'VERIFIED' ? 'Verified Employer' : 'Verification Pending', 
+                  style: ShiftleyTokens.caption.copyWith(
+                    color: profile.verificationStatus == 'VERIFIED' ? Colors.green : Colors.orange, 
+                    fontWeight: FontWeight.bold
+                  )
+                ),
               ],
             ),
           ),

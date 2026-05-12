@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/features/employer/data/employer_repository.dart';
+import 'package:shiftley_frontend/features/employer/domain/models/employer_models.dart';
+import 'package:shiftley_frontend/shared/domain/models/gig_models.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
+import 'package:intl/intl.dart';
 import 'attendance_view.dart';
 
 class OverviewView extends ConsumerWidget {
@@ -20,14 +23,16 @@ class OverviewView extends ConsumerWidget {
         if (data.profile.verificationStatus == 'REJECTED') {
           return _buildRejectedScreen();
         }
-        return _buildDashboard(context, data);
+        return _buildDashboard(context, ref, data);
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
 
-  Widget _buildDashboard(BuildContext context, dynamic data) {
+  Widget _buildDashboard(BuildContext context, WidgetRef ref, EmployerDashboardData data) {
+    final gigsAsync = ref.watch(employerGigsProvider('OPEN'));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -43,10 +48,73 @@ class OverviewView extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: ShiftleyTokens.spaceM),
-        _buildGigItem(context, 'Housekeeping Staff', 'Tomorrow, 09:00 AM', '4 Workers', 'OPEN'),
-        _buildGigItem(context, 'Kitchen Assistant', 'May 06, 06:00 PM', '2 Workers', 'FILLED'),
-        _buildGigItem(context, 'Front Desk Support', 'May 08, 10:00 AM', '1 Worker', 'DRAFT'),
+        gigsAsync.when(
+          data: (gigs) {
+            if (gigs.isEmpty) {
+              return const Center(child: Text('No upcoming shifts', style: ShiftleyTokens.caption));
+            }
+            return Column(
+              children: gigs.take(5).map((gig) => _buildGigItem(context, gig)).toList(),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Text('Error loading gigs: $err'),
+        ),
       ],
+    );
+  }
+
+  Widget _buildGigItem(BuildContext context, Gig gig) {
+    final startTime = DateFormat('MMM dd, hh:mm a').format(gig.startTime);
+    final workers = '${gig.workersNeeded} Worker${gig.workersNeeded > 1 ? 's' : ''}';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AttendanceView(gigId: gig.id, shiftTitle: gig.title, shiftTime: startTime),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+        child: Container(
+          padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+          decoration: BoxDecoration(
+            color: ShiftleyTokens.paperWhite,
+            border: ShiftleyTokens.primaryBorder,
+            borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(ShiftleyTokens.spaceS),
+                decoration: BoxDecoration(
+                  color: ShiftleyTokens.background,
+                  border: Border.all(color: ShiftleyTokens.inkBlack, width: 1.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.work_outline, size: 20),
+              ),
+              const SizedBox(width: ShiftleyTokens.spaceM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(gig.title, style: ShiftleyTokens.bodyLarge),
+                    Text('$startTime • $workers', style: ShiftleyTokens.caption),
+                  ],
+                ),
+              ),
+              _buildStatusChip(gig.status),
+              const SizedBox(width: ShiftleyTokens.spaceM),
+              const Icon(Icons.chevron_right, color: ShiftleyTokens.mutedText),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -120,56 +188,6 @@ class OverviewView extends ConsumerWidget {
     );
   }
 
-  Widget _buildGigItem(BuildContext context, String title, String time, String workers, String status) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AttendanceView(shiftTitle: title, shiftTime: time),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-        child: Container(
-          padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-          decoration: BoxDecoration(
-            color: ShiftleyTokens.paperWhite,
-            border: ShiftleyTokens.primaryBorder,
-            borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(ShiftleyTokens.spaceS),
-                decoration: BoxDecoration(
-                  color: ShiftleyTokens.background,
-                  border: Border.all(color: ShiftleyTokens.inkBlack, width: 1.5),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.work_outline, size: 20),
-              ),
-              const SizedBox(width: ShiftleyTokens.spaceM),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: ShiftleyTokens.bodyLarge),
-                    Text('$time • $workers', style: ShiftleyTokens.caption),
-                  ],
-                ),
-              ),
-              _buildStatusChip(status),
-              const SizedBox(width: ShiftleyTokens.spaceM),
-              const Icon(Icons.chevron_right, color: ShiftleyTokens.mutedText),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildStatusChip(String status) {
     Color bgColor = ShiftleyTokens.background;

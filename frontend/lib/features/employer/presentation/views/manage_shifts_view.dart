@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
+import 'package:shiftley_frontend/features/employer/data/employer_repository.dart';
+import 'package:shiftley_frontend/shared/domain/models/gig_models.dart';
+import 'package:intl/intl.dart';
 
 enum ManageGigSubView { list, applications, details, profile }
 
-class ManageGigsView extends StatefulWidget {
+class ManageGigsView extends ConsumerStatefulWidget {
   const ManageGigsView({super.key});
 
   @override
-  State<ManageGigsView> createState() => _ManageGigsViewState();
+  ConsumerState<ManageGigsView> createState() => _ManageGigsViewState();
 }
 
-class _ManageGigsViewState extends State<ManageGigsView> {
+class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
   ManageGigSubView _subView = ManageGigSubView.list;
   String _selectedGigTitle = '';
+  String _selectedGigId = '';
   String _selectedGigStatus = '';
   String _selectedGigWorkers = '';
-  Map<String, dynamic>? _selectedApplicant;
+  GigApplication? _selectedApplicant;
 
   @override
   Widget build(BuildContext context) {
@@ -67,42 +72,38 @@ class _ManageGigsViewState extends State<ManageGigsView> {
   }
 
   Widget _buildGigList(String status) {
-    final List<Map<String, String>> data = status == 'ACTIVE' ? [
-      {'title': 'Housekeeping Team', 'time': 'Today, 09:00 AM', 'workers': '4/4 Filled', 'applicants': '12', 'pay': '₹ 2400', 'tag': 'RUNNING'},
-      {'title': 'Banquet Waitstaff', 'time': 'Tomorrow, 10:00 AM', 'workers': '0/5 Filled', 'applicants': '24', 'pay': '₹ 600', 'tag': 'UPCOMING'},
-    ] : [
-      {'title': 'Event Security', 'time': '28 Apr, 08:00 PM', 'workers': '10/10 Filled', 'applicants': '45', 'pay': '₹ 15000', 'tag': 'COMPLETED'},
-    ];
+    final gigsAsync = ref.watch(employerGigsProvider(status));
 
-    return ListView.builder(
-      itemCount: data.length,
-      padding: const EdgeInsets.only(bottom: 80),
-      itemBuilder: (context, index) {
-        final gig = data[index];
-        return _buildGigCard(
-          title: gig['title']!,
-          time: gig['time']!,
-          location: 'Taj Banjara, Hyderabad',
-          workers: gig['workers']!,
-          applicants: gig['applicants']!,
-          pay: gig['pay']!,
-          status: status,
-          tag: gig['tag']!,
+    return gigsAsync.when(
+      data: (gigs) {
+        if (gigs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.work_off_outlined, size: 64, color: ShiftleyTokens.mutedText.withValues(alpha: 0.2)),
+                const SizedBox(height: ShiftleyTokens.spaceM),
+                Text('No $status Gigs Found', style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.mutedText)),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          itemCount: gigs.length,
+          padding: const EdgeInsets.only(bottom: 80),
+          itemBuilder: (context, index) {
+            return _buildGigCard(gigs[index], status);
+          },
         );
       },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
 
-  Widget _buildGigCard({
-    required String title,
-    required String time,
-    required String location,
-    required String workers,
-    required String applicants,
-    required String pay,
-    required String status,
-    required String tag,
-  }) {
+  Widget _buildGigCard(Gig gig, String listStatus) {
+    final startTime = DateFormat('MMM dd, hh:mm a').format(gig.startTime);
+
     return Container(
       margin: EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
       padding: EdgeInsets.all(ShiftleyTokens.spaceM),
@@ -117,12 +118,13 @@ class _ManageGigsViewState extends State<ManageGigsView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: ShiftleyTokens.h2),
-              _buildStatusChip(tag),
+              Expanded(child: Text(gig.title, style: ShiftleyTokens.h2, overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 8),
+              _buildStatusChip(gig.status),
             ],
           ),
           const SizedBox(height: ShiftleyTokens.spaceS),
-          Text(time, style: ShiftleyTokens.caption),
+          Text(startTime, style: ShiftleyTokens.caption),
           const SizedBox(height: ShiftleyTokens.spaceM),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -131,27 +133,27 @@ class _ManageGigsViewState extends State<ManageGigsView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('PAYOUT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                  Text(pay, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                  Text('₹ ${gig.wagePerWorker}', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text('APPLICANTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                  Text(applicants, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: ShiftleyTokens.primaryRed)),
+                  const Text('GIG ID', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                  Text(gig.id.substring(0, 8).toUpperCase(), style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: ShiftleyTokens.primaryRed)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   const Text('FILLED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                  Text(workers, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                  Text('0/${gig.workersNeeded}', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
           ),
           const SizedBox(height: ShiftleyTokens.spaceM),
-          if (status != 'HISTORY') ...[
+          if (listStatus != 'HISTORY') ...[
             const Divider(color: ShiftleyTokens.inkBlack, thickness: 1),
             const SizedBox(height: ShiftleyTokens.spaceM),
             Row(
@@ -161,9 +163,10 @@ class _ManageGigsViewState extends State<ManageGigsView> {
                     label: 'Applicants',
                     onPressed: () => setState(() {
                       _subView = ManageGigSubView.applications;
-                      _selectedGigTitle = title;
-                      _selectedGigStatus = tag;
-                      _selectedGigWorkers = workers;
+                      _selectedGigTitle = gig.title;
+                      _selectedGigId = gig.id;
+                      _selectedGigStatus = gig.status;
+                      _selectedGigWorkers = '0/${gig.workersNeeded}';
                     }),
                     size: ShiftleyButtonSize.small,
                     isPrimary: false,
@@ -175,9 +178,10 @@ class _ManageGigsViewState extends State<ManageGigsView> {
                     label: 'Manage GIG',
                     onPressed: () => setState(() {
                       _subView = ManageGigSubView.details;
-                      _selectedGigTitle = title;
-                      _selectedGigStatus = tag;
-                      _selectedGigWorkers = workers;
+                      _selectedGigTitle = gig.title;
+                      _selectedGigId = gig.id;
+                      _selectedGigStatus = gig.status;
+                      _selectedGigWorkers = '0/${gig.workersNeeded}';
                     }),
                     size: ShiftleyButtonSize.small,
                   ),
@@ -191,43 +195,65 @@ class _ManageGigsViewState extends State<ManageGigsView> {
   }
 
   Widget _buildApplicationsView() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final applicationsAsync = ref.watch(gigApplicationsProvider(_selectedGigId));
+
+    return applicationsAsync.when(
+      data: (apps) {
+        final hired = apps.where((a) => a.status == 'APPROVED').toList();
+        final available = apps.where((a) => a.status == 'APPLIED' || a.status == 'SHORTLISTED').toList();
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() => _subView = ManageGigSubView.list),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => setState(() => _subView = ManageGigSubView.list),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('Applicants: $_selectedGigTitle', style: ShiftleyTokens.h2, overflow: TextOverflow.ellipsis)),
+                ],
               ),
-              const SizedBox(width: 8),
-              Expanded(child: Text('Applicants: $_selectedGigTitle', style: ShiftleyTokens.h2, overflow: TextOverflow.ellipsis)),
+              const SizedBox(height: ShiftleyTokens.spaceL),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('HIRED PROFESSIONALS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.mutedText)),
+                  Text('${hired.length}/${_selectedGigWorkers.split('/')[1]}'.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.primaryRed)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (hired.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text('No professionals hired yet', style: ShiftleyTokens.caption)),
+                )
+              else
+                ...hired.map((app) => _buildApplicationItem(app)),
+              const SizedBox(height: ShiftleyTokens.spaceL),
+              const Text('AVAILABLE APPLICANTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.mutedText)),
+              const SizedBox(height: 8),
+              if (available.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text('No pending applications', style: ShiftleyTokens.caption)),
+                )
+              else
+                ...available.map((app) => _buildApplicationItem(app)),
+              const SizedBox(height: 100),
             ],
           ),
-          const SizedBox(height: ShiftleyTokens.spaceL),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('HIRED PROFESSIONALS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.mutedText)),
-              Text(_selectedGigWorkers.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.primaryRed)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildApplicationItem({'name': 'Rahul Sharma', 'rating': '4.8 ★', 'status': 'Hired', 'isHired': true, 'skills': 'Service, Barista', 'gigs': '42', 'noshows': '0'}),
-          const SizedBox(height: ShiftleyTokens.spaceL),
-          const Text('AVAILABLE APPLICANTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.mutedText)),
-          const SizedBox(height: 8),
-          _buildApplicationItem({'name': 'Priya Das', 'rating': '4.5 ★', 'status': 'Verified', 'isHired': false, 'skills': 'Housekeeping, F&B', 'gigs': '15', 'noshows': '1'}),
-          _buildApplicationItem({'name': 'Amit Kumar', 'rating': '4.2 ★', 'status': 'New', 'isHired': false, 'skills': 'Steward, Cleaning', 'gigs': '3', 'noshows': '0'}),
-          const SizedBox(height: 100), // Space for bottom actions if any
-        ],
-      ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
 
-  Widget _buildApplicationItem(Map<String, dynamic> applicant) {
-    final bool isHired = applicant['isHired'];
+  Widget _buildApplicationItem(GigApplication applicant) {
+    final bool isHired = applicant.status == 'APPROVED';
     final bool isGigRunning = _selectedGigStatus == 'RUNNING';
 
     return GestureDetector(
@@ -249,28 +275,28 @@ class _ManageGigsViewState extends State<ManageGigsView> {
               children: [
                 CircleAvatar(
                   backgroundColor: ShiftleyTokens.secondaryCyan,
-                  child: Text(applicant['name'][0], style: const TextStyle(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.bold)),
+                  child: Text(applicant.employeeName?[0] ?? '?', style: const TextStyle(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: ShiftleyTokens.spaceM),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(applicant['name'], style: ShiftleyTokens.bodyLarge),
-                      Text(applicant['rating'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber)),
+                      Text(applicant.employeeName ?? 'Professional', style: ShiftleyTokens.bodyLarge),
+                      Text('${applicant.employeeRating ?? 0.0} ★', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber)),
                     ],
                   ),
                 ),
                 if (!isHired)
                   ShiftleyButton(
                     label: 'Hire',
-                    onPressed: () {},
+                    onPressed: () => _updateAppStatus(applicant.id, 'APPROVED'),
                     size: ShiftleyButtonSize.small,
                   ),
                 if (isHired)
                   ShiftleyButton(
                     label: 'Unhire',
-                    onPressed: () => _showUnhireDialog(applicant['name']),
+                    onPressed: () => _showUnhireDialog(applicant.id, applicant.employeeName ?? 'Professional'),
                     size: ShiftleyButtonSize.small,
                     isPrimary: false,
                   ),
@@ -286,7 +312,7 @@ class _ManageGigsViewState extends State<ManageGigsView> {
                     child: ShiftleyButton(
                       label: 'QR Attendance',
                       icon: Icons.qr_code_scanner,
-                      onPressed: () => _showQRScanner(context, applicant['name']),
+                      onPressed: () => _showQRScanner(context, applicant.employeeName ?? 'Professional'),
                       size: ShiftleyButtonSize.small,
                       isPrimary: true,
                     ),
@@ -295,7 +321,7 @@ class _ManageGigsViewState extends State<ManageGigsView> {
                   Expanded(
                     child: ShiftleyButton(
                       label: 'No-Show',
-                      onPressed: () => _showNoShowDialog(applicant['name']),
+                      onPressed: () => _showNoShowDialog(applicant.employeeName ?? 'Professional'),
                       size: ShiftleyButtonSize.small,
                       isPrimary: false,
                     ),
@@ -307,6 +333,22 @@ class _ManageGigsViewState extends State<ManageGigsView> {
         ),
       ),
     );
+  }
+
+  Future<void> _updateAppStatus(String id, String status) async {
+    try {
+      await ref.read(employerRepositoryProvider).updateApplicationStatus(id, status);
+      ref.invalidate(gigApplicationsProvider(_selectedGigId));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Application $status successfully')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update status: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   void _showQRScanner(BuildContext context, String name) {
@@ -396,7 +438,7 @@ class _ManageGigsViewState extends State<ManageGigsView> {
     );
   }
 
-  void _showUnhireDialog(String name) {
+  void _showUnhireDialog(String applicationId, String name) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -409,7 +451,15 @@ class _ManageGigsViewState extends State<ManageGigsView> {
         content: Text('Are you sure you want to unhire $name? This slot will become available for other applicants.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-          ShiftleyButton(label: 'Yes, Unhire', onPressed: () => Navigator.pop(context), size: ShiftleyButtonSize.small, isPrimary: true),
+          ShiftleyButton(
+            label: 'Yes, Unhire', 
+            onPressed: () {
+              Navigator.pop(context);
+              _updateAppStatus(applicationId, 'APPLIED');
+            }, 
+            size: ShiftleyButtonSize.small, 
+            isPrimary: true
+          ),
         ],
       ),
     );
@@ -417,6 +467,7 @@ class _ManageGigsViewState extends State<ManageGigsView> {
 
   Widget _buildApplicantProfileView() {
     final applicant = _selectedApplicant!;
+    final bool isHired = applicant.status == 'APPROVED';
 
     return SingleChildScrollView(
       child: Column(
@@ -440,15 +491,25 @@ class _ManageGigsViewState extends State<ManageGigsView> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ShiftleyButton(
-                  label: applicant['isHired'] ? 'Mark No-Show' : 'Hire Professional',
-                  onPressed: () {},
-                  isPrimary: !applicant['isHired'],
+                  label: isHired ? 'Mark No-Show' : 'Hire Professional',
+                  onPressed: () {
+                    if (!isHired) {
+                      _updateAppStatus(applicant.id, 'APPROVED');
+                      setState(() => _subView = ManageGigSubView.applications);
+                    } else {
+                      _showNoShowDialog(applicant.employeeName ?? 'Professional');
+                    }
+                  },
+                  isPrimary: !isHired,
                 ),
-                if (applicant['isHired']) ...[
+                if (isHired) ...[
                   const SizedBox(width: 12),
                   ShiftleyButton(
                     label: 'Unhire',
-                    onPressed: () => _showUnhireDialog(applicant['name']),
+                    onPressed: () {
+                      _showUnhireDialog(applicant.id, applicant.employeeName ?? 'Professional');
+                      setState(() => _subView = ManageGigSubView.applications);
+                    },
                     isPrimary: false,
                   ),
                 ],
@@ -464,15 +525,7 @@ class _ManageGigsViewState extends State<ManageGigsView> {
           const SizedBox(height: ShiftleyTokens.spaceL),
           const Text('SKILLS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: (applicant['skills'] as String).split(', ').map((s) => Chip(
-              label: Text(s, style: const TextStyle(fontSize: 12)),
-              backgroundColor: ShiftleyTokens.background,
-              shape: RoundedRectangleBorder(side: ShiftleyTokens.thinBorderSide, borderRadius: BorderRadius.circular(4)),
-            )).toList(),
-          ),
+          const Text('Skills info not available', style: ShiftleyTokens.caption),
           const SizedBox(height: ShiftleyTokens.spaceL),
           const Text('CERTIFICATIONS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
@@ -490,24 +543,24 @@ class _ManageGigsViewState extends State<ManageGigsView> {
     );
   }
 
-  Widget _buildProfileHeader(Map<String, dynamic> applicant) {
+  Widget _buildProfileHeader(GigApplication applicant) {
     return Center(
       child: Column(
         children: [
           CircleAvatar(
             radius: 40,
             backgroundColor: ShiftleyTokens.secondaryCyan,
-            child: Text(applicant['name'][0], style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+            child: Text(applicant.employeeName?[0] ?? '?', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: ShiftleyTokens.spaceM),
-          Text(applicant['name'], style: ShiftleyTokens.h1),
-          Text(applicant['rating'], style: const TextStyle(fontSize: 18, color: Colors.amber, fontWeight: FontWeight.bold)),
+          Text(applicant.employeeName ?? 'Professional', style: ShiftleyTokens.h1),
+          Text('${applicant.employeeRating ?? 0.0} ★', style: const TextStyle(fontSize: 18, color: Colors.amber, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildReliabilityStats(Map<String, dynamic> applicant) {
+  Widget _buildReliabilityStats(GigApplication applicant) {
     return Container(
       padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
       decoration: BoxDecoration(
@@ -518,9 +571,9 @@ class _ManageGigsViewState extends State<ManageGigsView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatBox('GIGS WORKED', applicant['gigs'] ?? '0'),
+          _buildStatBox('GIGS WORKED', '---'),
           Container(width: 2, height: 40, color: ShiftleyTokens.background),
-          _buildStatBox('NO-SHOWS', applicant['noshows'] ?? '0', isAlert: (int.tryParse(applicant['noshows'] ?? '0') ?? 0) > 0),
+          _buildStatBox('NO-SHOWS', '---'),
         ],
       ),
     );
@@ -692,7 +745,21 @@ class _ManageGigsViewState extends State<ManageGigsView> {
                 else
                   ShiftleyButton(
                     label: 'Verify & Confirm', 
-                    onPressed: () => Navigator.pop(context), 
+                    onPressed: () async {
+                      try {
+                        final repository = ref.read(employerRepositoryProvider);
+                        await repository.cancelGig(_selectedGigId, 'User Requested');
+                        ref.invalidate(employerGigsProvider('ACTIVE'));
+                        if (!context.mounted) return;
+                        
+                        Navigator.pop(context);
+                        setState(() => _subView = ManageGigSubView.list);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('GIG Cancelled Successfully')));
+                      } catch (e) {
+                         if (!context.mounted) return;
+                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to cancel GIG: $e'), backgroundColor: Colors.red));
+                      }
+                    }, 
                     size: ShiftleyButtonSize.small,
                     isPrimary: true,
                   ),

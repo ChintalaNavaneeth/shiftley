@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shiftley_frontend/core/network/api_providers.dart';
 import '../../data/auth_repository_provider.dart';
+import 'profile_provider.dart';
 import '../../domain/models/auth_models.dart';
 
 part 'auth_provider.g.dart';
@@ -54,6 +56,11 @@ class Auth extends _$Auth {
             accessToken: data.accessToken!,
             refreshToken: data.refreshToken!,
           );
+          // Pre-fetch profile to populate cache for sidebar/UI
+          unawaited(repo.getMe().catchError((e, _) {
+            debugPrint('Initial profile fetch failed: $e');
+            return <String, dynamic>{};
+          }));
         }
         state = AsyncValue.data(data);
       } else {
@@ -76,6 +83,9 @@ class Auth extends _$Auth {
       // invalid on the server, we just need to clear it locally anyway.
       debugPrint('Logout request failed (expected if session revoked): $e');
     } finally {
+      // Invalidate profile cache to prevent stale data between account switches
+      ref.invalidate(userProfileProvider);
+      
       final storage = ref.read(tokenStorageProvider);
       await storage.clearTokens();
       state = const AsyncValue.data(null);

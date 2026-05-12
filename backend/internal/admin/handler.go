@@ -211,6 +211,18 @@ type ConfigUpdateRequest struct {
 func (h *Handler) GetPlatformConfig(c *gin.Context) {
 	var conf config.PlatformConfig
 	h.db.FirstOrCreate(&conf)
+
+	// Fetch actual prices from the plans table to ensure UI consistency
+	var daily, weekly, monthly int64
+	h.db.Table("shiftley.subscription_plans").Where("id = ?", "daily_access").Select("price_paise").Row().Scan(&daily)
+	h.db.Table("shiftley.subscription_plans").Where("id = ?", "weekly_unlimited").Select("price_paise").Row().Scan(&weekly)
+	h.db.Table("shiftley.subscription_plans").Where("id = ?", "monthly_unlimited").Select("price_paise").Row().Scan(&monthly)
+
+	// Inject into response for the Admin UI
+	conf.EmployerSubscriptionDaily = float64(daily) / 100.0
+	conf.EmployerSubscriptionWeekly = float64(weekly) / 100.0
+	conf.EmployerSubscriptionMonthly = float64(monthly) / 100.0
+
 	utils.RespondSuccess(c, http.StatusOK, conf, nil)
 }
 
@@ -235,15 +247,6 @@ func (h *Handler) UpdatePlatformConfig(c *gin.Context) {
 	h.db.FirstOrCreate(&conf) // Ensure at least one record exists
 
 	// Update fields if provided in request
-	if req.EmployerSubscriptionMonthly > 0 {
-		conf.EmployerSubscriptionMonthly = req.EmployerSubscriptionMonthly
-	}
-	if req.EmployerSubscriptionWeekly > 0 {
-		conf.EmployerSubscriptionWeekly = req.EmployerSubscriptionWeekly
-	}
-	if req.EmployerSubscriptionDaily > 0 {
-		conf.EmployerSubscriptionDaily = req.EmployerSubscriptionDaily
-	}
 	if req.WorkerNoShowPenalty > 0 {
 		conf.WorkerNoShowPenalty = req.WorkerNoShowPenalty
 	}
@@ -260,6 +263,25 @@ func (h *Handler) UpdatePlatformConfig(c *gin.Context) {
 	if err := h.db.Save(&conf).Error; err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update configuration", nil)
 		return
+	}
+
+	// Sync to shiftley.subscription_plans table to ensure Employer Dashboard sees the changes
+	// We use the raw table name string to avoid circular imports with the employer package
+	planTable := "shiftley.subscription_plans"
+	if req.EmployerSubscriptionDaily > 0 {
+		val := int64(req.EmployerSubscriptionDaily * 100)
+		fmt.Printf("[DEBUG] Syncing Daily Plan: %v Rupee -> %d Paise\n", req.EmployerSubscriptionDaily, val)
+		h.db.Debug().Table(planTable).Where("id = ?", "daily_access").Update("price_paise", val)
+	}
+	if req.EmployerSubscriptionWeekly > 0 {
+		val := int64(req.EmployerSubscriptionWeekly * 100)
+		fmt.Printf("[DEBUG] Syncing Weekly Plan: %v Rupee -> %d Paise\n", req.EmployerSubscriptionWeekly, val)
+		h.db.Debug().Table(planTable).Where("id = ?", "weekly_unlimited").Update("price_paise", val)
+	}
+	if req.EmployerSubscriptionMonthly > 0 {
+		val := int64(req.EmployerSubscriptionMonthly * 100)
+		fmt.Printf("[DEBUG] Syncing Monthly Plan: %v Rupee -> %d Paise\n", req.EmployerSubscriptionMonthly, val)
+		h.db.Debug().Table(planTable).Where("id = ?", "monthly_unlimited").Update("price_paise", val)
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, conf, "Configuration updated successfully")

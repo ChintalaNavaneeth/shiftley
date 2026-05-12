@@ -77,6 +77,22 @@ class VerifierRepository {
     await _prefs.remove(_profileKey);
   }
 
+  Future<void> rejectOnboarding(String employerId, String reason) async {
+    try {
+      final formData = FormData.fromMap({
+        'status': 'REJECTED',
+        'notes': reason,
+      });
+
+      await _dio.post(
+        'verifier/employers/$employerId/verify',
+        data: formData,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<void> completeOnboarding({
     required XFile profileImage,
     required String aadharPath,

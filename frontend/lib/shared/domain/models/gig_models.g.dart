@@ -22,6 +22,8 @@ Gig _$GigFromJson(Map<String, dynamic> json) => Gig(
       wagePerWorker: (json['wage_per_worker'] as num).toInt(),
       workersNeeded: (json['workers_needed'] as num).toInt(),
       status: json['status'] as String,
+      cancelReason: json['cancel_reason'] as String?,
+      isEscrowFunded: json['is_escrow_funded'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
 
@@ -41,5 +43,55 @@ Map<String, dynamic> _$GigToJson(Gig instance) => <String, dynamic>{
       'wage_per_worker': instance.wagePerWorker,
       'workers_needed': instance.workersNeeded,
       'status': instance.status,
+      'cancel_reason': instance.cancelReason,
+      'is_escrow_funded': instance.isEscrowFunded,
       'created_at': instance.createdAt.toIso8601String(),
+    };
+
+GigApplication _$GigApplicationFromJson(Map<String, dynamic> json) =>
+    GigApplication(
+      id: json['id'] as String,
+      gigId: json['gig_id'] as String,
+      employeeId: json['employee_id'] as String,
+      status: json['status'] as String,
+      notes: json['notes'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      employeeName: json['employee_name'] as String?,
+      employeeRating: (json['employee_rating'] as num?)?.toDouble(),
+    );
+
+Map<String, dynamic> _$GigApplicationToJson(GigApplication instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'gig_id': instance.gigId,
+      'employee_id': instance.employeeId,
+      'status': instance.status,
+      'notes': instance.notes,
+      'created_at': instance.createdAt.toIso8601String(),
+      'employee_name': instance.employeeName,
+      'employee_rating': instance.employeeRating,
+    };
+
+GigAttendance _$GigAttendanceFromJson(Map<String, dynamic> json) =>
+    GigAttendance(
+      id: json['id'] as String,
+      gigId: json['gig_id'] as String,
+      employeeId: json['employee_id'] as String,
+      clockIn: json['clock_in'] == null
+          ? null
+          : DateTime.parse(json['clock_in'] as String),
+      clockOut: json['clock_out'] == null
+          ? null
+          : DateTime.parse(json['clock_out'] as String),
+      status: json['status'] as String,
+    );
+
+Map<String, dynamic> _$GigAttendanceToJson(GigAttendance instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'gig_id': instance.gigId,
+      'employee_id': instance.employeeId,
+      'clock_in': instance.clockIn?.toIso8601String(),
+      'clock_out': instance.clockOut?.toIso8601String(),
+      'status': instance.status,
     };

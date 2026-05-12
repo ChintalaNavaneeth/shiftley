@@ -171,9 +171,9 @@ func main() {
 	db.Model(&employer.SubscriptionPlanMeta{}).Count(&planCount)
 	if planCount == 0 {
 		plans := []employer.SubscriptionPlanMeta{
-			{ID: "daily_access", Name: "24-Hour Unlimited", PricePaise: 9900, DurationDay: 1, MaxGigs: 5},
-			{ID: "weekly_unlimited", Name: "7-Day Unlimited", PricePaise: 49900, DurationDay: 7, MaxGigs: 40},
-			{ID: "monthly_unlimited", Name: "30-Day Premium", PricePaise: 149900, DurationDay: 30, MaxGigs: 200},
+			{ID: "daily_access", Name: "Daily Plan", PricePaise: 49900, DurationDay: 1, MaxGigs: 3, MaxEmployeesPerGig: 10, IsActive: true},
+			{ID: "weekly_unlimited", Name: "Weekly Plan", PricePaise: 199900, DurationDay: 7, MaxGigs: 25, MaxEmployeesPerGig: 12, IsActive: true},
+			{ID: "monthly_unlimited", Name: "Monthly Plan", PricePaise: 499900, DurationDay: 30, MaxGigs: 50, MaxEmployeesPerGig: 15, IsActive: true},
 		}
 		db.Create(&plans)
 	}

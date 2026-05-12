@@ -97,7 +97,8 @@ func (s *service) VerifyOTP(ctx context.Context, identifier string, channel stri
 	_ = s.repo.DeleteOTP(ctx, identifier)
 
 	// Generate Tokens
-	isNewUser := !user.IsVerified
+	// isNewUser here means "Needs to complete onboarding"
+	isNewUser := !user.IsInitialSetupComplete
 	accessToken, refreshToken, err := s.generateTokenPair(user, isNewUser)
 	if err != nil {
 		return "", "", false, nil, err
@@ -141,7 +142,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshTokenStr string) (str
 	}
 
 	// 4. Generate New Pair (Rotation)
-	isNewUser := !user.IsVerified
+	isNewUser := !user.IsInitialSetupComplete
 	newAccessToken, newRefreshToken, err := s.generateTokenPair(user, isNewUser)
 	if err != nil {
 		return "", "", err

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/models/auth_models.dart';
@@ -64,18 +65,36 @@ class AuthRepository {
       // 1. Try cache
       final cachedJson = _prefs.getString(profileKey);
       if (cachedJson != null) {
-        return jsonDecode(cachedJson);
+        try {
+          final data = jsonDecode(cachedJson) as Map<String, dynamic>;
+          if (data.containsKey('full_name')) return data;
+        } catch (e) {
+          debugPrint('AuthRepository: Failed to decode cache: $e');
+        }
       }
 
       // 2. Fetch API
+      debugPrint('AuthRepository: Fetching profile from /auth/me');
       final response = await _dio.get('auth/me');
+      
+      if (response.statusCode != 200) {
+        throw Exception('Server returned ${response.statusCode}');
+      }
+
       final data = response.data['data'];
+      if (data == null || data is! Map<String, dynamic>) {
+        debugPrint('AuthRepository: Invalid data structure: ${response.data}');
+        throw Exception('Invalid data structure from server');
+      }
       
       // 3. Store cache
       await _prefs.setString(profileKey, jsonEncode(data));
-      
       return data;
     } catch (e) {
+      debugPrint('AuthRepository: getMe CRITICAL ERROR: $e');
+      if (e is DioException) {
+        debugPrint('Dio Error Detail: ${e.response?.data}');
+      }
       rethrow;
     }
   }

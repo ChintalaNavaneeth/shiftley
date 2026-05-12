@@ -67,7 +67,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _fetchTaxonomy() async {
     if (widget.role == 'WORKER') {
       try {
-        final categories = await ref.read(authRepositoryProvider).getTaxonomy();
+        final List<Category> categories = await ref.read(authRepositoryProvider).getTaxonomy();
         setState(() => _taxonomy = categories);
       } catch (e) {
         debugPrint('Taxonomy Fetch Error: $e');

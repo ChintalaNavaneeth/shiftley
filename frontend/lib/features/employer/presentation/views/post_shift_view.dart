@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/shared/widgets/s_guidance.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
 import 'package:shiftley_frontend/shared/widgets/s_dropdown.dart';
+import 'package:shiftley_frontend/features/employer/data/employer_repository.dart';
 
-class PostGigView extends StatefulWidget {
+class PostGigView extends ConsumerStatefulWidget {
   final VoidCallback? onPublished;
   const PostGigView({super.key, this.onPublished});
 
   @override
-  State<PostGigView> createState() => _PostGigViewState();
+  ConsumerState<PostGigView> createState() => _PostGigViewState();
 }
 
-class _PostGigViewState extends State<PostGigView> {
+class _PostGigViewState extends ConsumerState<PostGigView> {
   int _currentStep = 1;
   final int _totalSteps = 5;
   final PageController _pageController = PageController();
@@ -166,18 +168,52 @@ class _PostGigViewState extends State<PostGigView> {
 
   Future<void> _startMockPayment() async {
     setState(() => _isPaymentProcessing = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _isPaymentProcessing = false;
-      _isPaymentSuccess = true;
-    });
     
-    // Auto-navigate after a brief delay
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted && widget.onPublished != null) {
-        widget.onPublished!();
-      }
-    });
+    // Simulate payment delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    try {
+      // 1. Convert form data to API format
+      final gigData = {
+        'title': _titleController.text,
+        'description': _descController.text,
+        'category_id': _selectedCategory,
+        'skill_id': _selectedSubCategory,
+        'workers_needed': int.tryParse(_workersController.text) ?? 1,
+        'wage_per_worker': (double.tryParse(_payController.text) ?? 0).toInt(),
+        'lat': 17.4123, // Mock coordinates
+        'lng': 78.4321,
+        'address': _addressController.text,
+        'start_time': DateTime.now().add(const Duration(days: 1)).toIso8601String(), // Mock
+        'end_time': DateTime.now().add(const Duration(days: 1, hours: 8)).toIso8601String(), // Mock
+        'pay_type': 'PER_DAY',
+        'status': 'OPEN',
+      };
+
+      // 2. Call API
+      await ref.read(employerRepositoryProvider).postGig(gigData);
+      
+      ref.invalidate(employerGigsProvider('ACTIVE'));
+      ref.invalidate(employerDashboardProvider);
+
+      setState(() {
+        _isPaymentProcessing = false;
+        _isPaymentSuccess = true;
+      });
+      
+      // Auto-navigate after a brief delay
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted && widget.onPublished != null) {
+          widget.onPublished!();
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isPaymentProcessing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to publish GIG: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   Widget _buildProgressBar() {

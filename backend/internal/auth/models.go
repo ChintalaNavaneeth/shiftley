@@ -110,6 +110,7 @@ type EmployerProfile struct {
 	GSTNumber         string         `json:"gst_number"`
 	Email             string         `gorm:"<-:false" json:"email"`
 	PhoneNumber       string         `gorm:"<-:false" json:"phone_number"`
+	FullName          string         `gorm:"<-:false" json:"full_name"`
 	BusinessAddress   string         `gorm:"type:text;not null" json:"business_address"`
 	Lat               float64        `gorm:"type:decimal(10,8)" json:"lat"`
 	Lng               float64        `gorm:"type:decimal(11,8)" json:"lng"`

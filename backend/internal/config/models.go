@@ -8,9 +8,9 @@ import (
 
 type PlatformConfig struct {
 	ID                         uint           `gorm:"primaryKey" json:"id"`
-	EmployerSubscriptionMonthly float64        `gorm:"default:679.00" json:"employer_subscription_monthly"`
-	EmployerSubscriptionWeekly  float64        `gorm:"default:199.00" json:"employer_subscription_weekly"`
-	EmployerSubscriptionDaily   float64        `gorm:"default:99.00" json:"employer_subscription_daily"`
+	EmployerSubscriptionMonthly float64        `gorm:"-" json:"employer_subscription_monthly"`
+	EmployerSubscriptionWeekly  float64        `gorm:"-" json:"employer_subscription_weekly"`
+	EmployerSubscriptionDaily   float64        `gorm:"-" json:"employer_subscription_daily"`
 	WorkerNoShowPenalty         float64        `gorm:"default:50.00" json:"worker_no_show_penalty"`
 	EmployerCancelPenalty6h     float64        `gorm:"default:10.00" json:"employer_cancel_penalty_6h"`
 	EmployerCancelPenalty3h     float64        `gorm:"default:25.00" json:"employer_cancel_penalty_3h"`

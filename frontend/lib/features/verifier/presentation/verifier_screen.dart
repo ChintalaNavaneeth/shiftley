@@ -38,6 +38,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   String _rejectionReason = '';
   int _verifyStep = 1; 
   bool _isVerifying = false;
+  bool _isRejectionMode = false;
   bool _isGpsCaptured = false;
   bool _isGpsValid = false;
 
@@ -142,7 +143,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
       case VerifierView.details: return _buildDetailsView(ref, _selectedEmployerId!);
       case VerifierView.history: return _buildHistoryView(ref);
       case VerifierView.historyDetails: return _buildHistoryDetailsView();
-      case VerifierView.rejection: return _buildRejectionView();
+      case VerifierView.rejection: return _buildRejectionView(ref);
       case VerifierView.verifyFlow: return _buildVerifyFlow(ref);
       case VerifierView.success: return _buildSuccessView();
       case VerifierView.support: return const Padding(padding: EdgeInsets.all(16), child: SupportView());
@@ -231,7 +232,11 @@ class _VerifierScreenState extends State<VerifierScreen> {
                 if (_verifyStep < 3) {
                   setState(() => _verifyStep++);
                 } else {
-                  _submitVerification(ref);
+                  if (_isRejectionMode) {
+                    setState(() => _currentView = VerifierView.rejection);
+                  } else {
+                    _submitVerification(ref);
+                  }
                 }
               } : null,
             ),
@@ -242,7 +247,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
     );
   }
 
-  Future<void> _submitVerification(WidgetRef ref) async {
+  Future<void> _submitVerification(WidgetRef ref, {bool isApproved = true, String? notes}) async {
     if (_selectedEmployerId == null || _selfieFile == null || _businessPhotos.length < 3 || _currentPosition == null) return;
 
     setState(() => _isVerifying = true);
@@ -253,12 +258,22 @@ class _VerifierScreenState extends State<VerifierScreen> {
         businessPhotos: _businessPhotos,
         lat: _currentPosition!.latitude,
         lng: _currentPosition!.longitude,
-        isApproved: true,
+        isApproved: isApproved,
+        notes: notes,
       );
       setState(() {
         _isVerifying = false;
-        _currentView = VerifierView.success;
+        _currentView = isApproved ? VerifierView.success : VerifierView.queue;
+        // Reset capture state
+        _selfieFile = null;
+        _businessPhotos.clear();
+        _isGpsCaptured = false;
+        _isGpsValid = false;
+        _isRejectionMode = false;
       });
+      if (!isApproved && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Onboarding Rejected with Evidence')));
+      }
     } catch (e) {
       setState(() => _isVerifying = false);
       if (mounted) {
@@ -449,7 +464,10 @@ class _VerifierScreenState extends State<VerifierScreen> {
             children: [
               profileAsync.when(
                 loading: () => Container(height: 250, color: ShiftleyTokens.inkBlack, child: const Center(child: CircularProgressIndicator(color: ShiftleyTokens.secondaryCyan))),
-                error: (err, stack) => Container(height: 250, color: ShiftleyTokens.inkBlack, child: Center(child: Text('Error loading profile', style: ShiftleyTokens.caption.copyWith(color: Colors.white)))),
+                error: (err, stack) => Container(height: 250, color: ShiftleyTokens.inkBlack, child: Center(child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text('Error: $err', textAlign: TextAlign.center, style: ShiftleyTokens.caption.copyWith(color: Colors.white, fontSize: 10)),
+                ))),
                 data: (profile) => Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(ShiftleyTokens.spaceXL, 64, ShiftleyTokens.spaceXL, ShiftleyTokens.spaceXL),
@@ -460,24 +478,6 @@ class _VerifierScreenState extends State<VerifierScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 84,
-                        height: 84,
-                        decoration: BoxDecoration(
-                          color: ShiftleyTokens.secondaryCyan,
-                          border: Border.all(color: ShiftleyTokens.inkBlack, width: 3),
-                          shape: BoxShape.circle,
-                          image: (profile['profile_photo_url'] != null && profile['profile_photo_url'].isNotEmpty) 
-                            ? DecorationImage(
-                                image: NetworkImage(_getFullUrl(profile['profile_photo_url'])),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                        ),
-                        child: (profile['profile_photo_url'] == null || profile['profile_photo_url'].isEmpty)
-                          ? const Icon(Icons.person, size: 48, color: ShiftleyTokens.inkBlack)
-                          : null,
-                      ),
                       const SizedBox(height: ShiftleyTokens.spaceL),
                       Text(
                         profile['full_name'] ?? 'Verifier Staff',
@@ -555,7 +555,10 @@ class _VerifierScreenState extends State<VerifierScreen> {
   // ── Other Helpers ───────────────────────────────────────────
   Widget _buildQueueView(WidgetRef ref) {
     const String roleFilter = 'EMPLOYER';
-    final String statusFilter = _activeTabIndex == 0 ? 'PENDING' : 'VERIFIED';
+    String statusFilter = 'PENDING';
+    if (_activeTabIndex == 1) statusFilter = 'REJECTED';
+    if (_activeTabIndex == 2) statusFilter = 'VERIFIED';
+    
     final queueAsync = ref.watch(verifierQueueListProvider((type: roleFilter, status: statusFilter)));
 
     return SRefreshable(
@@ -659,10 +662,27 @@ class _VerifierScreenState extends State<VerifierScreen> {
             ]),
             const SizedBox(height: ShiftleyTokens.spaceXXL),
             if (profile.verificationStatus == 'PENDING')
-              Row(children: [
-                Expanded(child: OutlinedButton(onPressed: () => setState(() => _currentView = VerifierView.rejection), style: OutlinedButton.styleFrom(foregroundColor: ShiftleyTokens.primaryRed, side: const BorderSide(color: ShiftleyTokens.primaryRed, width: 1.5), minimumSize: const Size(double.infinity, 54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('Reject Onboarding', style: TextStyle(fontWeight: FontWeight.bold)))),
+            Row(children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => setState(() {
+                      _isRejectionMode = true;
+                      _verifyStep = 1;
+                      _currentView = VerifierView.verifyFlow;
+                    }),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ShiftleyTokens.primaryRed,
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0),
+                      minimumSize: const Size(double.infinity, 54),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
+                      elevation: 0,
+                    ),
+                    child: const Text('REJECT ONBOARDING', style: TextStyle(fontWeight: FontWeight.w600, letterSpacing: 1.1)),
+                  ),
+                ),
                 const SizedBox(width: ShiftleyTokens.spaceM),
-                Expanded(child: ElevatedButton(onPressed: () => setState(() { _verifyStep = 1; _currentView = VerifierView.verifyFlow; }), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0), minimumSize: const Size(double.infinity, 54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('Verify Now', style: TextStyle(fontWeight: FontWeight.bold)))),
+                Expanded(child: ElevatedButton(onPressed: () => setState(() { _isRejectionMode = false; _verifyStep = 1; _currentView = VerifierView.verifyFlow; }), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 2.0), minimumSize: const Size(double.infinity, 54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal))), child: const Text('Verify Now', style: TextStyle(fontWeight: FontWeight.bold)))),
               ]),
             const SizedBox(height: ShiftleyTokens.spaceXL),
           ],
@@ -671,9 +691,58 @@ class _VerifierScreenState extends State<VerifierScreen> {
     );
   }
 
-  Widget _buildRejectionView() {
+  Widget _buildRejectionView(WidgetRef ref) {
     final suggestions = ['GST Number Mismatch', 'Invalid Address', 'Incomplete Documents', 'FSSAI License Expired', 'Mismatch in PAN details'];
-    return Padding(padding: const EdgeInsets.all(ShiftleyTokens.spaceL), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Why are you rejecting this onboarding?', style: ShiftleyTokens.bodyLarge), const SizedBox(height: ShiftleyTokens.spaceM), Wrap(spacing: 8, runSpacing: 8, children: suggestions.map((s) => ActionChip(label: Text(s, style: const TextStyle(fontSize: 12)), backgroundColor: ShiftleyTokens.paperWhite, side: const BorderSide(color: ShiftleyTokens.inkBlack), onPressed: () => setState(() => _rejectionReason = s))).toList()), const SizedBox(height: ShiftleyTokens.spaceXL), const Text('Additional Justification', style: ShiftleyTokens.caption), const SizedBox(height: 8), TextField(maxLines: 4, decoration: InputDecoration(border: ShiftleyTokens.primaryInputBorder, enabledBorder: ShiftleyTokens.primaryInputBorder, focusedBorder: ShiftleyTokens.focusInputBorder, hintText: 'Provide detailed reason...', fillColor: ShiftleyTokens.paperWhite, filled: true), controller: TextEditingController(text: _rejectionReason), onChanged: (v) => _rejectionReason = v), const Spacer(), SButton(text: 'Confirm Rejection', type: SButtonType.primary, onPressed: () => setState(() => _currentView = VerifierView.queue)), const SizedBox(height: ShiftleyTokens.spaceXL)]));
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Why are you rejecting this onboarding?', style: ShiftleyTokens.h2),
+          const SizedBox(height: ShiftleyTokens.spaceM),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: suggestions.map((s) => ActionChip(
+              label: Text(s, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              backgroundColor: _rejectionReason == s ? ShiftleyTokens.inkBlack : ShiftleyTokens.paperWhite,
+              labelStyle: TextStyle(color: _rejectionReason == s ? Colors.white : ShiftleyTokens.inkBlack),
+              side: const BorderSide(color: ShiftleyTokens.inkBlack, width: 1.5),
+              onPressed: () => setState(() => _rejectionReason = s),
+            )).toList(),
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+          const Text('ADDITIONAL JUSTIFICATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          TextField(
+            maxLines: 4,
+            decoration: InputDecoration(
+              border: ShiftleyTokens.primaryInputBorder,
+              enabledBorder: ShiftleyTokens.primaryInputBorder,
+              focusedBorder: ShiftleyTokens.focusInputBorder,
+              hintText: 'Provide detailed reason...',
+              fillColor: ShiftleyTokens.paperWhite,
+              filled: true,
+            ),
+            onChanged: (v) => _rejectionReason = v,
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceXXL),
+          SButton(
+            text: 'CONFIRM REJECTION',
+            type: SButtonType.primary,
+            isLoading: _isVerifying,
+            onPressed: () async {
+              if (_rejectionReason.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a reason')));
+                return;
+              }
+              await _submitVerification(ref, isApproved: false, notes: _rejectionReason);
+            },
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+        ],
+      ),
+    );
   }
 
   Widget _buildHistoryView(WidgetRef ref) {
@@ -891,6 +960,9 @@ class _VerifierScreenState extends State<VerifierScreen> {
         child: Row(
           children: [
             _buildTab('PENDING', 0), 
+            const SizedBox(width: ShiftleyTokens.spaceM),
+            _buildTab('REJECTED', 1),
+            const SizedBox(width: ShiftleyTokens.spaceM),
             _buildTab('COMPLETED', 2)
           ]
         )

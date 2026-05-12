@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
+import 'package:shiftley_frontend/features/employer/data/employer_repository.dart';
 
-class AttendanceView extends StatelessWidget {
+class AttendanceView extends ConsumerWidget {
+  final String gigId;
   final String shiftTitle;
   final String shiftTime;
 
   const AttendanceView({
     super.key,
+    required this.gigId,
     required this.shiftTitle,
     required this.shiftTime,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final applicationsAsync = ref.watch(gigApplicationsProvider(gigId));
+
     return Scaffold(
       backgroundColor: ShiftleyTokens.background,
       appBar: AppBar(
@@ -32,23 +38,41 @@ class AttendanceView extends StatelessWidget {
           child: Divider(height: 2, thickness: 2, color: ShiftleyTokens.inkBlack),
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-        itemCount: 4,
-        itemBuilder: (context, index) {
-          return _buildWorkerAttendanceCard(
-            context,
-            name: ['Rahul Sharma', 'Sneha Reddy', 'Vikram Singh', 'Ananya Das'][index],
-            status: index % 2 == 0 ? 'NOT CLOCKED IN' : 'CLOCKED IN',
-            time: index % 2 == 0 ? '--:--' : '09:05 AM',
+      body: applicationsAsync.when(
+        data: (apps) {
+          final hired = apps.where((a) => a.status == 'APPROVED').toList();
+          
+          if (hired.isEmpty) {
+            return const Center(
+              child: Text('No hired professionals for this shift.'),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+            itemCount: hired.length,
+            itemBuilder: (context, index) {
+              final app = hired[index];
+              return _buildWorkerAttendanceCard(
+                context,
+                ref,
+                name: app.employeeName ?? 'Professional',
+                employeeId: app.employeeId,
+                status: 'NOT CLOCKED IN', // Mock status for now, logic needed on backend
+                time: '--:--',
+              );
+            },
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
   }
 
-  Widget _buildWorkerAttendanceCard(BuildContext context, {
+  Widget _buildWorkerAttendanceCard(BuildContext context, WidgetRef ref, {
     required String name,
+    required String employeeId,
     required String status,
     required String time,
   }) {
@@ -106,7 +130,7 @@ class AttendanceView extends StatelessWidget {
               Expanded(
                 child: ShiftleyButton(
                   label: isClockedIn ? 'Clock Out (QR)' : 'Clock In (QR)',
-                  onPressed: () => _openQRScanner(context, name),
+                  onPressed: () => _openQRScanner(context, ref, name, employeeId, isClockedIn ? 'PRESENT' : 'COMPLETED'),
                   icon: Icons.qr_code_scanner,
                   size: ShiftleyButtonSize.small,
                 ),
@@ -118,7 +142,7 @@ class AttendanceView extends StatelessWidget {
     );
   }
 
-  void _openQRScanner(BuildContext context, String name) {
+  void _openQRScanner(BuildContext context, WidgetRef ref, String name, String employeeId, String nextStatus) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -138,19 +162,35 @@ class AttendanceView extends StatelessWidget {
             Text('Scanning for $name', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const Spacer(),
             // Mock Scanner UI
-            Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                border: Border.all(color: ShiftleyTokens.primaryRed, width: 4),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Center(
-                child: Icon(Icons.qr_code_2, size: 150, color: Colors.white24),
+            GestureDetector(
+              onTap: () async {
+                // Simulate successful scan
+                try {
+                  await ref.read(employerRepositoryProvider).markAttendance(gigId, employeeId, nextStatus);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Attendance marked for $name')));
+                  }
+                } catch (e) {
+                   if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
+                  }
+                }
+              },
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  border: Border.all(color: ShiftleyTokens.primaryRed, width: 4),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Center(
+                  child: Icon(Icons.qr_code_2, size: 150, color: Colors.white24),
+                ),
               ),
             ),
             const SizedBox(height: ShiftleyTokens.spaceXL),
-            const Text('Align QR code within the frame', style: TextStyle(color: Colors.white70)),
+            const Text('Tap square to simulate scan', style: TextStyle(color: Colors.white70)),
             const Spacer(),
             Padding(
               padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),

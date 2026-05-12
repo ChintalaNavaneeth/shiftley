@@ -21,8 +21,9 @@ type SubscriptionPlanMeta struct {
 	Name        string  `json:"name"`
 	PricePaise  int64   `json:"price_paise"`
 	DurationDay int     `json:"duration_days"`
-	MaxGigs     int     `json:"max_gigs"`
-	IsActive    bool    `gorm:"default:true" json:"is_active"`
+	MaxGigs             int     `json:"max_gigs"`
+	MaxEmployeesPerGig int     `json:"max_employees_per_gig"`
+	IsActive            bool    `gorm:"default:true" json:"is_active"`
 }
 
 func (SubscriptionPlanMeta) TableName() string {

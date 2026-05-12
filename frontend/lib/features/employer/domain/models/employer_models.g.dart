@@ -16,6 +16,7 @@ EmployerProfile _$EmployerProfileFromJson(Map<String, dynamic> json) =>
       businessAddress: json['business_address'] as String,
       email: json['email'] as String? ?? '',
       phoneNumber: json['phone_number'] as String? ?? '',
+      fullName: json['full_name'] as String? ?? 'Employer',
       lat: (json['lat'] as num).toDouble(),
       lng: (json['lng'] as num).toDouble(),
       verificationStatus: json['verification_status'] as String,
@@ -36,6 +37,7 @@ Map<String, dynamic> _$EmployerProfileToJson(EmployerProfile instance) =>
       'business_address': instance.businessAddress,
       'email': instance.email,
       'phone_number': instance.phoneNumber,
+      'full_name': instance.fullName,
       'lat': instance.lat,
       'lng': instance.lng,
       'verification_status': instance.verificationStatus,
@@ -62,12 +64,39 @@ Map<String, dynamic> _$EmployerStatsToJson(EmployerStats instance) =>
       'free_gigs_remaining': instance.freeGigsRemaining,
     };
 
+SubscriptionPlanMeta _$SubscriptionPlanMetaFromJson(
+        Map<String, dynamic> json) =>
+    SubscriptionPlanMeta(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      pricePaise: (json['price_paise'] as num).toInt(),
+      durationDays: (json['duration_days'] as num).toInt(),
+      maxGigs: (json['max_gigs'] as num).toInt(),
+      maxEmployeesPerGig: (json['max_employees_per_gig'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$SubscriptionPlanMetaToJson(
+        SubscriptionPlanMeta instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'price_paise': instance.pricePaise,
+      'duration_days': instance.durationDays,
+      'max_gigs': instance.maxGigs,
+      'max_employees_per_gig': instance.maxEmployeesPerGig,
+    };
+
 EmployerDashboardData _$EmployerDashboardDataFromJson(
         Map<String, dynamic> json) =>
     EmployerDashboardData(
       profile:
           EmployerProfile.fromJson(json['profile'] as Map<String, dynamic>),
       stats: EmployerStats.fromJson(json['stats'] as Map<String, dynamic>),
+      availablePlans: (json['available_plans'] as List<dynamic>?)
+              ?.map((e) =>
+                  SubscriptionPlanMeta.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
 
 Map<String, dynamic> _$EmployerDashboardDataToJson(
@@ -75,4 +104,5 @@ Map<String, dynamic> _$EmployerDashboardDataToJson(
     <String, dynamic>{
       'profile': instance.profile,
       'stats': instance.stats,
+      'available_plans': instance.availablePlans,
     };

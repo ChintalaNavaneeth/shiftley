@@ -35,10 +35,15 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	userID, _ := uuid.Parse(userIDStr.(string))
 
 	var profile auth.EmployerProfile
-	if err := h.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+	if err := h.db.Table("shiftley.employer_profiles").
+		Select("shiftley.employer_profiles.*, shiftley.users.email, shiftley.users.phone_number, shiftley.users.full_name").
+		Joins("JOIN shiftley.users ON shiftley.users.id = shiftley.employer_profiles.user_id").
+		Where("shiftley.employer_profiles.user_id = ?", userID).
+		First(&profile).Error; err != nil {
 		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Employer profile not found", nil)
 		return
 	}
+	fmt.Printf("[DEBUG] Profile Loaded: Owner=%s, Phone=%s, Business=%s\n", profile.FullName, profile.PhoneNumber, profile.BusinessName)
 
 	// Calculate Stats
 	var totalGigs int64
@@ -65,9 +70,18 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		}
 	}
 
+	var availablePlans []SubscriptionPlanMeta
+	h.db.Where("is_active = ?", true).Order("price_paise ASC").Find(&availablePlans)
+
+	fmt.Printf("[DEBUG] Available Plans count: %d\n", len(availablePlans))
+	for _, p := range availablePlans {
+		fmt.Printf("[DEBUG] Plan: %s, Price: %d, ID: %s\n", p.Name, p.PricePaise, p.ID)
+	}
+
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
-		"profile": profile,
-		"stats":   stats,
+		"profile":         profile,
+		"stats":           stats,
+		"available_plans": availablePlans,
 	}, nil)
 }
 

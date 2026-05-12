@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'package:shiftley_frontend/features/employer/data/employer_repository.dart';
+import 'package:shiftley_frontend/features/employer/domain/models/employer_models.dart';
 import 'widgets/employer_sidebar.dart';
 import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 import 'views/overview_view.dart';
@@ -55,7 +57,7 @@ class _EmployerScreenState extends ConsumerState<EmployerScreen> {
             },
             child: Padding(
               padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-              child: _buildActiveView(),
+              child: _buildActiveView(dashboardAsync),
             ),
           ),
         ),
@@ -108,15 +110,41 @@ class _EmployerScreenState extends ConsumerState<EmployerScreen> {
     }
   }
 
-  Widget _buildActiveView() {
+  Widget _buildActiveView(AsyncValue<EmployerDashboardData> dashboardAsync) {
     switch (_activeTab) {
       case EmployerTab.overview:
         return const OverviewView();
       case EmployerTab.shifts:
         return const ManageGigsView();
       case EmployerTab.post:
-        return PostGigView(
-          onPublished: () => setState(() => _activeTab = EmployerTab.shifts),
+        return dashboardAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),
+          error: (err, stack) => Center(child: Text('Error: $err')),
+          data: (EmployerDashboardData data) {
+            final bool isVerified = data.profile.verificationStatus == 'VERIFIED';
+            final bool hasSubscription = data.stats.activePlan != 'NONE' && data.stats.freeGigsRemaining > 0;
+            
+            if (!isVerified) {
+              return _buildLockScreen(
+                Icons.verified_user_outlined,
+                'Verification Required', 
+                'Your business profile is currently under review. A verifier will visit your location shortly. Once verified, you can start posting GIGs.'
+              );
+            }
+            if (!hasSubscription) {
+              return _buildLockScreen(
+                Icons.card_membership_outlined,
+                'Subscription Active Required', 
+                'You have either used all your gig posts or don\'t have an active plan. Please purchase a plan in the Subscription tab to continue.',
+                actionLabel: 'GO TO SUBSCRIPTION',
+                onAction: () => setState(() => _activeTab = EmployerTab.subscription),
+              );
+            }
+            
+            return PostGigView(
+              onPublished: () => setState(() => _activeTab = EmployerTab.shifts),
+            );
+          },
         );
       case EmployerTab.subscription:
         return const SubscriptionView();
@@ -129,5 +157,43 @@ class _EmployerScreenState extends ConsumerState<EmployerScreen> {
       case EmployerTab.settings:
         return const SettingsView();
     }
+  }
+
+  Widget _buildLockScreen(IconData icon, String title, String message, {String? actionLabel, VoidCallback? onAction}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+              decoration: BoxDecoration(
+                color: ShiftleyTokens.background,
+                border: ShiftleyTokens.primaryBorder,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 64, color: ShiftleyTokens.primaryRed),
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            Text(title, style: ShiftleyTokens.h1, textAlign: TextAlign.center),
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            Text(
+              message,
+              style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.mutedText),
+              textAlign: TextAlign.center,
+            ),
+            if (actionLabel != null) ...[
+              const SizedBox(height: ShiftleyTokens.spaceXXL),
+              ShiftleyButton(
+                label: actionLabel,
+                onPressed: onAction ?? () {},
+                isFullWidth: true,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

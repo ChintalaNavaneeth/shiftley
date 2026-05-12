@@ -59,31 +59,11 @@ class AdminSidebar extends ConsumerWidget {
                 ref.watch(userProfileProvider).when(
                   loading: () => const LinearProgressIndicator(color: ShiftleyTokens.primaryRed),
                   error: (err, stack) => const SizedBox(),
-                  data: (profile) => Row(
+                  data: (profile) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: ShiftleyTokens.background,
-                          border: ShiftleyTokens.primaryBorder,
-                          borderRadius: BorderRadius.circular(8),
-                          image: profile['profile_photo_url'] != null
-                            ? DecorationImage(image: NetworkImage(profile['profile_photo_url']), fit: BoxFit.cover)
-                            : null,
-                        ),
-                        child: profile['profile_photo_url'] == null ? const Icon(Icons.person, size: 20) : null,
-                      ),
-                      const SizedBox(width: ShiftleyTokens.spaceM),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(profile['full_name'] ?? 'Super Admin', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-                            Text(profile['email'] ?? '', style: ShiftleyTokens.caption.copyWith(fontSize: 10)),
-                          ],
-                        ),
-                      ),
+                      Text(profile['full_name'] ?? 'Super Admin', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                      Text(profile['email'] ?? '', style: ShiftleyTokens.caption.copyWith(fontSize: 10)),
                     ],
                   ),
                 ),
