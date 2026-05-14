@@ -376,8 +376,8 @@ func (h *Handler) VerifyCancelAndConfirm(c *gin.Context) {
 		return
 	}
 
-	_, _, ok, _, err := h.auth.VerifyOTP(c.Request.Context(), user.PhoneNumber, "PHONE", req.Code, "")
-	if err != nil || !ok {
+	_, _, _, _, err := h.auth.VerifyOTP(c.Request.Context(), user.PhoneNumber, "PHONE", req.Code, "")
+	if err != nil {
 		utils.RespondError(c, http.StatusUnauthorized, "INVALID_OTP", "Invalid or expired OTP", nil)
 		return
 	}

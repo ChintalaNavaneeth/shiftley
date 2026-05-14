@@ -2,12 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/network/api_client.dart';
 import 'package:shiftley_frontend/core/network/api_providers.dart';
+import 'package:shiftley_frontend/core/network/token_storage.dart';
 import 'package:shiftley_frontend/features/employer/domain/models/employer_models.dart';
 import 'package:shiftley_frontend/features/employer/domain/models/taxonomy_models.dart';
 import 'package:shiftley_frontend/shared/domain/models/gig_models.dart';
 
 class EmployerRepository {
   final ApiClient _apiClient;
+  final TokenStorage _tokenStorage = TokenStorage();
 
   EmployerRepository(this._apiClient);
 
@@ -75,12 +77,17 @@ class EmployerRepository {
   }
 
   Future<void> verifyCancelAndConfirm(String gigId, String code, String reason) async {
+    final token = await _tokenStorage.getAccessToken();
+    
     await _apiClient.dio.post(
       '/gigs/$gigId/cancel/verify',
       data: {
         'code': code,
         'reason': reason,
       },
+      options: Options(
+        headers: token != null ? {'Authorization': 'Bearer $token'} : null,
+      ),
     );
   }
 

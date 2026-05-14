@@ -77,6 +77,13 @@ class OverviewView extends ConsumerWidget {
             isFullWidth: true,
           ),
           const SizedBox(height: ShiftleyTokens.spaceXL),
+        ] else if (gigsAsync.value?.isNotEmpty == true) ...[
+          ShiftleyButton(
+            label: 'TOP UP TO POST GIG',
+            onPressed: onGoToSubscription,
+            isFullWidth: true,
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
         ] else ...[
           // Subscription Required UI
           Container(
