@@ -17,6 +17,8 @@ import 'features/debug/presentation/dev_navigation_screen.dart';
 import 'features/support/presentation/support_agent_screen.dart';
 import 'features/verifier/presentation/verifier_auth_screen.dart';
 import 'features/verifier/presentation/verifier_setup_screen.dart';
+import 'features/admin/presentation/admin_auth_screen.dart';
+import 'features/employer/presentation/employer_auth_screen.dart';
 
 
 import 'features/auth/presentation/onboarding_screen.dart';
@@ -38,15 +40,15 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/auth',
-      builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>?;
-        final isAdminFlow = extra?['isAdminFlow'] as bool? ?? false;
-        final isVerifierFlow = extra?['isVerifierFlow'] as bool? ?? false;
-        return AuthScreen(
-          isAdminFlow: isAdminFlow,
-          isVerifierFlow: isVerifierFlow,
-        );
-      },
+      builder: (context, state) => const AuthScreen(),
+    ),
+    GoRoute(
+      path: '/admin/auth',
+      builder: (context, state) => const AdminAuthScreen(),
+    ),
+    GoRoute(
+      path: '/employer/auth',
+      builder: (context, state) => const EmployerAuthScreen(),
     ),
     GoRoute(
       path: '/otp',

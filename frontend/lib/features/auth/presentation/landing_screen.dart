@@ -266,6 +266,21 @@ class _LandingScreenState extends State<LandingScreen> {
                         ),
                         const SizedBox(height: ShiftleyTokens.spaceL),
                         Text('© 2026 Shiftley. All rights reserved.', style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.paperWhite.withValues(alpha: 0.7))),
+                        const SizedBox(height: ShiftleyTokens.spaceL),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              onTap: () => context.push('/admin/auth'),
+                              child: Text('Admin Access', style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.paperWhite.withValues(alpha: 0.5), decoration: TextDecoration.underline)),
+                            ),
+                            const SizedBox(width: ShiftleyTokens.spaceL),
+                            GestureDetector(
+                              onTap: () => context.push('/verifier/auth'),
+                              child: Text('Verifier Access', style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.paperWhite.withValues(alpha: 0.5), decoration: TextDecoration.underline)),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -317,7 +332,13 @@ class _LandingScreenState extends State<LandingScreen> {
                       child: SButton(
                         text: 'Sign In / Up',
                         type: SButtonType.primary,
-                        onPressed: () => context.push('/auth'),
+                        onPressed: () {
+                          if (_isWorkerFlow) {
+                            context.push('/auth');
+                          } else {
+                            context.push('/employer/auth');
+                          }
+                        },
                       ),
                     ),
                   ],

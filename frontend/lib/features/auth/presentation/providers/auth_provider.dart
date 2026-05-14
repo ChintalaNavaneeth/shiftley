@@ -32,7 +32,7 @@ class Auth extends _$Auth {
     ));
   }
 
-  Future<AuthResponse> verifyOtp(String identifier, String type, String code) async {
+  Future<AuthResponse> verifyOtp(String identifier, String type, String code, {String? role}) async {
     state = const AsyncValue.loading();
     try {
       final repo = ref.read(authRepositoryProvider);
@@ -40,6 +40,7 @@ class Auth extends _$Auth {
         identifier: identifier,
         type: type,
         code: code,
+        role: role,
       ));
 
       if (response.data != null && response.data is Map<String, dynamic>) {

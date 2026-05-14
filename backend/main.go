@@ -219,6 +219,25 @@ func main() {
 			authGroup.POST("/otp/send", authHandler.SendOTP)
 			authGroup.POST("/otp/verify", authHandler.VerifyOTP)
 			authGroup.POST("/token/refresh", authHandler.RefreshToken)
+
+			// Role-Specific Flows (Separated)
+			adminAuth := authGroup.Group("/admin")
+			{
+				adminAuth.POST("/otp/send", authHandler.AdminSendOTP)
+				adminAuth.POST("/otp/verify", authHandler.AdminVerifyOTP)
+			}
+
+			employerAuth := authGroup.Group("/employer")
+			{
+				employerAuth.POST("/otp/send", authHandler.EmployerSendOTP)
+				employerAuth.POST("/otp/verify", authHandler.EmployerVerifyOTP)
+			}
+
+			verifierAuth := authGroup.Group("/verifier")
+			{
+				verifierAuth.POST("/otp/send", authHandler.VerifierSendOTP)
+				verifierAuth.POST("/otp/verify", authHandler.VerifierVerifyOTP)
+			}
 			
 			// KYC - Protected by Registration Token (Worker only usually)
 			kycGroup := authGroup.Group("/kyc")
@@ -252,7 +271,7 @@ func main() {
 		adminGroup := v1.Group("/admin")
 		{
 			// Global Admin Protection
-			adminGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireTokenType("session"))
+			adminGroup.Use(middleware.RequireAuth(cfg.JWTSecret, rdb), middleware.RequireOnboardingToken())
 
 			usersGroup := adminGroup.Group("/users")
 			// Only SUPER_ADMIN and ADMIN (HR_ADMIN) can invite internal staff

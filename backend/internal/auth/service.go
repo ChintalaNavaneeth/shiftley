@@ -15,7 +15,7 @@ import (
 
 type Service interface {
 	SendOTP(ctx context.Context, identifier string, channel string, role string) (string, error)
-	VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, string, bool, *User, error)
+	VerifyOTP(ctx context.Context, identifier string, channel string, code string, expectedRole string) (string, string, bool, *User, error)
 	RefreshToken(ctx context.Context, refreshToken string) (string, string, error)
 	Logout(ctx context.Context, userID string) error
 	GenerateToken(userID uuid.UUID, role string, tokenType string, expHours int) (string, error)
@@ -78,7 +78,7 @@ func (s *service) SendOTP(ctx context.Context, identifier string, channel string
 	return code, nil
 }
 
-func (s *service) VerifyOTP(ctx context.Context, identifier string, channel string, code string) (string, string, bool, *User, error) {
+func (s *service) VerifyOTP(ctx context.Context, identifier string, channel string, code string, expectedRole string) (string, string, bool, *User, error) {
 	user, err := s.repo.GetUserByIdentifier(ctx, identifier)
 	if err != nil {
 		return "", "", false, nil, err
@@ -107,6 +107,18 @@ func (s *service) VerifyOTP(ctx context.Context, identifier string, channel stri
 	// Store Refresh Token in Redis (7 days)
 	if err := s.repo.SetRefreshToken(ctx, user.ID.String(), refreshToken, 7*24*time.Hour); err != nil {
 		return "", "", false, nil, err
+	}
+
+	// Verify Role if expectedRole is provided
+	if expectedRole != "" {
+		// Special case: ADMIN can mean multiple sub-roles if needed, but for now we check exact or specific sets
+		if expectedRole == "ADMIN" {
+			if user.Role != RoleSuperAdmin && user.Role != RoleAdmin && user.Role != RoleHRAdmin {
+				return "", "", false, nil, fmt.Errorf("unauthorized: account is not an administrator")
+			}
+		} else if string(user.Role) != expectedRole {
+			return "", "", false, nil, fmt.Errorf("unauthorized: account is not a %s", expectedRole)
+		}
 	}
 
 	return accessToken, refreshToken, isNewUser, user, nil

@@ -8,13 +8,7 @@ import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import 'providers/auth_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
-  final bool isAdminFlow;
-  final bool isVerifierFlow;
-  const AuthScreen({
-    super.key, 
-    this.isAdminFlow = false,
-    this.isVerifierFlow = false,
-  });
+  const AuthScreen({super.key});
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -23,20 +17,9 @@ class AuthScreen extends ConsumerStatefulWidget {
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  late bool _isSignUp;
-  late bool _isWorker;
-  late bool _isAdmin;
-  late bool _isVerifier;
+  bool _isSignUp = true;
+  bool _isWorker = true;
   bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _isSignUp = !widget.isAdminFlow && !widget.isVerifierFlow;
-    _isWorker = true;
-    _isAdmin = widget.isAdminFlow;
-    _isVerifier = widget.isVerifierFlow;
-  }
 
   @override
   void dispose() {
@@ -49,8 +32,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       setState(() => _isLoading = true);
       try {
         final phoneNumber = '+91${_phoneController.text.trim()}';
-        String role = _isAdmin ? 'SUPER_ADMIN' : (_isWorker ? 'WORKER' : 'EMPLOYER');
-        if (_isVerifier) role = 'VERIFIER';
+        final role = _isWorker ? 'WORKER' : 'EMPLOYER';
         
         await ref.read(authProvider.notifier).sendOtp(
           phoneNumber,
@@ -72,11 +54,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           if (data is Map<String, dynamic> && data['error'] != null) {
             errorMsg = data['error']['message'] ?? errorMsg;
           }
-        }
-        
-        debugPrint('Auth Error Detail: $errorMsg');
-        if (e is DioException) {
-          debugPrint('Request Path: ${e.requestOptions.path}');
         }
         
         if (mounted) {
@@ -132,71 +109,56 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       const SizedBox(height: ShiftleyTokens.spaceXL),
                       
                       // Toggle
-                      if (!_isAdmin && !_isVerifier) ...[
-                        Container(
-                          decoration: BoxDecoration(
-                            border: ShiftleyTokens.primaryBorder,
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Row(
-                            children: [
-                              _TabButton(
-                                label: 'Sign In',
-                                isActive: !_isSignUp,
-                                onTap: () => setState(() => _isSignUp = false),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: ShiftleyTokens.primaryBorder,
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: Row(
+                          children: [
+                            _TabButton(
+                              label: 'Sign In',
+                              isActive: !_isSignUp,
+                              onTap: () => setState(() => _isSignUp = false),
+                            ),
+                            _TabButton(
+                              label: 'Sign Up',
+                              isActive: _isSignUp,
+                              onTap: () => setState(() => _isSignUp = true),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: ShiftleyTokens.spaceXL),
+                      
+                      // Role Picker (SignUp only)
+                      if (_isSignUp) ...[
+                        const Text('I want to', style: ShiftleyTokens.h2),
+                        const SizedBox(height: ShiftleyTokens.spaceM),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SButton(
+                                text: 'Work',
+                                type: _isWorker ? SButtonType.primary : SButtonType.secondary,
+                                onPressed: () => setState(() => _isWorker = true),
                               ),
-                              _TabButton(
-                                label: 'Sign Up',
-                                isActive: _isSignUp,
-                                onTap: () => setState(() => _isSignUp = true),
+                            ),
+                            const SizedBox(width: ShiftleyTokens.spaceM),
+                            Expanded(
+                              child: SButton(
+                                text: 'Hire',
+                                type: !_isWorker ? SButtonType.primary : SButtonType.secondary,
+                                onPressed: () => setState(() => _isWorker = false),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: ShiftleyTokens.spaceXL),
                       ],
                       
-                      // Role Picker
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        transitionBuilder: (child, animation) {
-                          return SizeTransition(
-                            sizeFactor: animation,
-                            axisAlignment: -1,
-                            child: FadeTransition(opacity: animation, child: child),
-                          );
-                        },
-                        child: _isSignUp
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                key: const ValueKey('signup_roles'),
-                                children: [
-                                  const Text('I want to', style: ShiftleyTokens.h2),
-                                  const SizedBox(height: ShiftleyTokens.spaceM),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: SButton(
-                                          text: 'Work',
-                                          type: _isWorker ? SButtonType.primary : SButtonType.secondary,
-                                          onPressed: () => setState(() => _isWorker = true),
-                                        ),
-                                      ),
-                                      const SizedBox(width: ShiftleyTokens.spaceM),
-                                      Expanded(
-                                        child: SButton(
-                                          text: 'Hire',
-                                          type: !_isWorker ? SButtonType.primary : SButtonType.secondary,
-                                          onPressed: () => setState(() => _isWorker = false),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: ShiftleyTokens.spaceXL),
-                                ],
-                              )
-                            : const SizedBox.shrink(key: ValueKey('empty')),
-                      ),
+                      // Removed Get Started heading and subtext
+                      const SizedBox(height: ShiftleyTokens.spaceXL),
                       
                       // Input
                       const Text('Phone Number', style: ShiftleyTokens.bodyLarge),
@@ -222,12 +184,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               border: Border(bottom: BorderSide(color: ShiftleyTokens.primaryRed, width: 3.5)),
                             ),
                           ),
-                          // Allow pasting 10 digits
-                          onClipboardFound: (value) {
-                            if (value.length == 10) {
-                              _phoneController.text = value;
-                            }
-                          },
                         ),
                       ),
                       const SizedBox(height: ShiftleyTokens.spaceXL),

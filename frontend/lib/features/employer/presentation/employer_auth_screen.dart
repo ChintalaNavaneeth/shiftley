@@ -7,17 +7,19 @@ import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
 
-class VerifierAuthScreen extends ConsumerStatefulWidget {
-  const VerifierAuthScreen({super.key});
+class EmployerAuthScreen extends ConsumerStatefulWidget {
+  const EmployerAuthScreen({super.key});
 
   @override
-  ConsumerState<VerifierAuthScreen> createState() => _VerifierAuthScreenState();
+  ConsumerState<EmployerAuthScreen> createState() => _EmployerAuthScreenState();
 }
 
-class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
+class _EmployerAuthScreenState extends ConsumerState<EmployerAuthScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _isSignUp = true;
+  bool _isWorker = false;
 
   @override
   void dispose() {
@@ -30,7 +32,7 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
       setState(() => _isLoading = true);
       try {
         final phoneNumber = '+91${_phoneController.text.trim()}';
-        const role = 'VERIFIER';
+        final role = _isWorker ? 'WORKER' : 'EMPLOYER';
         
         await ref.read(authProvider.notifier).sendOtp(
           phoneNumber,
@@ -42,7 +44,7 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
           context.push('/otp', extra: {
             'phone': phoneNumber,
             'role': role,
-            'isSignUp': false,
+            'isSignUp': _isSignUp,
           });
         }
       } catch (e) {
@@ -95,7 +97,7 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Shiftley Verifier.',
+                        'Shiftley Business.',
                         style: TextStyle(
                           fontFamily: 'Figtree',
                           fontSize: 32,
@@ -106,6 +108,55 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
                       ),
                       const SizedBox(height: ShiftleyTokens.spaceXL),
                       
+                      // Toggle
+                      Container(
+                        decoration: BoxDecoration(
+                          border: ShiftleyTokens.primaryBorder,
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: Row(
+                          children: [
+                            _TabButton(
+                              label: 'Sign In',
+                              isActive: !_isSignUp,
+                              onTap: () => setState(() => _isSignUp = false),
+                            ),
+                            _TabButton(
+                              label: 'Sign Up',
+                              isActive: _isSignUp,
+                              onTap: () => setState(() => _isSignUp = true),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: ShiftleyTokens.spaceXL),
+                      
+                      // Role Picker (SignUp only)
+                      if (_isSignUp) ...[
+                        const Text('I want to', style: ShiftleyTokens.h2),
+                        const SizedBox(height: ShiftleyTokens.spaceM),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SButton(
+                                text: 'Work',
+                                type: _isWorker ? SButtonType.primary : SButtonType.secondary,
+                                onPressed: () => setState(() => _isWorker = true),
+                              ),
+                            ),
+                            const SizedBox(width: ShiftleyTokens.spaceM),
+                            Expanded(
+                              child: SButton(
+                                text: 'Hire',
+                                type: !_isWorker ? SButtonType.primary : SButtonType.secondary,
+                                onPressed: () => setState(() => _isWorker = false),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: ShiftleyTokens.spaceXL),
+                      ],
+
                       // Removed heading and subtext
                       const SizedBox(height: ShiftleyTokens.spaceXL),
                       
@@ -137,7 +188,7 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
                       ),
                       const SizedBox(height: ShiftleyTokens.spaceXL),
                       SButton(
-                        text: 'Get Verifier OTP →',
+                        text: 'Get Started →',
                         isLoading: _isLoading,
                         onPressed: _onGetOtp,
                       ),
@@ -145,6 +196,43 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
                     ],
                   ),
                 ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _TabButton({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceM),
+          decoration: BoxDecoration(
+            color: isActive ? ShiftleyTokens.inkBlack : Colors.transparent,
+            borderRadius: BorderRadius.circular(50),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: ShiftleyTokens.buttonLabel.copyWith(
+                color: isActive ? ShiftleyTokens.paperWhite : ShiftleyTokens.inkBlack,
               ),
             ),
           ),

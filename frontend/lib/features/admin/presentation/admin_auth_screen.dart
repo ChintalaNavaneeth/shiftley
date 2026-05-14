@@ -7,14 +7,14 @@ import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
 
-class VerifierAuthScreen extends ConsumerStatefulWidget {
-  const VerifierAuthScreen({super.key});
+class AdminAuthScreen extends ConsumerStatefulWidget {
+  const AdminAuthScreen({super.key});
 
   @override
-  ConsumerState<VerifierAuthScreen> createState() => _VerifierAuthScreenState();
+  ConsumerState<AdminAuthScreen> createState() => _AdminAuthScreenState();
 }
 
-class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
+class _AdminAuthScreenState extends ConsumerState<AdminAuthScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
@@ -30,7 +30,8 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
       setState(() => _isLoading = true);
       try {
         final phoneNumber = '+91${_phoneController.text.trim()}';
-        const role = 'VERIFIER';
+        // Admin portal usually allows both ADMIN and SUPER_ADMIN
+        const role = 'ADMIN'; 
         
         await ref.read(authProvider.notifier).sendOtp(
           phoneNumber,
@@ -42,7 +43,7 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
           context.push('/otp', extra: {
             'phone': phoneNumber,
             'role': role,
-            'isSignUp': false,
+            'isSignUp': false, // Admin login only, no public signup
           });
         }
       } catch (e) {
@@ -95,7 +96,7 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Shiftley Verifier.',
+                        'Shiftley Admin.',
                         style: TextStyle(
                           fontFamily: 'Figtree',
                           fontSize: 32,
@@ -137,7 +138,7 @@ class _VerifierAuthScreenState extends ConsumerState<VerifierAuthScreen> {
                       ),
                       const SizedBox(height: ShiftleyTokens.spaceXL),
                       SButton(
-                        text: 'Get Verifier OTP →',
+                        text: 'Get Admin OTP →',
                         isLoading: _isLoading,
                         onPressed: _onGetOtp,
                       ),

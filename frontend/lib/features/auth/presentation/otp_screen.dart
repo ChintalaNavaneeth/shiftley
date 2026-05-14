@@ -65,15 +65,20 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           widget.phoneNumber,
           'PHONE',
           _otpController.text,
+          role: widget.role,
         );
 
         if (mounted) {
-          final authData = AuthData.fromJson(response.data as Map<String, dynamic>);
-          final actualRole = authData.user?.role;
+          final dataMap = response.data as Map<String, dynamic>?;
+          if (dataMap == null) throw Exception('Invalid response from server');
+          
+          final authData = AuthData.fromJson(dataMap);
+          final actualRole = authData.user?.role ?? widget.role; // Use widget.role as fallback
+          final isSetupComplete = authData.isInitialSetupComplete ?? true;
 
           // 1. Handle New Users (No account exists yet in DB)
-          if (authData.isNewUser && actualRole == null) {
-            if (widget.role == 'WORKER') {
+          if (authData.isNewUser && authData.user == null) {
+            if (actualRole == 'WORKER') {
               context.go('/onboarding/employee?phone=${Uri.encodeComponent(widget.phoneNumber)}');
             } else {
               context.go('/onboarding/employer?phone=${Uri.encodeComponent(widget.phoneNumber)}');
@@ -83,25 +88,25 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
           // 2. Handle Existing Users based on ACTUAL role from server
           if (actualRole == 'WORKER') {
-            if (authData.isInitialSetupComplete == false) {
+            if (!isSetupComplete) {
               context.go('/onboarding/employee?phone=${Uri.encodeComponent(widget.phoneNumber)}');
             } else {
               context.go('/employee');
             }
           } else if (actualRole == 'EMPLOYER') {
-            if (authData.isInitialSetupComplete == false) {
+            if (!isSetupComplete) {
               context.go('/onboarding/employer?phone=${Uri.encodeComponent(widget.phoneNumber)}');
             } else {
               context.go('/employer');
             }
           } else if (actualRole == 'VERIFIER') {
-            if (authData.isInitialSetupComplete == false) {
+            if (!isSetupComplete) {
               context.go('/verifier/setup');
             } else {
               context.go('/verifier');
             }
           } else if (actualRole == 'SUPER_ADMIN' || actualRole == 'ADMIN') {
-            if (authData.isInitialSetupComplete == false) {
+            if (!isSetupComplete) {
               context.go('/admin/setup');
             } else {
               context.go('/admin');

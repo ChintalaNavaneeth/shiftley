@@ -83,6 +83,7 @@ type VerifyOTPRequest struct {
 	Identifier string `json:"identifier" form:"identifier" binding:"required"`
 	Type       string `json:"type" form:"type" binding:"required,oneof=PHONE EMAIL"`
 	Code       string `json:"code" form:"code" binding:"required,len=6"`
+	Role       string `json:"role" form:"role" binding:"omitempty"`
 }
 
 // VerifyOTP handles POST /api/v1/auth/otp/verify
@@ -104,31 +105,24 @@ func (h *Handler) VerifyOTP(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, isNewUser, user, err := h.svc.VerifyOTP(c.Request.Context(), req.Identifier, req.Type, req.Code)
+	accessToken, refreshToken, isNewUser, user, err := h.svc.VerifyOTP(c.Request.Context(), req.Identifier, req.Type, req.Code, req.Role)
 	if err != nil {
 		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, err.Error(), nil)
 		return
 	}
 
-	if isNewUser {
-		utils.RespondSuccess(c, http.StatusOK, gin.H{
-			"is_new_user":        true,
-			"registration_token": accessToken,
-			"refresh_token":      refreshToken,
-		}, nil)
-	} else {
-		utils.RespondSuccess(c, http.StatusOK, gin.H{
-			"is_new_user":   false,
-			"access_token":  accessToken,
-			"refresh_token": refreshToken,
-			"is_initial_setup_complete": user.IsInitialSetupComplete,
-			"user": gin.H{
-				"id":         user.ID,
-				"role":       user.Role,
-				"is_verified": user.IsVerified,
-			},
-		}, nil)
-	}
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"is_new_user":               isNewUser,
+		"access_token":              accessToken,
+		"registration_token":        accessToken,
+		"refresh_token":             refreshToken,
+		"is_initial_setup_complete": user.IsInitialSetupComplete,
+		"user": gin.H{
+			"id":          user.ID,
+			"role":        user.Role,
+			"is_verified": user.IsVerified,
+		},
+	}, nil)
 }
 
 type RefreshTokenRequest struct {

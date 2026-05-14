@@ -48,10 +48,9 @@ class DevNavigationScreen extends StatelessWidget {
 
                   _DevButton(
                     label: 'Super Admin Account Setup & Login',
-                    path: '/auth',
+                    path: '/admin/auth',
                     icon: Icons.admin_panel_settings,
                     color: ShiftleyTokens.secondaryCyan,
-                    extra: {'isAdminFlow': true},
                   ),
                   const SizedBox(height: ShiftleyTokens.spaceL),
                   _DevButton(

@@ -25,11 +25,13 @@ class VerifyOtpRequest {
   final String identifier;
   final String type;
   final String code;
+  final String? role;
 
   VerifyOtpRequest({
     required this.identifier,
     required this.type,
     required this.code,
+    this.role,
   });
 
   factory VerifyOtpRequest.fromJson(Map<String, dynamic> json) => _$VerifyOtpRequestFromJson(json);

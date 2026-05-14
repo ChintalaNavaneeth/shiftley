@@ -12,8 +12,17 @@ class AuthRepository {
 
   Future<AuthResponse> sendOtp(SendOtpRequest request) async {
     try {
+      String path = 'auth/otp/send';
+      if (request.role == 'SUPER_ADMIN' || request.role == 'ADMIN') {
+        path = 'auth/admin/otp/send';
+      } else if (request.role == 'EMPLOYER') {
+        path = 'auth/employer/otp/send';
+      } else if (request.role == 'VERIFIER') {
+        path = 'auth/verifier/otp/send';
+      }
+
       final response = await _dio.post(
-        'auth/otp/send',
+        path,
         data: request.toJson(),
         options: Options(contentType: Headers.formUrlEncodedContentType),
       );
@@ -25,8 +34,17 @@ class AuthRepository {
 
   Future<AuthResponse> verifyOtp(VerifyOtpRequest request) async {
     try {
+      String path = 'auth/otp/verify';
+      if (request.role == 'SUPER_ADMIN' || request.role == 'ADMIN') {
+        path = 'auth/admin/otp/verify';
+      } else if (request.role == 'EMPLOYER') {
+        path = 'auth/employer/otp/verify';
+      } else if (request.role == 'VERIFIER') {
+        path = 'auth/verifier/otp/verify';
+      }
+
       final response = await _dio.post(
-        'auth/otp/verify',
+        path,
         data: request.toJson(),
         options: Options(contentType: Headers.formUrlEncodedContentType),
       );
