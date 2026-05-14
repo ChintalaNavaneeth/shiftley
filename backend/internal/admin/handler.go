@@ -205,6 +205,7 @@ type ConfigUpdateRequest struct {
 	EmployerCancelPenalty6h     float64 `json:"employer_cancel_penalty_6h"`
 	EmployerCancelPenalty3h     float64 `json:"employer_cancel_penalty_3h"`
 	EmployerCancelPenalty1h     float64 `json:"employer_cancel_penalty_1h"`
+	EmployerCancelBaseFine     float64 `json:"employer_cancel_base_fine"`
 }
 
 // GetPlatformConfig handles GET /api/v1/admin/config
@@ -258,6 +259,9 @@ func (h *Handler) UpdatePlatformConfig(c *gin.Context) {
 	}
 	if req.EmployerCancelPenalty1h > 0 {
 		conf.EmployerCancelPenalty1h = req.EmployerCancelPenalty1h
+	}
+	if req.EmployerCancelBaseFine > 0 {
+		conf.EmployerCancelBaseFine = req.EmployerCancelBaseFine
 	}
 
 	if err := h.db.Save(&conf).Error; err != nil {

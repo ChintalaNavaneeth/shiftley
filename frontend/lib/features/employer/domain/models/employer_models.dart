@@ -103,16 +103,43 @@ class SubscriptionPlanMeta {
 }
 
 @JsonSerializable()
+class PlatformConfig {
+  @JsonKey(name: 'worker_no_show_penalty')
+  final double? workerNoShowPenalty;
+  @JsonKey(name: 'employer_cancel_penalty_6h')
+  final double? employerCancelPenalty6h;
+  @JsonKey(name: 'employer_cancel_penalty_3h')
+  final double? employerCancelPenalty3h;
+  @JsonKey(name: 'employer_cancel_penalty_1h')
+  final double? employerCancelPenalty1h;
+  @JsonKey(name: 'employer_cancel_base_fine')
+  final double? employerCancelBaseFine;
+
+  PlatformConfig({
+    this.workerNoShowPenalty,
+    this.employerCancelPenalty6h,
+    this.employerCancelPenalty3h,
+    this.employerCancelPenalty1h,
+    this.employerCancelBaseFine,
+  });
+
+  factory PlatformConfig.fromJson(Map<String, dynamic> json) => _$PlatformConfigFromJson(json);
+  Map<String, dynamic> toJson() => _$PlatformConfigToJson(this);
+}
+
+@JsonSerializable()
 class EmployerDashboardData {
   final EmployerProfile profile;
   final EmployerStats stats;
   @JsonKey(name: 'available_plans', defaultValue: [])
   final List<SubscriptionPlanMeta> availablePlans;
+  final PlatformConfig? config;
 
   EmployerDashboardData({
     required this.profile,
     required this.stats,
     required this.availablePlans,
+    this.config,
   });
 
   factory EmployerDashboardData.fromJson(Map<String, dynamic> json) => _$EmployerDashboardDataFromJson(json);

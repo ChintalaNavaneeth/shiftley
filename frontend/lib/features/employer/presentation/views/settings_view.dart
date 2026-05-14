@@ -16,56 +16,54 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('Operational Alerts'),
-          _buildToggleItem(
-            'New Applicants',
-            'Get notified as soon as a professional applies',
-            _newApplicantAlerts,
-            (v) => setState(() => _newApplicantAlerts = v),
-          ),
-          _buildToggleItem(
-            'Attendance & Clock-ins',
-            'Receive alerts when professionals check-in/out',
-            _attendanceAlerts,
-            (v) => setState(() => _attendanceAlerts = v),
-          ),
-          _buildToggleItem(
-            'WhatsApp Updates',
-            'Get shift status and emergency alerts on WhatsApp',
-            _whatsappUpdates,
-            (v) => setState(() => _whatsappUpdates = v),
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Operational Alerts'),
+        _buildToggleItem(
+          'New Applicants',
+          'Get notified as soon as a professional applies',
+          _newApplicantAlerts,
+          (v) => setState(() => _newApplicantAlerts = v),
+        ),
+        _buildToggleItem(
+          'Attendance & Clock-ins',
+          'Receive alerts when professionals check-in/out',
+          _attendanceAlerts,
+          (v) => setState(() => _attendanceAlerts = v),
+        ),
+        _buildToggleItem(
+          'WhatsApp Updates',
+          'Get shift status and emergency alerts on WhatsApp',
+          _whatsappUpdates,
+          (v) => setState(() => _whatsappUpdates = v),
+        ),
+        const SizedBox(height: ShiftleyTokens.spaceXL),
 
-          _buildSectionHeader('Recruitment Preferences'),
-          _buildToggleItem(
-            'Auto-Approve Verified',
-            'Automatically hire top-rated verified professionals',
-            _autoApproveVerified,
-            (v) => setState(() => _autoApproveVerified = v),
-          ),
-          _buildActionItem(
-            'Manage Hiring Roles',
-            'Configure default requirements for your shifts',
-            Icons.people_outline,
-            () {},
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+        _buildSectionHeader('Recruitment Preferences'),
+        _buildToggleItem(
+          'Auto-Approve Verified',
+          'Automatically hire top-rated verified professionals',
+          _autoApproveVerified,
+          (v) => setState(() => _autoApproveVerified = v),
+        ),
+        _buildActionItem(
+          'Manage Hiring Roles',
+          'Configure default requirements for your shifts',
+          Icons.people_outline,
+          () {},
+        ),
+        const SizedBox(height: ShiftleyTokens.spaceXL),
 
-          _buildSectionHeader('Business Account'),
-          _buildActionItem(
-            'Billing & Subscription',
-            'Manage your Monthly Pro plan and invoices',
-            Icons.credit_card_outlined,
-            () {},
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceXXL),
-        ],
-      ),
+        _buildSectionHeader('Business Account'),
+        _buildActionItem(
+          'Billing & Subscription',
+          'Manage your Monthly Pro plan and invoices',
+          Icons.credit_card_outlined,
+          () {},
+        ),
+        const SizedBox(height: ShiftleyTokens.spaceXXL),
+      ],
     );
   }
 

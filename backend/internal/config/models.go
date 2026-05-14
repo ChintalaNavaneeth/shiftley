@@ -15,6 +15,7 @@ type PlatformConfig struct {
 	EmployerCancelPenalty6h     float64        `gorm:"default:10.00" json:"employer_cancel_penalty_6h"`
 	EmployerCancelPenalty3h     float64        `gorm:"default:25.00" json:"employer_cancel_penalty_3h"`
 	EmployerCancelPenalty1h     float64        `gorm:"default:50.00" json:"employer_cancel_penalty_1h"`
+	EmployerCancelBaseFine     float64        `gorm:"default:100.00" json:"employer_cancel_base_fine"`
 	UpdatedAt                  time.Time      `json:"updated_at"`
 	DeletedAt                  gorm.DeletedAt `gorm:"index" json:"-"`
 }

@@ -127,14 +127,12 @@ class _DevButton extends StatelessWidget {
   final String path;
   final IconData icon;
   final Color? color;
-  final dynamic extra;
 
   const _DevButton({
     required this.label,
     required this.path,
     required this.icon,
     this.color,
-    this.extra,
   });
 
   @override
@@ -142,7 +140,7 @@ class _DevButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
       child: InkWell(
-        onTap: () => context.push(path, extra: extra),
+        onTap: () => context.push(path),
         child: Container(
           padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
           decoration: BoxDecoration(

@@ -1,7 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/network/api_client.dart';
 import 'package:shiftley_frontend/core/network/api_providers.dart';
 import 'package:shiftley_frontend/features/employer/domain/models/employer_models.dart';
+import 'package:shiftley_frontend/features/employer/domain/models/taxonomy_models.dart';
 import 'package:shiftley_frontend/shared/domain/models/gig_models.dart';
 
 class EmployerRepository {
@@ -28,6 +30,26 @@ class EmployerRepository {
     return Gig.fromJson(response.data['data']);
   }
 
+  Future<Map<String, dynamic>> postGigRaw(Map<String, dynamic> gigData, String idempotencyKey) async {
+    final response = await _apiClient.dio.post(
+      '/gigs',
+      data: gigData,
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
+    return response.data['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> confirmGigPayment(String gigId) async {
+    final response = await _apiClient.dio.post('/gigs/$gigId/confirm-payment');
+    return response.data['data'] as Map<String, dynamic>;
+  }
+
+  Future<List<TaxonomyCategory>> getTaxonomy() async {
+    final response = await _apiClient.dio.get('/taxonomy');
+    final List<dynamic> data = response.data['data'];
+    return data.map((json) => TaxonomyCategory.fromJson(json as Map<String, dynamic>)).toList();
+  }
+
   Future<List<GigApplication>> getGigApplications(String gigId) async {
     final response = await _apiClient.dio.get('/gigs/$gigId/applications');
     final List<dynamic> data = response.data['data'];
@@ -45,6 +67,20 @@ class EmployerRepository {
     await _apiClient.dio.post(
       '/gigs/$gigId/cancel',
       data: {'reason': reason},
+    );
+  }
+
+  Future<void> requestCancelOTP(String gigId) async {
+    await _apiClient.dio.post('/gigs/$gigId/cancel/otp');
+  }
+
+  Future<void> verifyCancelAndConfirm(String gigId, String code, String reason) async {
+    await _apiClient.dio.post(
+      '/gigs/$gigId/cancel/verify',
+      data: {
+        'code': code,
+        'reason': reason,
+      },
     );
   }
 
@@ -89,4 +125,8 @@ final employerGigsProvider = FutureProvider.family<List<Gig>, String?>((ref, sta
 
 final gigApplicationsProvider = FutureProvider.family<List<GigApplication>, String>((ref, gigId) async {
   return ref.watch(employerRepositoryProvider).getGigApplications(gigId);
+});
+
+final taxonomyProvider = FutureProvider<List<TaxonomyCategory>>((ref) async {
+  return ref.watch(employerRepositoryProvider).getTaxonomy();
 });

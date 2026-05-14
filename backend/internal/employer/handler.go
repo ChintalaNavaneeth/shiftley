@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"shiftley/internal/auth"
+	"shiftley/internal/config"
 	"shiftley/internal/gig"
 	"shiftley/pkg/utils"
 
@@ -47,7 +48,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 
 	// Calculate Stats
 	var totalGigs int64
-	h.db.Table("shiftley.gigs").Where("employer_id = ?", userID).Count(&totalGigs)
+	h.db.Table("shiftley.gigs").Where("employer_id = ? AND status NOT IN ?", userID, []string{"CANCELLED", "DRAFT"}).Count(&totalGigs)
 
 	var activeSub Subscription
 	err := h.db.Where("employer_id = ? AND status = ?", userID, "ACTIVE").First(&activeSub).Error
@@ -78,10 +79,14 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		fmt.Printf("[DEBUG] Plan: %s, Price: %d, ID: %s\n", p.Name, p.PricePaise, p.ID)
 	}
 
+	var platformConfig config.PlatformConfig
+	h.db.FirstOrCreate(&platformConfig)
+
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
 		"profile":         profile,
 		"stats":           stats,
 		"available_plans": availablePlans,
+		"config":          platformConfig,
 	}, nil)
 }
 

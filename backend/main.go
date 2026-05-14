@@ -143,7 +143,7 @@ func main() {
 	// Register Gig Listeners
 	gig.RegisterListeners(bus, db, notifySvc)
 	
-	gigHandler := gig.NewHandler(db, rdb, notifySvc, bus)
+	gigHandler := gig.NewHandler(db, rdb, notifySvc, bus, authSvc)
 	employeeHandler := employee.NewHandler(db)
 	supportHandler := support.NewHandler(db)
 	analyticsHandler := analytics.NewHandler(db)
@@ -421,6 +421,7 @@ func main() {
 			
 			// Employer only actions
 			gigGroup.POST("", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.PostGig)
+			gigGroup.POST("/:gigId/confirm-payment", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.ConfirmMockPayment)
 			gigGroup.GET("/search", middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)), gigHandler.SearchGigs)
 			gigGroup.POST("/:gigId/apply", middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)), gigHandler.ApplyForGig)
 			gigGroup.POST("/:gigId/confirm-attendance", middleware.RequireRoles(string(auth.RoleWorker), string(auth.RoleSuperAdmin)), gigHandler.ConfirmAttendance)
@@ -430,6 +431,8 @@ func main() {
 			
 			gigGroup.GET("/:gigId/applications", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.GetApplications)
 			gigGroup.POST("/:gigId/cancel", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.CancelGig)
+			gigGroup.POST("/:gigId/cancel/otp", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.RequestCancelOTP)
+			gigGroup.POST("/:gigId/cancel/verify", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.VerifyCancelAndConfirm)
 			gigGroup.POST("/:gigId/close-unfilled", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.CloseUnfilled)
 			gigGroup.GET("/:gigId/attendance-qr", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.GenerateQR)
 			gigGroup.POST("/:gigId/employees/:empId/mark-arrived", middleware.RequireRoles(string(auth.RoleEmployer), string(auth.RoleSuperAdmin)), gigHandler.MarkArrived)

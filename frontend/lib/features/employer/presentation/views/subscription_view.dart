@@ -13,50 +13,59 @@ class SubscriptionView extends ConsumerWidget {
     final dashboardAsync = ref.watch(employerDashboardProvider);
 
     return dashboardAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed),
+      ),
       error: (err, stack) => Center(child: Text('Error: $err')),
       data: (data) {
-        debugPrint('SubscriptionView: Received ${data.availablePlans.length} plans');
-        for (var p in data.availablePlans) {
-          debugPrint('Plan: ${p.name}, Price: ${p.pricePaise}, ID: ${p.id}');
-        }
-        return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Manage your subscription and usage limits.', style: ShiftleyTokens.bodyMedium),
-            const SizedBox(height: ShiftleyTokens.spaceXL),
-    
-            // Current Plan Card
-            _buildCurrentPlanCard(data.stats),
-    
-            const SizedBox(height: ShiftleyTokens.spaceXL),
-    
-            const Text('Available Plans', style: ShiftleyTokens.h1),
-            const Text('Choose a plan that fits your business needs.', style: ShiftleyTokens.bodyMedium),
-            const SizedBox(height: ShiftleyTokens.spaceL),
+        final bool isVerified = data.profile.verificationStatus == 'VERIFIED';
 
-            if (data.availablePlans.isEmpty)
-              const Center(child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Text('No plans available at the moment.'),
-              ))
-            else
-              ...data.availablePlans.map((plan) => Padding(
-                padding: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
-                child: _buildPlanCard(
-                  context,
-                  ref,
-                  plan.id,
-                  plan.name.toUpperCase(),
-                  '₹ ${(plan.pricePaise / 100).toStringAsFixed(0)}',
-                  '${plan.maxGigs} Gig Posts included',
-                  'Maximum ${plan.maxEmployeesPerGig} employees per gig',
-                  'Valid for ${plan.durationDays} days',
-                  data.stats.activePlan == plan.id,
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceM),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Current Plan Card
+              _buildCurrentPlanCard(data.stats, isVerified: isVerified),
+
+              const SizedBox(height: ShiftleyTokens.spaceXL),
+
+              const Text('Available Plans', style: ShiftleyTokens.h1),
+              const Text(
+                'Choose a plan that fits your business needs.',
+                style: ShiftleyTokens.bodyMedium,
+              ),
+              const SizedBox(height: ShiftleyTokens.spaceL),
+
+              if (data.availablePlans.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: Text('No plans available at the moment.'),
+                  ),
+                )
+              else
+                ...data.availablePlans.map(
+                  (plan) => Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: ShiftleyTokens.spaceM,
+                    ),
+                    child: _buildPlanCard(
+                      context,
+                      ref,
+                      plan.id,
+                      plan.name.toUpperCase(),
+                      '₹ ${(plan.pricePaise / 100).toStringAsFixed(0)}',
+                      '${plan.maxGigs} Gig Posts included',
+                      'Maximum ${plan.maxEmployeesPerGig} employees per gig',
+                      'Valid for ${plan.durationDays} days',
+                      data.stats.activePlan == plan.id,
+                      isVerified: isVerified,
+                    ),
+                  ),
                 ),
-              )),
-            
+
+              const SizedBox(height: 100),
             ],
           ),
         );
@@ -77,14 +86,14 @@ class SubscriptionView extends ConsumerWidget {
     if (diff.isNegative) return 'Expired';
     final days = diff.inDays;
     final hours = diff.inHours % 24;
-    
+
     if (days > 0) {
       return '$days Day${days > 1 ? 's' : ''} $hours Hour${hours != 1 ? 's' : ''}';
     }
     return '$hours Hour${hours != 1 ? 's' : ''}';
   }
 
-  Widget _buildCurrentPlanCard(EmployerStats data) {
+  Widget _buildCurrentPlanCard(EmployerStats data, {required bool isVerified}) {
     final bool hasPlan = data.activePlan != 'NONE';
     final int totalGigs = data.totalGigsPosted.toInt();
     final int remaining = data.freeGigsRemaining;
@@ -109,35 +118,98 @@ class SubscriptionView extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('CURRENT PLAN', style: TextStyle(color: ShiftleyTokens.secondaryCyan, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.5)),
+                    const Text(
+                      'CURRENT PLAN',
+                      style: TextStyle(
+                        color: ShiftleyTokens.secondaryCyan,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
-                      hasPlan ? '${_formatPlanName(data.activePlan)} Plan' : 'No Active Plan', 
-                      style: const TextStyle(color: ShiftleyTokens.paperWhite, fontSize: 26, fontWeight: FontWeight.w900),
+                      hasPlan
+                          ? '${_formatPlanName(data.activePlan)} Plan'
+                          : 'No Active Plan',
+                      style: const TextStyle(
+                        color: ShiftleyTokens.paperWhite,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              if (hasPlan)
+              if (!isVerified)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade700,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.hourglass_top_rounded,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'PENDING',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (hasPlan)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+                  child: const Text(
+                    'ACTIVE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
             ],
           ),
-          if (hasPlan) ...[
+          if (!isVerified) ...[
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            const Text(
+              'Your business is awaiting verification. Plans will become available once a Shiftley verifier approves your profile.',
+              style: TextStyle(color: Colors.amber, fontSize: 12),
+            ),
+          ] else if (hasPlan) ...[
             const SizedBox(height: ShiftleyTokens.spaceXL),
             Row(
               children: [
                 _buildLargeStat('$remaining / $maxVal', 'POSTS REMAINING'),
                 const SizedBox(width: ShiftleyTokens.spaceXXL),
                 if (data.planExpiresAt != null)
-                  _buildLargeStat(_formatExpiry(data.planExpiresAt!), 'UNTIL EXPIRY'),
+                  _buildLargeStat(
+                    _formatExpiry(data.planExpiresAt!),
+                    'UNTIL EXPIRY',
+                  ),
               ],
             ),
             const SizedBox(height: ShiftleyTokens.spaceXL),
@@ -163,36 +235,47 @@ class SubscriptionView extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: const TextStyle(color: ShiftleyTokens.paperWhite, fontSize: 24, fontWeight: FontWeight.w800)),
-        Text(label, style: const TextStyle(color: ShiftleyTokens.utilityGrey, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: ShiftleyTokens.paperWhite,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            color: ShiftleyTokens.utilityGrey,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildPlanCard(
-    BuildContext context, 
+    BuildContext context,
     WidgetRef ref,
     String planId,
-    String name, 
-    String price, 
-    String posts, 
-    String employees, 
+    String name,
+    String price,
+    String posts,
+    String employees,
     String description,
-    bool isCurrent
-  ) {
+    bool isCurrent, {
+    required bool isVerified,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
       decoration: BoxDecoration(
-        color: isCurrent ? ShiftleyTokens.secondaryCyan : ShiftleyTokens.paperWhite,
+        color: isCurrent
+            ? ShiftleyTokens.secondaryCyan
+            : ShiftleyTokens.paperWhite,
         border: ShiftleyTokens.primaryBorder,
         borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-        boxShadow: isCurrent ? [] : [
-          const BoxShadow(
-            color: ShiftleyTokens.inkBlack,
-            offset: Offset(4, 4),
-          )
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,18 +283,37 @@ class SubscriptionView extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.0)),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  letterSpacing: 1.0,
+                ),
+              ),
               Text(price, style: ShiftleyTokens.h1.copyWith(fontSize: 24)),
             ],
           ),
           const SizedBox(height: 8),
-          Text(description, style: ShiftleyTokens.bodyMedium.copyWith(color: isCurrent ? ShiftleyTokens.inkBlack : ShiftleyTokens.mutedText)),
+          Text(
+            description,
+            style: ShiftleyTokens.bodyMedium.copyWith(
+              color: isCurrent
+                  ? ShiftleyTokens.inkBlack
+                  : ShiftleyTokens.mutedText,
+            ),
+          ),
           const Divider(height: 32, color: ShiftleyTokens.inkBlack),
           Row(
             children: [
               const Icon(Icons.post_add, size: 20),
               const SizedBox(width: 8),
-              Text(posts, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                posts,
+                style: ShiftleyTokens.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -219,7 +321,12 @@ class SubscriptionView extends ConsumerWidget {
             children: [
               const Icon(Icons.people_outline, size: 20),
               const SizedBox(width: 8),
-              Text(employees, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                employees,
+                style: ShiftleyTokens.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: ShiftleyTokens.spaceL),
@@ -233,7 +340,51 @@ class SubscriptionView extends ConsumerWidget {
                 border: Border.all(color: Colors.green, width: 2),
               ),
               child: const Center(
-                child: Text('CURRENT ACTIVE PLAN', style: TextStyle(color: Colors.green, fontWeight: FontWeight.w900, fontSize: 12)),
+                child: Text(
+                  'CURRENT ACTIVE PLAN',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            )
+          else if (!isVerified)
+            Tooltip(
+              message: 'Complete business verification to activate a plan',
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: ShiftleyTokens.background,
+                  border: Border.all(
+                    color: ShiftleyTokens.mutedText.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(
+                    ShiftleyTokens.borderRadiusVal,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 16,
+                      color: ShiftleyTokens.mutedText.withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'ACTIVATE PLAN',
+                      style: TextStyle(
+                        color: ShiftleyTokens.mutedText.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             )
           else
@@ -247,7 +398,12 @@ class SubscriptionView extends ConsumerWidget {
     );
   }
 
-  void _showPurchaseDialog(BuildContext context, WidgetRef ref, String planId, String planName) {
+  void _showPurchaseDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String planId,
+    String planName,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -255,9 +411,10 @@ class SubscriptionView extends ConsumerWidget {
       builder: (context) => _RazorpayMockModal(
         planName: planName,
         onSuccess: (paymentId) async {
-          // Call backend to activate plan
           try {
-            await ref.read(employerRepositoryProvider).purchaseSubscription(planId, paymentId);
+            await ref
+                .read(employerRepositoryProvider)
+                .purchaseSubscription(planId, paymentId);
             if (context.mounted) {
               Navigator.pop(context);
               _showSuccessScreen(context, ref, planName);
@@ -274,7 +431,11 @@ class SubscriptionView extends ConsumerWidget {
     );
   }
 
-  void _showSuccessScreen(BuildContext context, WidgetRef ref, String planName) {
+  void _showSuccessScreen(
+    BuildContext context,
+    WidgetRef ref,
+    String planName,
+  ) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _PaymentSuccessScreen(
@@ -307,7 +468,7 @@ class _RazorpayMockModal extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            color: const Color(0xFF02042B), // Razorpay Dark Blue
+            color: const Color(0xFF02042B),
             child: Row(
               children: [
                 const Icon(Icons.payment, color: Colors.blue, size: 32),
@@ -315,8 +476,21 @@ class _RazorpayMockModal extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('RAZORPAY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                    Text('Paying for $planName Plan', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    const Text(
+                      'RAZORPAY',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    Text(
+                      'Paying for $planName Plan',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 const Spacer(),
@@ -331,15 +505,27 @@ class _RazorpayMockModal extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                const Text('Preferred Payment Methods', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const Text(
+                  'Preferred Payment Methods',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
                 const SizedBox(height: 16),
                 _buildMethod(Icons.qr_code, 'UPI - Google Pay, PhonePe, etc.'),
-                _buildMethod(Icons.credit_card, 'Card - Visa, Mastercard, RuPay'),
+                _buildMethod(
+                  Icons.credit_card,
+                  'Card - Visa, Mastercard, RuPay',
+                ),
                 _buildMethod(Icons.account_balance, 'Netbanking'),
                 _buildMethod(Icons.wallet, 'Wallet'),
                 const SizedBox(height: 32),
                 const Center(
-                  child: Text('TEST MODE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'TEST MODE',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -347,8 +533,10 @@ class _RazorpayMockModal extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(20),
             child: ShiftleyButton(
-              label: 'PAY NOW', 
-              onPressed: () => onSuccess('pay_mock_${DateTime.now().millisecondsSinceEpoch}'),
+              label: 'PAY NOW',
+              onPressed: () => onSuccess(
+                'pay_mock_${DateTime.now().millisecondsSinceEpoch}',
+              ),
               isFullWidth: true,
             ),
           ),
@@ -385,7 +573,10 @@ class _PaymentSuccessScreen extends StatelessWidget {
             children: [
               const Icon(Icons.check_circle, color: Colors.green, size: 100),
               const SizedBox(height: 24),
-              const Text('Payment Successful!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text(
+                'Payment Successful!',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 16),
               Text(
                 'Your $planName Plan is now active. You can now start posting GIGs and hiring.',

@@ -46,7 +46,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   // ── Employer Fields ──────────────────────────────────────────
   final _businessNameController = TextEditingController();
-  final _businessTypeController = TextEditingController();
+  final _businessTypeController = TextEditingController(); // stores selected name for display
+  String? _selectedBusinessCategoryId; // stores UUID for API submission
   final _businessAddressController = TextEditingController();
   final _gstNumberController = TextEditingController();
   final _businessPhoneController = TextEditingController();
@@ -65,13 +66,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _fetchTaxonomy() async {
-    if (widget.role == 'WORKER') {
-      try {
-        final List<Category> categories = await ref.read(authRepositoryProvider).getTaxonomy();
-        setState(() => _taxonomy = categories);
-      } catch (e) {
-        debugPrint('Taxonomy Fetch Error: $e');
-      }
+    // Fetch taxonomy for both roles — employers need it for business type selection
+    try {
+      final List<Category> categories = await ref.read(authRepositoryProvider).getTaxonomy();
+      setState(() => _taxonomy = categories);
+    } catch (e) {
+      debugPrint('Taxonomy Fetch Error: $e');
     }
   }
 
@@ -165,7 +165,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         if (_passingYearController.text.trim().isEmpty) return _showError('Passing Year is required');
       } else {
         if (_businessNameController.text.trim().isEmpty) return _showError('Business Name is required');
-        if (_businessTypeController.text.trim().isEmpty) return _showError('Business Type is required');
+        if (_selectedBusinessCategoryId == null) return _showError('Please select a Business Type/Category');
         if (_businessAddressController.text.trim().isEmpty) return _showError('Business Address is required');
         if (_businessPhoneController.text.trim().isEmpty) return _showError('Business Phone is required');
       }
@@ -269,7 +269,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       'full_name': _fullNameController.text,
       'email': _emailController.text,
       'business_name': _businessNameController.text,
-      'business_type': _businessTypeController.text,
+      'business_type': _businessTypeController.text, // human-readable name
+      'category_id': _selectedBusinessCategoryId ?? '',  // UUID for backend
       'location': jsonEncode({'lat': _currentPosition?.latitude, 'lng': _currentPosition?.longitude}),
       'business_address': _businessAddressController.text,
       'gst_number': _gstNumberController.text,
@@ -444,7 +445,46 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const Text('Business Information', style: ShiftleyTokens.h2),
           const SizedBox(height: ShiftleyTokens.spaceXL),
           _buildTextField('Business Name', _businessNameController),
-          _buildTextField('Business Type', _businessTypeController, hint: 'e.g. Restaurant, Retail'),
+          
+          // Business Type — dropdown from taxonomy categories
+          Padding(
+            padding: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Business Type / Category', style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                _taxonomy.isEmpty
+                    ? const Center(child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed, strokeWidth: 2),
+                      ))
+                    : DropdownButtonFormField<String>(
+                        initialValue: _selectedBusinessCategoryId,
+                        hint: const Text('Select your business category'),
+                        decoration: InputDecoration(
+                          border: ShiftleyTokens.primaryInputBorder,
+                          enabledBorder: ShiftleyTokens.primaryInputBorder,
+                          focusedBorder: ShiftleyTokens.focusInputBorder,
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        items: _taxonomy.map((cat) => DropdownMenuItem(
+                          value: cat.id,
+                          child: Text(cat.name),
+                        )).toList(),
+                        onChanged: (val) {
+                          final selected = _taxonomy.firstWhere((c) => c.id == val);
+                          setState(() {
+                            _selectedBusinessCategoryId = val;
+                            _businessTypeController.text = selected.name; // keep name for display
+                          });
+                        },
+                      ),
+              ],
+            ),
+          ),
+
           _buildTextField('Business Phone', _businessPhoneController),
           _buildTextField('Business Address', _businessAddressController, maxLines: 3),
           _buildTextField('GST Number (Optional)', _gstNumberController),

@@ -6,10 +6,18 @@ import 'package:shiftley_frontend/features/employer/domain/models/employer_model
 import 'package:shiftley_frontend/shared/domain/models/gig_models.dart';
 import 'package:shiftley_frontend/shared/widgets/s_button.dart';
 import 'package:intl/intl.dart';
+import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'attendance_view.dart';
 
 class OverviewView extends ConsumerWidget {
-  const OverviewView({super.key});
+  final VoidCallback onPostGig;
+  final VoidCallback onGoToSubscription;
+  
+  const OverviewView({
+    super.key, 
+    required this.onPostGig, 
+    required this.onGoToSubscription,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -33,10 +41,74 @@ class OverviewView extends ConsumerWidget {
   Widget _buildDashboard(BuildContext context, WidgetRef ref, EmployerDashboardData data) {
     final gigsAsync = ref.watch(employerGigsProvider('OPEN'));
 
+    final bool hasSubscription = data.stats.activePlan != 'NONE' && data.stats.freeGigsRemaining > 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: ShiftleyTokens.spaceM),
+        // Stats Section - Clickable to go to subscription
+        InkWell(
+          onTap: onGoToSubscription,
+          borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+          child: Container(
+            padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+            decoration: BoxDecoration(
+              color: ShiftleyTokens.paperWhite,
+              border: ShiftleyTokens.primaryBorder,
+              borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem('GIGS POSTED', data.stats.totalGigsPosted.toString()),
+                Container(width: 2, height: 40, color: ShiftleyTokens.background),
+                _buildStatItem('GIGS REMAINING', data.stats.freeGigsRemaining.toString()),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: ShiftleyTokens.spaceL),
+
+        // Action Section
+        if (hasSubscription) ...[
+          ShiftleyButton(
+            label: 'POST A NEW GIG',
+            onPressed: onPostGig,
+            isFullWidth: true,
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+        ] else ...[
+          // Subscription Required UI
+          Container(
+            padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+            decoration: BoxDecoration(
+              color: ShiftleyTokens.background,
+              border: ShiftleyTokens.primaryBorder,
+              borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.card_membership_outlined, size: 48, color: ShiftleyTokens.primaryRed),
+                const SizedBox(height: ShiftleyTokens.spaceM),
+                const Text('Subscription Active Required', style: ShiftleyTokens.h2, textAlign: TextAlign.center),
+                const SizedBox(height: ShiftleyTokens.spaceS),
+                const Text(
+                  'You have either used all your gig posts or don\'t have an active plan. Please purchase a plan to continue.',
+                  style: ShiftleyTokens.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: ShiftleyTokens.spaceL),
+                ShiftleyButton(
+                  label: 'GO TO SUBSCRIPTION',
+                  onPressed: onGoToSubscription,
+                  isFullWidth: true,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceXL),
+        ],
+
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -60,6 +132,16 @@ class OverviewView extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, stack) => Text('Error loading gigs: $err'),
         ),
+      ],
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.mutedText)),
+        const SizedBox(height: ShiftleyTokens.spaceXS),
+        Text(value, style: ShiftleyTokens.h1.copyWith(color: ShiftleyTokens.primaryRed)),
       ],
     );
   }

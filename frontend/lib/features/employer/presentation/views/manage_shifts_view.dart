@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'package:shiftley_frontend/features/employer/data/employer_repository.dart';
+import 'package:shiftley_frontend/features/employer/domain/models/employer_models.dart';
 import 'package:shiftley_frontend/shared/domain/models/gig_models.dart';
 import 'package:intl/intl.dart';
 
-enum ManageGigSubView { list, applications, details, profile }
+enum ManageGigSubView { list, applications, details, profile, cancellationSuccess }
 
 class ManageGigsView extends ConsumerStatefulWidget {
-  const ManageGigsView({super.key});
+  final VoidCallback? onGoToSubscription;
+  const ManageGigsView({super.key, this.onGoToSubscription});
 
   @override
   ConsumerState<ManageGigsView> createState() => _ManageGigsViewState();
@@ -17,87 +19,165 @@ class ManageGigsView extends ConsumerStatefulWidget {
 
 class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
   ManageGigSubView _subView = ManageGigSubView.list;
-  String _selectedGigTitle = '';
-  String _selectedGigId = '';
-  String _selectedGigStatus = '';
-  String _selectedGigWorkers = '';
+  Gig? _selectedGig;
   GigApplication? _selectedApplicant;
+  double? _lastRefundAmount;
 
   @override
   Widget build(BuildContext context) {
     switch (_subView) {
       case ManageGigSubView.list:
-        return _buildListView();
+        return _buildWithGate();
       case ManageGigSubView.applications:
         return _buildApplicationsView();
       case ManageGigSubView.details:
         return _buildDetailsView();
       case ManageGigSubView.profile:
         return _buildApplicantProfileView();
+      case ManageGigSubView.cancellationSuccess:
+        return _buildCancellationSuccessView();
     }
   }
 
-  Widget _buildListView() {
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            labelColor: ShiftleyTokens.inkBlack,
-            unselectedLabelColor: ShiftleyTokens.mutedText,
-            indicatorColor: ShiftleyTokens.primaryRed,
-            indicatorWeight: 3,
-            indicatorSize: TabBarIndicatorSize.label,
-            labelStyle: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-            tabs: const [
-              Tab(text: 'Active (16)'),
-              Tab(text: 'History (85)'),
-            ],
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceL),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _buildGigList('ACTIVE'),
-                _buildGigList('HISTORY'),
-              ],
+  Widget _buildWithGate() {
+    final dashboardAsync = ref.watch(employerDashboardProvider);
+    return dashboardAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),
+      error: (err, _) => Center(child: Text('Error: $err')),
+      data: (EmployerDashboardData data) {
+        final bool isVerified = data.profile.verificationStatus == 'VERIFIED';
+        final bool hasSubscription = data.stats.activePlan != 'NONE';
+        final bool hasCredits = data.stats.freeGigsRemaining > 0;
+        final bool hasHistory = data.stats.totalGigsPosted > 0;
+
+        if (!isVerified) {
+          return _buildLockScreen(
+            Icons.verified_user_outlined,
+            'Verification Required',
+            'Your business is pending verification. Once a verifier approves your profile, you can post and manage GIGs here.',
+          );
+        }
+
+        // Show lock screen if no plan OR no credits left (and no history to manage)
+        if ((!hasSubscription || !hasCredits) && !hasHistory) {
+          return _buildLockScreen(
+            Icons.card_membership_outlined,
+            !hasSubscription ? 'Subscription Required' : 'No Credits Remaining',
+            !hasSubscription 
+              ? 'You need an active subscription plan to manage GIGs. Purchase a plan to unlock this section.'
+              : 'You have used all GIG posts in your current plan. Please upgrade or top-up your subscription to post more GIGs.',
+            actionLabel: !hasSubscription ? 'GO TO SUBSCRIPTION' : 'UPGRADE PLAN',
+            onAction: widget.onGoToSubscription,
+          );
+        }
+
+        return _buildListView();
+      },
+    );
+  }
+
+  Widget _buildLockScreen(IconData icon, String title, String message, {String? actionLabel, VoidCallback? onAction}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+              decoration: BoxDecoration(
+                color: ShiftleyTokens.background,
+                border: ShiftleyTokens.primaryBorder,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 64, color: ShiftleyTokens.primaryRed),
             ),
-          ),
-        ],
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+            Text(title, style: ShiftleyTokens.h1, textAlign: TextAlign.center),
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            Text(
+              message,
+              style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.mutedText),
+              textAlign: TextAlign.center,
+            ),
+            if (actionLabel != null) ...[
+              const SizedBox(height: ShiftleyTokens.spaceXXL),
+              ShiftleyButton(
+                label: actionLabel,
+                onPressed: onAction ?? () {},
+                isFullWidth: true,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildGigList(String status) {
-    final gigsAsync = ref.watch(employerGigsProvider(status));
+  Widget _buildListView() {
+    final allGigsAsync = ref.watch(employerGigsProvider(null));
 
-    return gigsAsync.when(
-      data: (gigs) {
-        if (gigs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.work_off_outlined, size: 64, color: ShiftleyTokens.mutedText.withValues(alpha: 0.2)),
-                const SizedBox(height: ShiftleyTokens.spaceM),
-                Text('No $status Gigs Found', style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.mutedText)),
-              ],
-            ),
-          );
-        }
-        return ListView.builder(
-          itemCount: gigs.length,
-          padding: const EdgeInsets.only(bottom: 80),
-          itemBuilder: (context, index) {
-            return _buildGigCard(gigs[index], status);
-          },
+    return allGigsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => Center(child: Text('Error: $err')),
+      data: (allGigs) {
+        final activeGigs = allGigs.where((g) => ['DRAFT', 'OPEN', 'FILLED', 'RUNNING'].contains(g.status)).toList();
+        final historyGigs = allGigs.where((g) => ['COMPLETED', 'CANCELLED'].contains(g.status)).toList();
+
+        return DefaultTabController(
+          length: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelColor: ShiftleyTokens.inkBlack,
+                unselectedLabelColor: ShiftleyTokens.mutedText,
+                indicatorColor: ShiftleyTokens.primaryRed,
+                indicatorWeight: 3,
+                indicatorSize: TabBarIndicatorSize.label,
+                labelStyle: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                tabs: [
+                  Tab(text: 'Active (${activeGigs.length})'),
+                  Tab(text: 'History (${historyGigs.length})'),
+                ],
+              ),
+              const SizedBox(height: ShiftleyTokens.spaceL),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildLocalGigList(activeGigs, 'Active'),
+                    _buildLocalGigList(historyGigs, 'History'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error: $err')),
+    );
+  }
+
+  Widget _buildLocalGigList(List<Gig> gigs, String label) {
+    if (gigs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.work_off_outlined, size: 64, color: ShiftleyTokens.mutedText.withValues(alpha: 0.2)),
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            Text('No $label Gigs Found', style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.mutedText)),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      itemCount: gigs.length,
+      padding: const EdgeInsets.only(bottom: 80),
+      itemBuilder: (context, index) {
+        return _buildGigCard(gigs[index], label.toUpperCase());
+      },
     );
   }
 
@@ -133,7 +213,7 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('PAYOUT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                  Text('₹ ${gig.wagePerWorker}', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                  Text('₹ ${gig.wagePerWorker / 100}', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
                 ],
               ),
               Column(
@@ -153,7 +233,34 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
             ],
           ),
           const SizedBox(height: ShiftleyTokens.spaceM),
-          if (listStatus != 'HISTORY') ...[
+          if (gig.status == 'DRAFT') ...[
+            // Draft: show a prominent Publish Now action
+            Container(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('This GIG is saved as a draft. Pay to publish it.', style: TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            ShiftleyButton(
+              label: 'Publish Now',
+              icon: Icons.payment,
+              onPressed: () => _publishDraftGig(gig),
+              isFullWidth: true,
+              size: ShiftleyButtonSize.small,
+            ),
+          ] else if (listStatus != 'HISTORY') ...[
             const Divider(color: ShiftleyTokens.inkBlack, thickness: 1),
             const SizedBox(height: ShiftleyTokens.spaceM),
             Row(
@@ -163,10 +270,7 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                     label: 'Applicants',
                     onPressed: () => setState(() {
                       _subView = ManageGigSubView.applications;
-                      _selectedGigTitle = gig.title;
-                      _selectedGigId = gig.id;
-                      _selectedGigStatus = gig.status;
-                      _selectedGigWorkers = '0/${gig.workersNeeded}';
+                      _selectedGig = gig;
                     }),
                     size: ShiftleyButtonSize.small,
                     isPrimary: false,
@@ -178,10 +282,7 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                     label: 'Manage GIG',
                     onPressed: () => setState(() {
                       _subView = ManageGigSubView.details;
-                      _selectedGigTitle = gig.title;
-                      _selectedGigId = gig.id;
-                      _selectedGigStatus = gig.status;
-                      _selectedGigWorkers = '0/${gig.workersNeeded}';
+                      _selectedGig = gig;
                     }),
                     size: ShiftleyButtonSize.small,
                   ),
@@ -194,8 +295,38 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
     );
   }
 
+  Future<void> _publishDraftGig(Gig gig) async {
+    final totalAmount = (gig.wagePerWorker / 100.0) * gig.workersNeeded;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _DraftPublishPaymentModal(
+        gig: gig,
+        totalAmount: totalAmount,
+        onSuccess: (paymentId) async {
+          Navigator.pop(ctx);
+          try {
+            await ref.read(employerRepositoryProvider).confirmGigPayment(gig.id);
+            ref.invalidate(employerGigsProvider(null));
+            ref.invalidate(employerDashboardProvider);
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('GIG Published Successfully!'), backgroundColor: Colors.green),
+            );
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to publish GIG: $e'), backgroundColor: Colors.red),
+            );
+          }
+        },
+      ),
+    );
+  }
+
   Widget _buildApplicationsView() {
-    final applicationsAsync = ref.watch(gigApplicationsProvider(_selectedGigId));
+    final applicationsAsync = ref.watch(gigApplicationsProvider(_selectedGig!.id));
 
     return applicationsAsync.when(
       data: (apps) {
@@ -213,7 +344,7 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                     onPressed: () => setState(() => _subView = ManageGigSubView.list),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(child: Text('Applicants: $_selectedGigTitle', style: ShiftleyTokens.h2, overflow: TextOverflow.ellipsis)),
+                  Expanded(child: Text('Applicants: ${_selectedGig!.title}', style: ShiftleyTokens.h2, overflow: TextOverflow.ellipsis)),
                 ],
               ),
               const SizedBox(height: ShiftleyTokens.spaceL),
@@ -221,7 +352,7 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('HIRED PROFESSIONALS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.mutedText)),
-                  Text('${hired.length}/${_selectedGigWorkers.split('/')[1]}'.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.primaryRed)),
+                  Text('${hired.length}/${_selectedGig!.workersNeeded}'.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.primaryRed)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -254,7 +385,7 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
 
   Widget _buildApplicationItem(GigApplication applicant) {
     final bool isHired = applicant.status == 'APPROVED';
-    final bool isGigRunning = _selectedGigStatus == 'RUNNING';
+    final bool isGigRunning = _selectedGig!.status == 'RUNNING';
 
     return GestureDetector(
       onTap: () => setState(() {
@@ -338,7 +469,7 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
   Future<void> _updateAppStatus(String id, String status) async {
     try {
       await ref.read(employerRepositoryProvider).updateApplicationStatus(id, status);
-      ref.invalidate(gigApplicationsProvider(_selectedGigId));
+      ref.invalidate(gigApplicationsProvider(_selectedGig!.id));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Application $status successfully')),
@@ -640,6 +771,7 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
   }
 
   Widget _buildDetailsView() {
+    final gig = _selectedGig!;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -651,18 +783,20 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                 onPressed: () => setState(() => _subView = ManageGigSubView.list),
               ),
               const SizedBox(width: 8),
-              Expanded(child: Text('Manage: $_selectedGigTitle', style: ShiftleyTokens.h2, overflow: TextOverflow.ellipsis)),
+              Expanded(child: Text('Manage: ${gig.title}', style: ShiftleyTokens.h2, overflow: TextOverflow.ellipsis)),
             ],
           ),
           const SizedBox(height: ShiftleyTokens.spaceL),
-          _buildDetailInfo('STATUS', 'Active & Publishing'),
-          _buildDetailInfo('CATEGORY', 'Hospitality / Waitstaff'),
-          _buildDetailInfo('WORKERS NEEDED', '5 Professionals'),
-          _buildDetailInfo('LOCATION', 'Taj Banjara, Road No 1, Hyderabad'),
+          _buildDetailInfo('STATUS', gig.status),
+          _buildDetailInfo('WAGE PER WORKER', '₹ ${gig.wagePerWorker / 100}'),
+          _buildDetailInfo('WORKERS NEEDED', '${gig.workersNeeded} Professionals'),
+          _buildDetailInfo('LOCATION', gig.address),
+          _buildDetailInfo('START TIME', DateFormat('MMM dd, yyyy hh:mm a').format(gig.startTime)),
+          _buildDetailInfo('END TIME', DateFormat('MMM dd, yyyy hh:mm a').format(gig.endTime)),
           const SizedBox(height: ShiftleyTokens.spaceXL),
           ShiftleyButton(
             label: 'Cancel GIG', 
-            onPressed: _showCancelGigDialog,
+            onPressed: () => _showCancelGigDialog(gig.id),
             isPrimary: true,
             isFullWidth: true,
           ),
@@ -672,34 +806,74 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
     );
   }
 
-  void _showCancelGigDialog() {
-    bool otpSent = false;
-    showDialog(
-      context: context,
-      useSafeArea: true,
-      barrierDismissible: false,
-      builder: (context) => Scaffold(
-        backgroundColor: Colors.transparent,
-        resizeToAvoidBottomInset: true,
-        body: Center(
-          child: StatefulBuilder(
-            builder: (context, setDialogState) => AlertDialog(
-              backgroundColor: ShiftleyTokens.paperWhite,
-              shape: RoundedRectangleBorder(
-                side: ShiftleyTokens.primaryBorderSide,
-                borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-              ),
-              title: const Text('Cancel GIG?', style: ShiftleyTokens.h2),
-              content: SingleChildScrollView(
+  void _showCancelGigDialog(String gigId) {
+    final gig = _selectedGig;
+    if (gig == null) return;
+
+    try {
+      final dashboardData = ref.read(employerDashboardProvider).value;
+      final config = dashboardData?.config;
+      
+      final totalEscrow = gig.wagePerWorker * gig.workersNeeded;
+      final timeUntilStart = gig.startTime.difference(DateTime.now());
+      
+      String otpCode = '';
+      bool otpSent = false;
+      
+      double penaltyPercent = 0;
+      if (config != null) {
+        if (timeUntilStart.inHours < 1) {
+          penaltyPercent = config.employerCancelPenalty1h ?? 50.0;
+        } else if (timeUntilStart.inHours < 3) {
+          penaltyPercent = config.employerCancelPenalty3h ?? 25.0;
+        } else if (timeUntilStart.inHours < 6) {
+          penaltyPercent = config.employerCancelPenalty6h ?? 10.0;
+        }
+      } else {
+        if (timeUntilStart.inHours < 1) {
+          penaltyPercent = 50.0;
+        } else if (timeUntilStart.inHours < 3) {
+          penaltyPercent = 25.0;
+        } else if (timeUntilStart.inHours < 6) {
+          penaltyPercent = 10.0;
+        }
+      }
+
+      final baseFine = (config?.employerCancelBaseFine ?? 100.0) * 100; // in Paise
+      var penaltyAmount = (totalEscrow * (penaltyPercent / 100)).round() + baseFine.round();
+      if (penaltyAmount > totalEscrow) penaltyAmount = totalEscrow;
+
+      final refundAmount = totalEscrow - penaltyAmount;
+      final formatter = NumberFormat('#,###');
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            backgroundColor: ShiftleyTokens.paperWhite,
+            shape: RoundedRectangleBorder(
+              side: ShiftleyTokens.primaryBorderSide,
+              borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+            ),
+            title: const Text('Cancel GIG?', style: ShiftleyTokens.h2),
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.9,
+              child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Cancellation Fees are calculated based on the time remaining before the GIG starts:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Cancellation Fees include a fixed base fine plus a time-based penalty:', 
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)
+                    ),
                     const SizedBox(height: 8),
-                    _buildPolicyRow('< 1 Hour', '50% Fee'),
-                    _buildPolicyRow('< 2 Hours', '30% Fee'),
-                    _buildPolicyRow('> 2 Hours', '10% Fee'),
+                    _buildPolicyRow('Base Fine (Fixed)', '₹ ${(config?.employerCancelBaseFine ?? 100.0).toInt()}'),
+                    _buildPolicyRow('< 1 Hour', '${(config?.employerCancelPenalty1h ?? 50.0).toInt()}% Fee'),
+                    _buildPolicyRow('< 3 Hours', '${(config?.employerCancelPenalty3h ?? 25.0).toInt()}% Fee'),
+                    _buildPolicyRow('< 6 Hours', '${(config?.employerCancelPenalty6h ?? 10.0).toInt()}% Fee'),
+                    _buildPolicyRow('> 6 Hours', '0% Fee'),
                     const SizedBox(height: ShiftleyTokens.spaceM),
                     Container(
                       padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
@@ -710,10 +884,11 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                       ),
                       child: Column(
                         children: [
-                          _buildRefundRow('Base Refund:', '₹ 2,400'),
-                          _buildRefundRow('Cancellation Fine (30%):', '- ₹ 720'),
+                          _buildRefundRow('Total Paid:', '₹ ${formatter.format(totalEscrow / 100)}'),
+                          _buildRefundRow('Base Fine:', '- ₹ ${(config?.employerCancelBaseFine ?? 100.0).toInt()}'),
+                          _buildRefundRow('Penalty ($penaltyPercent%):', '- ₹ ${formatter.format(((totalEscrow * (penaltyPercent / 100)).round()) / 100)}'),
                           const Divider(color: ShiftleyTokens.primaryRed),
-                          _buildRefundRow('Total Refund:', '₹ 1,680', isBold: true),
+                          _buildRefundRow('Total Refund:', '₹ ${formatter.format(refundAmount / 100)}', isBold: true),
                         ],
                       ),
                     ),
@@ -721,52 +896,101 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                       const SizedBox(height: ShiftleyTokens.spaceL),
                       const Text('Enter OTP sent to your registered mobile:', style: ShiftleyTokens.caption),
                       const SizedBox(height: 8),
-                      const TextField(
-                        decoration: InputDecoration(
-                          hintText: 'X X X X',
+                      TextField(
+                        onChanged: (val) => setDialogState(() => otpCode = val),
+                        decoration: const InputDecoration(
+                          hintText: 'X X X X X X',
                           border: OutlineInputBorder(),
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
                         keyboardType: TextInputType.number,
                         autofocus: true,
+                        maxLength: 6,
                       ),
                     ],
                   ],
                 ),
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('KEEP GIG')),
-                if (!otpSent)
-                  ShiftleyButton(
-                    label: 'Send OTP to Cancel', 
-                    onPressed: () => setDialogState(() => otpSent = true), 
-                    size: ShiftleyButtonSize.small,
-                  )
-                else
-                  ShiftleyButton(
-                    label: 'Verify & Confirm', 
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('KEEP GIG')),
+              if (!otpSent)
+                ShiftleyButton(
+                  label: 'Send OTP', 
                     onPressed: () async {
                       try {
-                        final repository = ref.read(employerRepositoryProvider);
-                        await repository.cancelGig(_selectedGigId, 'User Requested');
-                        ref.invalidate(employerGigsProvider('ACTIVE'));
-                        if (!context.mounted) return;
-                        
-                        Navigator.pop(context);
-                        setState(() => _subView = ManageGigSubView.list);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('GIG Cancelled Successfully')));
+                         await ref.read(employerRepositoryProvider).requestCancelOTP(gig.id);
+                         setDialogState(() => otpSent = true);
                       } catch (e) {
                          if (!context.mounted) return;
-                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to cancel GIG: $e'), backgroundColor: Colors.red));
+                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send OTP: $e')));
                       }
                     }, 
-                    size: ShiftleyButtonSize.small,
-                    isPrimary: true,
-                  ),
-              ],
-            ),
+                  size: ShiftleyButtonSize.small,
+                )
+              else
+                ShiftleyButton(
+                  label: 'Verify & Confirm', 
+                  onPressed: () async {
+                    try {
+                      final repository = ref.read(employerRepositoryProvider);
+                      await repository.verifyCancelAndConfirm(gig.id, otpCode, 'User Requested via App');
+                      
+                      ref.invalidate(employerGigsProvider(null));
+                      ref.invalidate(employerDashboardProvider);
+                      
+                      if (!context.mounted) return;
+                      
+                      setState(() {
+                        _lastRefundAmount = refundAmount / 100;
+                        _subView = ManageGigSubView.cancellationSuccess;
+                      });
+                      Navigator.pop(context);
+                    } catch (e) {
+                       if (!context.mounted) return;
+                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
+                    }
+                  }, 
+                  size: ShiftleyButtonSize.small,
+                  isPrimary: true,
+                ),
+            ],
           ),
         ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error preparing dialog: $e')));
+    }
+  }
+
+  Widget _buildCancellationSuccessView() {
+    return Padding(
+      padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.check_circle_outline, size: 80, color: Colors.green),
+          const SizedBox(height: ShiftleyTokens.spaceL),
+          const Text('GIG Cancelled Successfully', style: ShiftleyTokens.h1, textAlign: TextAlign.center),
+          const SizedBox(height: ShiftleyTokens.spaceM),
+          Text(
+            'A refund of ₹${_lastRefundAmount?.toStringAsFixed(2) ?? "0.00"} will be credited to your original payment method within 24 working hours.',
+            style: ShiftleyTokens.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceL),
+          const Text(
+            '1 Active GIG post credit has been added back to your subscription.',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: ShiftleyTokens.spaceXXL),
+          ShiftleyButton(
+            label: 'BACK TO DASHBOARD',
+            onPressed: () => setState(() => _subView = ManageGigSubView.list),
+            isFullWidth: true,
+          ),
+        ],
       ),
     );
   }
@@ -812,16 +1036,168 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
   }
 
   Widget _buildStatusChip(String status) {
+    Color bgColor = ShiftleyTokens.background;
+    Color textColor = ShiftleyTokens.inkBlack;
+
+    switch (status) {
+      case 'OPEN':
+        bgColor = const Color(0xFFE3F2FD);
+        textColor = Colors.blue.shade900;
+        break;
+      case 'FILLED':
+        bgColor = const Color(0xFFE8F5E9);
+        textColor = Colors.green.shade900;
+        break;
+      case 'RUNNING':
+        bgColor = const Color(0xFFFFF3E0);
+        textColor = Colors.orange.shade900;
+        break;
+      case 'COMPLETED':
+        bgColor = const Color(0xFFF5F5F5);
+        textColor = Colors.grey.shade700;
+        break;
+      case 'CANCELLED':
+        bgColor = const Color(0xFFFFEBEE);
+        textColor = ShiftleyTokens.primaryRed;
+        break;
+      case 'DRAFT':
+        bgColor = ShiftleyTokens.background;
+        textColor = ShiftleyTokens.mutedText;
+        break;
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: status == 'RUNNING' ? Colors.green.shade100 : status == 'UPCOMING' ? ShiftleyTokens.secondaryCyan : ShiftleyTokens.background,
-        border: Border.all(color: ShiftleyTokens.inkBlack, width: 1.0),
+        color: bgColor,
+        border: Border.all(color: textColor.withValues(alpha: 0.3), width: 1.0),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         status,
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: textColor),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────
+// DRAFT PUBLISH PAYMENT MODAL
+// ──────────────────────────────────────────
+class _DraftPublishPaymentModal extends StatelessWidget {
+  final Gig gig;
+  final double totalAmount;
+  final Function(String paymentId) onSuccess;
+
+  const _DraftPublishPaymentModal({
+    required this.gig,
+    required this.totalAmount,
+    required this.onSuccess,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.65,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Dark header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF02042B),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.payment, color: Colors.blue, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('RAZORPAY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 13)),
+                      Text('Escrow for: ${gig.title}', style: const TextStyle(color: Colors.white60, fontSize: 11), overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+                IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+          ),
+          // Amount
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            color: const Color(0xFF02042B),
+            child: Column(
+              children: [
+                const Text('TOTAL ESCROW AMOUNT', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const SizedBox(height: 4),
+                Text('₹ ${totalAmount.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                Text('${gig.workersNeeded} worker${gig.workersNeeded > 1 ? 's' : ''} • Held in secure escrow until GIG completes', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+              ],
+            ),
+          ),
+          // Info + actions
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildRow('GIG Title', gig.title),
+                      _buildRow('Workers Needed', '${gig.workersNeeded}'),
+                      _buildRow('Pay per Worker', '₹ ${(gig.wagePerWorker / 100).toStringAsFixed(0)}'),
+                      _buildRow('Status', 'DRAFT → will become OPEN after payment'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Center(child: Text('TEST MODE — No real payment charged', style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold))),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.lock_outline, size: 18, color: Colors.white),
+                label: Text('PAY ₹ ${totalAmount.toStringAsFixed(0)} & PUBLISH', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ShiftleyTokens.primaryRed,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal)),
+                ),
+                onPressed: () => onSuccess('pay_mock_${DateTime.now().millisecondsSinceEpoch}'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('$label: ', style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w600)),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+        ],
       ),
     );
   }

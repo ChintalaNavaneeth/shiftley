@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"shiftley/internal/auth"
+	"shiftley/internal/config"
 	"shiftley/pkg/events"
 	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
@@ -24,10 +25,11 @@ type Handler struct {
 	rdb    *redis.Client
 	notify *notify.NotifyService
 	bus    events.EventBus
+	auth   auth.Service
 }
 
-func NewHandler(db *gorm.DB, rdb *redis.Client, notifySvc *notify.NotifyService, bus events.EventBus) *Handler {
-	return &Handler{db: db, rdb: rdb, notify: notifySvc, bus: bus}
+func NewHandler(db *gorm.DB, rdb *redis.Client, notifySvc *notify.NotifyService, bus events.EventBus, authSvc auth.Service) *Handler {
+	return &Handler{db: db, rdb: rdb, notify: notifySvc, bus: bus, auth: authSvc}
 }
 
 type PostGigRequest struct {
@@ -170,6 +172,52 @@ func (h *Handler) PostGig(c *gin.Context) {
 	utils.RespondSuccess(c, http.StatusCreated, respData, nil)
 }
 
+// ConfirmMockPayment handles POST /api/v1/gigs/:gigId/confirm-payment
+// @Summary Mock Payment Confirmation (Dev Only)
+// @Description Simulates escrow funding and makes a DRAFT gig OPEN. Used in development since Razorpay is mocked.
+// @Tags Gig
+// @Produce json
+// @Param gigId path string true "Gig ID"
+// @Success 200 {object} utils.SuccessResponse
+// @Security ApiKeyAuth
+// @Router /gigs/{gigId}/confirm-payment [post]
+func (h *Handler) ConfirmMockPayment(c *gin.Context) {
+	gigID := c.Param("gigId")
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	var g Gig
+	if err := h.db.First(&g, "id = ?", gigID).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Gig not found", nil)
+		return
+	}
+
+	// Ownership check
+	if g.EmployerID != userID {
+		utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden, "You do not own this gig", nil)
+		return
+	}
+
+	if g.Status != StatusDraft {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, fmt.Sprintf("Gig is already in '%s' state, cannot confirm payment", g.Status), nil)
+		return
+	}
+
+	if err := h.db.Model(&g).Updates(map[string]interface{}{
+		"status":          StatusOpen,
+		"is_escrow_funded": true,
+	}).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to activate gig", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"gig_id":  g.ID,
+		"status":  StatusOpen,
+		"message": "Payment confirmed. Gig is now OPEN and visible to workers.",
+	}, nil)
+}
+
 // GetBenchmark handles GET /api/v1/gigs/wage-benchmark
 // @Summary Wage Benchmark Check
 // @Description Returns the average market wage for a skill.
@@ -261,26 +309,21 @@ func (h *Handler) ApproveApplication(c *gin.Context) {
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"application_id": appID, "status": req.Status}, nil)
 }
 
-// CancelGig handles POST /api/v1/gigs/{gigId}/cancel
-// @Summary Cancel Gig
-// @Description Allows the employer to cancel a gig with automated penalty calculation.
+// RequestCancelOTP handles POST /api/v1/gigs/{gigId}/cancel/otp
+// @Summary Request OTP for Gig Cancellation
+// @Description Sends an OTP to the employer to confirm gig cancellation.
 // @Tags Gig
-// @Accept json
 // @Produce json
 // @Param gigId path string true "Gig ID"
-// @Param request body object true "Reason"
 // @Success 200 {object} utils.SuccessResponse
 // @Security ApiKeyAuth
-// @Router /gigs/{gigId}/cancel [post]
-func (h *Handler) CancelGig(c *gin.Context) {
+// @Router /gigs/{gigId}/cancel/otp [post]
+
+
+func (h *Handler) RequestCancelOTP(c *gin.Context) {
 	gigID := c.Param("gigId")
-	var req struct {
-		Reason string `json:"reason" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Reason is required", nil)
-		return
-	}
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
 
 	var g Gig
 	if err := h.db.First(&g, "id = ?", gigID).Error; err != nil {
@@ -288,20 +331,107 @@ func (h *Handler) CancelGig(c *gin.Context) {
 		return
 	}
 
-	// Calculate Penalty (Mock Logic based on time until StartTime)
+	if g.EmployerID != userID {
+		utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden, "Unauthorized to cancel this gig", nil)
+		return
+	}
+
+	var user auth.User
+	if err := h.db.First(&user, "id = ?", userID).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "User not found", nil)
+		return
+	}
+
+	code, err := h.auth.SendOTP(c.Request.Context(), user.PhoneNumber, "PHONE", string(auth.RoleEmployer))
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to send OTP", nil)
+		return
+	}
+
+	h.notify.SendOTP(user.PhoneNumber, code)
+
+	utils.RespondSuccess(c, http.StatusOK, "OTP sent to your registered phone number", nil)
+}
+
+type VerifyCancelRequest struct {
+	Code   string `json:"code" binding:"required"`
+	Reason string `json:"reason"`
+}
+
+// VerifyCancelAndConfirm handles POST /api/v1/gigs/:gigId/cancel/verify
+func (h *Handler) VerifyCancelAndConfirm(c *gin.Context) {
+	gigID := c.Param("gigId")
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	var req VerifyCancelRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "OTP code required", nil)
+		return
+	}
+
+	var user auth.User
+	if err := h.db.First(&user, "id = ?", userID).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "User not found", nil)
+		return
+	}
+
+	_, _, ok, _, err := h.auth.VerifyOTP(c.Request.Context(), user.PhoneNumber, "PHONE", req.Code, "")
+	if err != nil || !ok {
+		utils.RespondError(c, http.StatusUnauthorized, "INVALID_OTP", "Invalid or expired OTP", nil)
+		return
+	}
+
+	h.performCancellation(c, gigID, req.Reason)
+}
+
+func (h *Handler) CancelGig(c *gin.Context) {
+	gigID := c.Param("gigId")
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	c.ShouldBindJSON(&req)
+	h.performCancellation(c, gigID, req.Reason)
+}
+
+func (h *Handler) performCancellation(c *gin.Context, gigID string, reason string) {
+	var g Gig
+	if err := h.db.First(&g, "id = ?", gigID).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Gig not found", nil)
+		return
+	}
+
+	if g.Status == StatusCancelled {
+		utils.RespondError(c, http.StatusBadRequest, "ALREADY_CANCELLED", "Gig is already cancelled", nil)
+		return
+	}
+
+	// Calculate Penalty based on Platform Config
+	var conf config.PlatformConfig
+	h.db.FirstOrCreate(&conf)
+
 	timeUntilStart := time.Until(g.StartTime)
-	penalty := int64(0)
-	if timeUntilStart < 2*time.Hour {
-		penalty = (g.WagePerWorker * int64(g.WorkersNeeded)) / 4 // 25% fine
-	} else if timeUntilStart < 12*time.Hour {
-		penalty = (g.WagePerWorker * int64(g.WorkersNeeded)) / 10 // 10% fine
+	penaltyPercent := 0.0
+	if timeUntilStart < 1*time.Hour {
+		penaltyPercent = conf.EmployerCancelPenalty1h
+	} else if timeUntilStart < 3*time.Hour {
+		penaltyPercent = conf.EmployerCancelPenalty3h
+	} else if timeUntilStart < 6*time.Hour {
+		penaltyPercent = conf.EmployerCancelPenalty6h
+	}
+
+	totalEscrow := g.WagePerWorker * int64(g.WorkersNeeded)
+	penalty := int64(float64(totalEscrow)*(penaltyPercent/100.0)) + int64(conf.EmployerCancelBaseFine*100.0)
+
+	if penalty > totalEscrow {
+		penalty = totalEscrow
 	}
 
 	g.Status = StatusCancelled
-	g.CancelReason = req.Reason
+	g.CancelReason = reason
 	h.db.Save(&g)
 
-	// Notify workers (Mock: sending to all applicants)
+	// Notify workers
 	var apps []GigApplication
 	h.db.Where("gig_id = ? AND status = ?", g.ID, AppApproved).Find(&apps)
 	for _, app := range apps {
@@ -312,10 +442,10 @@ func (h *Handler) CancelGig(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
-		"status":        StatusCancelled,
-		"fine_paise":    penalty,
+		"status":       StatusCancelled,
+		"fine_paise":   penalty,
 		"refund_paise": (g.WagePerWorker * int64(g.WorkersNeeded)) - penalty,
-		"message":       fmt.Sprintf("Gig cancelled. Penalty of %d paise applied.", penalty),
+		"message":      "Gig cancelled successfully. Refund will be processed within 24 hours.",
 	}, nil)
 }
 

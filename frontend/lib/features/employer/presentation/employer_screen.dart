@@ -46,20 +46,11 @@ class _EmployerScreenState extends ConsumerState<EmployerScreen> {
           activeTab: _activeTab,
           onTabChanged: (tab) {
             setState(() => _activeTab = tab);
-            Navigator.pop(context); // Close drawer on selection
+            Navigator.pop(context);
           },
         ),
         body: SafeArea(
-          child: SRefreshable(
-            onRefresh: () async {
-              // Refresh dashboard data
-              return ref.refresh(employerDashboardProvider.future);
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-              child: _buildActiveView(dashboardAsync),
-            ),
-          ),
+          child: _buildBody(dashboardAsync),
         ),
       ),
     );
@@ -110,12 +101,45 @@ class _EmployerScreenState extends ConsumerState<EmployerScreen> {
     }
   }
 
+  // Tabs that need BOUNDED height (use Expanded, have their own internal scroll)
+  bool _isBoundedTab(EmployerTab tab) =>
+      tab == EmployerTab.shifts || tab == EmployerTab.post;
+
+  Widget _buildBody(AsyncValue<EmployerDashboardData> dashboardAsync) {
+    if (_isBoundedTab(_activeTab)) {
+      // Render directly in a Column > Expanded so height is bounded
+      return Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+              child: _buildActiveView(dashboardAsync),
+            ),
+          ),
+        ],
+      );
+    }
+    // For scrollable tabs, use SRefreshable
+    return SRefreshable(
+      onRefresh: () async => ref.refresh(employerDashboardProvider.future),
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+        child: _buildActiveView(dashboardAsync),
+      ),
+    );
+  }
+
   Widget _buildActiveView(AsyncValue<EmployerDashboardData> dashboardAsync) {
     switch (_activeTab) {
       case EmployerTab.overview:
-        return const OverviewView();
+        return OverviewView(
+          onPostGig: () => setState(() => _activeTab = EmployerTab.post),
+          onGoToSubscription: () => setState(() => _activeTab = EmployerTab.subscription),
+        );
       case EmployerTab.shifts:
-        return const ManageGigsView();
+        return ManageGigsView(
+          onGoToSubscription: () => setState(() => _activeTab = EmployerTab.subscription),
+        );
       case EmployerTab.post:
         return dashboardAsync.when(
           loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),

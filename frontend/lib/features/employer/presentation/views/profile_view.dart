@@ -14,7 +14,8 @@ class ProfileView extends ConsumerWidget {
     return dashboardAsync.when(
       loading: () => const Center(child: CircularProgressIndicator(color: ShiftleyTokens.primaryRed)),
       error: (err, stack) => Center(child: Text('Error loading profile: $err')),
-      data: (data) => SingleChildScrollView(
+      data: (data) => Padding(
+        padding: const EdgeInsets.only(bottom: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

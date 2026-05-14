@@ -27,6 +27,7 @@ VerifyOtpRequest _$VerifyOtpRequestFromJson(Map<String, dynamic> json) =>
       identifier: json['identifier'] as String,
       type: json['type'] as String,
       code: json['code'] as String,
+      role: json['role'] as String?,
     );
 
 Map<String, dynamic> _$VerifyOtpRequestToJson(VerifyOtpRequest instance) =>
@@ -34,6 +35,7 @@ Map<String, dynamic> _$VerifyOtpRequestToJson(VerifyOtpRequest instance) =>
       'identifier': instance.identifier,
       'type': instance.type,
       'code': instance.code,
+      'role': instance.role,
     };
 
 AuthResponse _$AuthResponseFromJson(Map<String, dynamic> json) => AuthResponse(

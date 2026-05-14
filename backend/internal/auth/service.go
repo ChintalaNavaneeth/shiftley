@@ -109,17 +109,9 @@ func (s *service) VerifyOTP(ctx context.Context, identifier string, channel stri
 		return "", "", false, nil, err
 	}
 
-	// Verify Role if expectedRole is provided
-	if expectedRole != "" {
-		// Special case: ADMIN can mean multiple sub-roles if needed, but for now we check exact or specific sets
-		if expectedRole == "ADMIN" {
-			if user.Role != RoleSuperAdmin && user.Role != RoleAdmin && user.Role != RoleHRAdmin {
-				return "", "", false, nil, fmt.Errorf("unauthorized: account is not an administrator")
-			}
-		} else if string(user.Role) != expectedRole {
-			return "", "", false, nil, fmt.Errorf("unauthorized: account is not a %s", expectedRole)
-		}
-	}
+	// Role verification is handled by the frontend (redirection) and 
+	// by middleware for subsequent requests. We allow the login to proceed 
+	// as long as the OTP is valid for the given identifier.
 
 	return accessToken, refreshToken, isNewUser, user, nil
 }

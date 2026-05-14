@@ -86,6 +86,28 @@ Map<String, dynamic> _$SubscriptionPlanMetaToJson(
       'max_employees_per_gig': instance.maxEmployeesPerGig,
     };
 
+PlatformConfig _$PlatformConfigFromJson(Map<String, dynamic> json) =>
+    PlatformConfig(
+      workerNoShowPenalty: (json['worker_no_show_penalty'] as num?)?.toDouble(),
+      employerCancelPenalty6h:
+          (json['employer_cancel_penalty_6h'] as num?)?.toDouble(),
+      employerCancelPenalty3h:
+          (json['employer_cancel_penalty_3h'] as num?)?.toDouble(),
+      employerCancelPenalty1h:
+          (json['employer_cancel_penalty_1h'] as num?)?.toDouble(),
+      employerCancelBaseFine:
+          (json['employer_cancel_base_fine'] as num?)?.toDouble(),
+    );
+
+Map<String, dynamic> _$PlatformConfigToJson(PlatformConfig instance) =>
+    <String, dynamic>{
+      'worker_no_show_penalty': instance.workerNoShowPenalty,
+      'employer_cancel_penalty_6h': instance.employerCancelPenalty6h,
+      'employer_cancel_penalty_3h': instance.employerCancelPenalty3h,
+      'employer_cancel_penalty_1h': instance.employerCancelPenalty1h,
+      'employer_cancel_base_fine': instance.employerCancelBaseFine,
+    };
+
 EmployerDashboardData _$EmployerDashboardDataFromJson(
         Map<String, dynamic> json) =>
     EmployerDashboardData(
@@ -97,6 +119,9 @@ EmployerDashboardData _$EmployerDashboardDataFromJson(
                   SubscriptionPlanMeta.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      config: json['config'] == null
+          ? null
+          : PlatformConfig.fromJson(json['config'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$EmployerDashboardDataToJson(
@@ -105,4 +130,5 @@ Map<String, dynamic> _$EmployerDashboardDataToJson(
       'profile': instance.profile,
       'stats': instance.stats,
       'available_plans': instance.availablePlans,
+      'config': instance.config,
     };
