@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -133,6 +132,38 @@ class AuthRepository {
         options: Options(contentType: 'multipart/form-data'),
       );
       return AuthResponse.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteSkill(String skillId) async {
+    try {
+      await _dio.delete('employees/me/skills/$skillId');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> addSkill(String skillId) async {
+    try {
+      await _dio.post('employees/me/skills', data: {'skill_id': skillId});
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCertification(String certId) async {
+    try {
+      await _dio.delete('employees/me/certifications/$certId');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> addCertification(Map<String, dynamic> certData) async {
+    try {
+      await _dio.post('employees/me/certifications', data: certData);
     } catch (e) {
       rethrow;
     }

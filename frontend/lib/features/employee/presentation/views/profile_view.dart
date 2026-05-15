@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
 import 'package:shiftley_frontend/core/network/api_client.dart';
 import 'package:shiftley_frontend/features/auth/presentation/providers/profile_provider.dart';
+import 'package:shiftley_frontend/features/auth/data/auth_repository_provider.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
@@ -12,7 +14,6 @@ class ProfileView extends ConsumerWidget {
   String _resolveUrl(String? url) {
     if (url == null || url.isEmpty) return '';
     if (url.startsWith('http')) return url;
-    // ApiClient.baseUrl is 'http://.../api/v1/'
     final base = ApiClient.baseUrl.replaceAll('/api/v1/', '');
     return '$base$url';
   }
@@ -24,149 +25,280 @@ class ProfileView extends ConsumerWidget {
     return profileAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(child: Text('Error: $err')),
-      data: (profile) => SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile Header
-            Row(
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: ShiftleyTokens.secondaryCyan,
-                    border: ShiftleyTokens.primaryBorder,
-                    shape: BoxShape.circle,
-                    image: profile['profile_photo_url'] != null
-                        ? DecorationImage(
-                            image: NetworkImage(_resolveUrl(profile['profile_photo_url'])),
-                            fit: BoxFit.cover,
-                          )
+      data: (profile) => SRefreshable(
+        onRefresh: () => ref.refresh(userProfileProvider.future),
+        child: Padding(
+          padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Profile Header
+              Row(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: ShiftleyTokens.secondaryCyan,
+                      border: ShiftleyTokens.primaryBorder,
+                      shape: BoxShape.circle,
+                      image: profile['profile_photo_url'] != null
+                          ? DecorationImage(
+                              image: NetworkImage(_resolveUrl(profile['profile_photo_url'])),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: profile['profile_photo_url'] == null
+                        ? const Icon(Icons.person, size: 40, color: ShiftleyTokens.inkBlack)
                         : null,
                   ),
-                  child: profile['profile_photo_url'] == null
-                      ? const Icon(Icons.person, size: 40, color: ShiftleyTokens.inkBlack)
-                      : null,
-                ),
-                const SizedBox(width: ShiftleyTokens.spaceM),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(profile['full_name'] ?? 'Professional', style: ShiftleyTokens.h1),
-                      Text('Professional Member', style: ShiftleyTokens.caption),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
-                          border: Border.all(color: Colors.green, width: 1),
-                          borderRadius: BorderRadius.circular(4),
+                  const SizedBox(width: ShiftleyTokens.spaceM),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(profile['full_name'] ?? 'Professional', style: ShiftleyTokens.h1),
+                        Text('Professional Member', style: ShiftleyTokens.caption),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            border: Border.all(color: Colors.green, width: 1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.verified, size: 12, color: Colors.green),
+                              SizedBox(width: 4),
+                              Text('KYC VERIFIED', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.verified, size: 12, color: Colors.green),
-                            SizedBox(width: 4),
-                            Text('KYC VERIFIED', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: ShiftleyTokens.spaceXL),
+
+              // Basic Info
+              _buildSectionHeader('Basic Information'),
+              _buildInfoRow('Phone', profile['phone_number'] ?? 'Not provided'),
+              _buildInfoRow('Email', profile['email'] ?? 'Not provided'),
+              _buildInfoRow('Location', profile['location'] ?? 'Hyderabad, India'),
+              const SizedBox(height: ShiftleyTokens.spaceXL),
+
+              // Skills
+              _buildSectionHeader(
+                'Skills & Specialties',
+                onAdd: () => _showAddSkillDialog(context, ref),
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: (profile['skills'] as List<dynamic>?)?.map((skill) {
+                  final skillMap = skill as Map<String, dynamic>;
+                  return _buildSkillChip(
+                    skillMap['name'].toString(),
+                    onDelete: () => _deleteSkill(context, ref, skillMap['id'].toString()),
+                  );
+                }).toList() ?? [
+                  Text('No skills listed', style: ShiftleyTokens.caption),
+                ],
+              ),
+              const SizedBox(height: ShiftleyTokens.spaceXL),
+
+              // Certifications
+              _buildSectionHeader(
+                'Certifications',
+                onAdd: () => _showAddCertificationDialog(context, ref),
+              ),
+              const SizedBox(height: ShiftleyTokens.spaceM),
+              if ((profile['certifications'] as List<dynamic>?)?.isEmpty ?? true)
+                Center(
+                  child: Text(
+                    'No certifications added yet.',
+                    style: ShiftleyTokens.caption.copyWith(fontStyle: FontStyle.italic),
+                  ),
+                )
+              else
+                ...(profile['certifications'] as List<dynamic>).map((cert) {
+                  final certMap = cert as Map<String, dynamic>;
+                  return _buildCertificationItem(
+                    certMap['name'].toString(),
+                    '${certMap['issuing_authority']} • ${certMap['year']}',
+                    onDelete: () => _deleteCertification(context, ref, certMap['id'].toString()),
+                  );
+                }),
+              const SizedBox(height: ShiftleyTokens.spaceXL),
+
+              // Bank Details
+              _buildSectionHeader('Bank & Payment Details'),
+              Container(
+                padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+                decoration: BoxDecoration(
+                  color: ShiftleyTokens.secondaryCyan.withValues(alpha: 0.1),
+                  border: ShiftleyTokens.primaryBorder,
+                  borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
                 ),
-              ],
-            ),
-            const SizedBox(height: ShiftleyTokens.spaceXL),
-
-            // Basic Info
-            _buildSectionHeader('Basic Information'),
-            _buildInfoRow('Phone', profile['phone_number'] ?? 'Not provided'),
-            _buildInfoRow('Email', profile['email'] ?? 'Not provided'),
-            _buildInfoRow('Location', profile['location'] ?? 'Hyderabad, India'),
-            const SizedBox(height: ShiftleyTokens.spaceXL),
-
-          // Skills
-          _buildSectionHeader(
-            'Skills & Specialties',
-            actionLabel: 'Add Skill',
-            onActionTap: () => _showAddSkillDialog(context),
-          ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: (profile['skills'] as List<dynamic>?)?.map((skill) => _buildSkillChip(skill.toString())).toList() ?? [
-              Text('No skills listed', style: ShiftleyTokens.caption),
-            ],
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-
-          // Certifications
-          _buildSectionHeader(
-            'Certifications',
-            actionLabel: 'Add Certification',
-            onActionTap: () => _showAddCertificationDialog(context),
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceM),
-          Center(
-            child: Text(
-              'No certifications added yet.',
-              style: ShiftleyTokens.caption.copyWith(fontStyle: FontStyle.italic),
-            ),
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-
-          // Bank Details
-          _buildSectionHeader(
-            'Bank & Payment Details',
-          ),
-          Container(
-            padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-            decoration: BoxDecoration(
-              color: ShiftleyTokens.secondaryCyan.withValues(alpha: 0.1),
-              border: ShiftleyTokens.primaryBorder,
-              borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-            ),
-            child: Column(
-              children: [
-                _buildPaymentInfoRow('Account Holder', profile['full_name'] ?? 'Not Linked'),
-                _buildPaymentInfoRow('Bank Name', 'Verification Required'),
-                _buildPaymentInfoRow('Account Number', '**** **** ****'),
-                const SizedBox(height: ShiftleyTokens.spaceM),
-                ShiftleyButton(
-                  label: 'FETCH BANK DETAILS',
-                  onPressed: () => _showRazorpayMock(context),
-                  isFullWidth: true,
-                ),
-                const SizedBox(height: ShiftleyTokens.spaceS),
-                Row(
+                child: Column(
                   children: [
-                    const Icon(Icons.info_outline, size: 14, color: ShiftleyTokens.primaryRed),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'We will perform a ₹1 penny-drop to verify your account.',
-                        style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.primaryRed, fontWeight: FontWeight.bold),
-                      ),
+                    _buildPaymentInfoRow('Account Holder', profile['full_name'] ?? 'Not Linked'),
+                    _buildPaymentInfoRow('Bank Name', 'Verification Required'),
+                    _buildPaymentInfoRow('Account Number', '**** **** ****'),
+                    const SizedBox(height: ShiftleyTokens.spaceM),
+                    ShiftleyButton(
+                      label: 'FETCH BANK DETAILS',
+                      onPressed: () => _showRazorpayMock(context),
+                      isFullWidth: true,
+                    ),
+                    const SizedBox(height: ShiftleyTokens.spaceS),
+                    Row(
+                      children: [
+                        const Icon(Icons.info_outline, size: 14, color: ShiftleyTokens.primaryRed),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'We will perform a ₹1 penny-drop to verify your account.',
+                            style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.primaryRed, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: ShiftleyTokens.spaceXL),
+
+              // Documents
+              _buildSectionHeader('Verified Documents'),
+              _buildDocumentItem('KYC Verification', profile['kyc_status'] == true ? 'Completed' : 'Pending'),
+              _buildDocumentItem('Profile Details', 'Verified'),
+              const SizedBox(height: ShiftleyTokens.spaceXXL),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddSkillDialog(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: ShiftleyTokens.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Add New Skill', style: ShiftleyTokens.h2),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
               ],
             ),
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
-
-          // Documents
-          _buildSectionHeader('Verified Documents'),
-          _buildDocumentItem('KYC Verification', profile['kyc_status'] == true ? 'Completed' : 'Pending'),
-          _buildDocumentItem('Profile Details', 'Verified'),
-          const SizedBox(height: ShiftleyTokens.spaceXXL),
-        ],
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            Expanded(
+              child: ref.watch(taxonomyProvider).when(
+                data: (categories) {
+                  final allSkills = categories.expand((c) => c.skills).toList();
+                  return ListView.builder(
+                    itemCount: allSkills.length,
+                    itemBuilder: (context, index) {
+                      final skill = allSkills[index];
+                      return ListTile(
+                        title: Text(skill.name, style: ShiftleyTokens.bodyMedium),
+                        trailing: const Icon(Icons.add, color: ShiftleyTokens.primaryRed),
+                        onTap: () async {
+                          try {
+                            await ref.read(authRepositoryProvider).addSkill(skill.id);
+                            ref.invalidate(userProfileProvider);
+                            if (context.mounted) Navigator.pop(context);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add skill: $e')));
+                            }
+                          }
+                        },
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error loading skills: $e')),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  void _showAddCertificationDialog(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController();
+    final authorityController = TextEditingController();
+    final yearController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: ShiftleyTokens.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Add Certification', style: ShiftleyTokens.h2),
+              const SizedBox(height: ShiftleyTokens.spaceM),
+              STextField(hint: 'Certification Name', controller: nameController),
+              const SizedBox(height: ShiftleyTokens.spaceM),
+              STextField(hint: 'Issuing Authority', controller: authorityController),
+              const SizedBox(height: ShiftleyTokens.spaceM),
+              STextField(hint: 'Year', controller: yearController, keyboardType: TextInputType.number),
+              const SizedBox(height: ShiftleyTokens.spaceL),
+              ShiftleyButton(
+                label: 'Save Certification',
+                onPressed: () async {
+                  if (nameController.text.isEmpty) return;
+                  try {
+                    await ref.read(authRepositoryProvider).addCertification({
+                      'name': nameController.text,
+                      'issuing_authority': authorityController.text,
+                      'year': yearController.text,
+                    });
+                    ref.invalidate(userProfileProvider);
+                    if (context.mounted) Navigator.pop(context);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add certification: $e')));
+                    }
+                  }
+                },
+                isFullWidth: true,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   void _showRazorpayMock(BuildContext context) {
     showModalBottomSheet(
@@ -192,173 +324,7 @@ class ProfileView extends ConsumerWidget {
     );
   }
 
-  void _showAddSkillDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildMockFormSheet(
-        context,
-        title: 'Add New Skill',
-        fields: [
-          _buildMockTextField('Skill Name (e.g. Electrician)'),
-          _buildMockTextField('Experience Level (e.g. 2 Years)'),
-        ],
-      ),
-    );
-  }
-
-  void _showAddCertificationDialog(BuildContext context) {
-    String? selectedFileName;
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => _buildMockFormSheet(
-          context,
-          title: 'Add Certification',
-          fields: [
-            _buildMockTextField('Certification Name'),
-            _buildMockTextField('Issuing Authority'),
-            _buildMockTextField('Year of Issue'),
-            const SizedBox(height: ShiftleyTokens.spaceM),
-            Text('DOCUMENT PROOF (PDF/PHOTO)', style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () async {
-                FilePickerResult? result = await FilePicker.pickFiles(
-                  type: FileType.custom,
-                  allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
-                );
-
-                if (result != null) {
-                  setModalState(() {
-                    selectedFileName = result.files.single.name;
-                  });
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-                decoration: BoxDecoration(
-                  color: ShiftleyTokens.paperWhite,
-                  border: ShiftleyTokens.primaryBorder,
-                  borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      selectedFileName == null ? Icons.upload_file : Icons.check_circle,
-                      color: selectedFileName == null ? ShiftleyTokens.mutedText : Colors.green,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        selectedFileName ?? 'Tap to upload PDF or Photo',
-                        style: ShiftleyTokens.bodyMedium.copyWith(
-                          color: selectedFileName == null ? ShiftleyTokens.mutedText : ShiftleyTokens.inkBlack,
-                          fontWeight: selectedFileName == null ? FontWeight.normal : FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showEditBankDetailsDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildMockFormSheet(
-        context,
-        title: 'Edit Payment Info',
-        fields: [
-          _buildMockTextField('Account Holder Name'),
-          _buildMockTextField('Bank Name'),
-          _buildMockTextField('Account Number'),
-          _buildMockTextField('IFSC Code'),
-          _buildMockTextField('UPI ID'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMockFormSheet(BuildContext context, {required String title, required List<Widget> fields}) {
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: ShiftleyTokens.background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: ShiftleyTokens.primaryBorderSide),
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(ShiftleyTokens.spaceL),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: ShiftleyTokens.h1),
-              const SizedBox(height: ShiftleyTokens.spaceL),
-              ...fields.expand((f) => [f, const SizedBox(height: ShiftleyTokens.spaceM)]),
-              const SizedBox(height: ShiftleyTokens.spaceL),
-              ShiftleyButton(
-                label: 'Save Changes',
-                onPressed: () => Navigator.pop(context),
-                isFullWidth: true,
-              ),
-              const SizedBox(height: ShiftleyTokens.spaceM),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMockTextField(String label) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        TextField(
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: ShiftleyTokens.paperWhite,
-            enabledBorder: ShiftleyTokens.primaryInputBorder,
-            focusedBorder: ShiftleyTokens.focusInputBorder,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: ShiftleyTokens.caption),
-          Text(value, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, {String? actionLabel, VoidCallback? onActionTap}) {
+  Widget _buildSectionHeader(String title, {VoidCallback? onAdd}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -366,9 +332,9 @@ class ProfileView extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(title, style: ShiftleyTokens.h2),
-            if (actionLabel != null)
+            if (onAdd != null)
               GestureDetector(
-                onTap: onActionTap,
+                onTap: onAdd,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
@@ -376,13 +342,13 @@ class ProfileView extends ConsumerWidget {
                     border: ShiftleyTokens.thinBorder,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Row(
+                  child: const Row(
                     children: [
-                      const Icon(Icons.add, size: 14),
-                      const SizedBox(width: 4),
+                      Icon(Icons.add, size: 14),
+                      SizedBox(width: 4),
                       Text(
-                        actionLabel.toUpperCase(),
-                        style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold, color: ShiftleyTokens.inkBlack),
+                        'ADD',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: ShiftleyTokens.inkBlack, fontSize: 10),
                       ),
                     ],
                   ),
@@ -410,15 +376,59 @@ class ProfileView extends ConsumerWidget {
     );
   }
 
-  Widget _buildSkillChip(String label) {
+  Widget _buildSkillChip(String label, {VoidCallback? onDelete}) {
+    return Chip(
+      label: Text(label, style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.inkBlack)),
+      backgroundColor: ShiftleyTokens.paperWhite,
+      side: const BorderSide(color: ShiftleyTokens.inkBlack),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      deleteIcon: onDelete != null ? const Icon(Icons.close, size: 14, color: ShiftleyTokens.inkBlack) : null,
+      onDeleted: onDelete,
+    );
+  }
+
+  Widget _buildCertificationItem(String title, String subtitle, {VoidCallback? onDelete}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
+      padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
       decoration: BoxDecoration(
         color: ShiftleyTokens.paperWhite,
         border: ShiftleyTokens.primaryBorder,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
       ),
-      child: Text(label, style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.inkBlack, fontWeight: FontWeight.bold)),
+      child: Row(
+        children: [
+          const Icon(Icons.workspace_premium_outlined, color: ShiftleyTokens.primaryRed),
+          const SizedBox(width: ShiftleyTokens.spaceM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                Text(subtitle, style: ShiftleyTokens.caption),
+              ],
+            ),
+          ),
+          if (onDelete != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20, color: ShiftleyTokens.mutedText),
+              onPressed: onDelete,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: ShiftleyTokens.caption),
+          Text(value, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 
@@ -450,32 +460,40 @@ class ProfileView extends ConsumerWidget {
     );
   }
 
-  Widget _buildCertificationItem(String title, String subtitle) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
-      padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
-      decoration: BoxDecoration(
-        color: ShiftleyTokens.paperWhite,
-        border: ShiftleyTokens.primaryBorder,
-        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.workspace_premium_outlined, color: ShiftleyTokens.primaryRed),
-          const SizedBox(width: ShiftleyTokens.spaceM),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-                Text(subtitle, style: ShiftleyTokens.caption),
-              ],
-            ),
-          ),
-          const Icon(Icons.edit_outlined, size: 16, color: ShiftleyTokens.mutedText),
-        ],
-      ),
-    );
+  void _deleteSkill(BuildContext context, WidgetRef ref, String id) async {
+    try {
+      await ref.read(authRepositoryProvider).deleteSkill(id);
+      ref.invalidate(userProfileProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Skill removed successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to remove skill: $e')),
+        );
+      }
+    }
+  }
+
+  void _deleteCertification(BuildContext context, WidgetRef ref, String id) async {
+    try {
+      await ref.read(authRepositoryProvider).deleteCertification(id);
+      ref.invalidate(userProfileProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Certification removed successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to remove certification: $e')),
+        );
+      }
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -15,31 +16,35 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('Notifications'),
-          _buildToggleItem(
-            'Push Notifications',
-            'Receive real-time alerts for gig approvals',
-            _pushNotifications,
-            (v) => setState(() => _pushNotifications = v),
-          ),
-          _buildToggleItem(
-            'Email Alerts',
-            'Get shift summaries and payment receipts',
-            _emailAlerts,
-            (v) => setState(() => _emailAlerts = v),
-          ),
-          _buildToggleItem(
-            'WhatsApp Alerts',
-            'Receive urgent shift updates and gig links on WhatsApp',
-            _whatsappAlerts,
-            (v) => setState(() => _whatsappAlerts = v),
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceXXL),
-        ],
+    return SRefreshable(
+      onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader('Notifications'),
+            _buildToggleItem(
+              'Push Notifications',
+              'Receive real-time alerts for gig approvals',
+              _pushNotifications,
+              (v) => setState(() => _pushNotifications = v),
+            ),
+            _buildToggleItem(
+              'Email Alerts',
+              'Get shift summaries and payment receipts',
+              _emailAlerts,
+              (v) => setState(() => _emailAlerts = v),
+            ),
+            _buildToggleItem(
+              'WhatsApp Alerts',
+              'Receive urgent shift updates and gig links on WhatsApp',
+              _whatsappAlerts,
+              (v) => setState(() => _whatsappAlerts = v),
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceXXL),
+          ],
+        ),
       ),
     );
   }

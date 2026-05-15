@@ -7,3 +7,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return AuthRepository(dio, prefs);
 });
+
+final taxonomyProvider = FutureProvider((ref) {
+  return ref.watch(authRepositoryProvider).getTaxonomy();
+});

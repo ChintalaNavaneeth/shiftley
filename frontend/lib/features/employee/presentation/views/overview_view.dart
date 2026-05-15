@@ -7,6 +7,7 @@ import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'package:shiftley_frontend/features/employee/data/employee_repository.dart';
 import 'package:shiftley_frontend/features/employee/domain/models/employee_models.dart';
 import 'package:shiftley_frontend/shared/domain/models/gig_models.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 
 class OverviewView extends ConsumerWidget {
   const OverviewView({super.key});
@@ -16,10 +17,10 @@ class OverviewView extends ConsumerWidget {
     final dashboardAsync = ref.watch(employeeDashboardProvider);
     final formatter = NumberFormat('#,###');
 
-    return RefreshIndicator(
+    return SRefreshable(
       onRefresh: () => ref.refresh(employeeDashboardProvider.future),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
         child: dashboardAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(child: Text('Error: $err')),

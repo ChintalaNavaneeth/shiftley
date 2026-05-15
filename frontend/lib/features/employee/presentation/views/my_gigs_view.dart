@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 
 class MyGigsView extends StatefulWidget {
   const MyGigsView({super.key});
@@ -16,6 +17,11 @@ class _MyGigsViewState extends State<MyGigsView> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -26,9 +32,13 @@ class _MyGigsViewState extends State<MyGigsView> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TabBar(
+    return SRefreshable(
+      onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+        child: Column(
+          children: [
+            TabBar(
           controller: _tabController,
           labelColor: ShiftleyTokens.inkBlack,
           unselectedLabelColor: ShiftleyTokens.mutedText,
@@ -42,22 +52,28 @@ class _MyGigsViewState extends State<MyGigsView> with SingleTickerProviderStateM
           ],
         ),
         const SizedBox(height: ShiftleyTokens.spaceM),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildUpcomingList(),
-              _buildAppliedList(),
-              _buildHistoryList(),
-            ],
-          ),
+        _buildActiveList(),
+          ],
         ),
-      ],
+      ),
     );
   }
 
+  Widget _buildActiveList() {
+    switch (_tabController.index) {
+      case 0:
+        return _buildUpcomingList();
+      case 1:
+        return _buildAppliedList();
+      case 2:
+        return _buildHistoryList();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   Widget _buildUpcomingList() {
-    return ListView(
+    return Column(
       children: [
         _buildGigItem(
           'Housekeeping Professional',
@@ -80,7 +96,7 @@ class _MyGigsViewState extends State<MyGigsView> with SingleTickerProviderStateM
   }
 
   Widget _buildAppliedList() {
-    return ListView(
+    return Column(
       children: [
         _buildGigItem(
           'Security Guard',
@@ -103,7 +119,7 @@ class _MyGigsViewState extends State<MyGigsView> with SingleTickerProviderStateM
   }
 
   Widget _buildHistoryList() {
-    return ListView(
+    return Column(
       children: [
         _buildGigItem(
           'Waiter (Fine Dining)',

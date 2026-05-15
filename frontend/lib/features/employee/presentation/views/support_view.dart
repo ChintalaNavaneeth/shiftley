@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 
 enum SupportSubView { list, chat }
 
@@ -41,61 +42,60 @@ class _SupportViewState extends State<SupportView> {
     final List<Map<String, dynamic>> displayedTickets = _allTickets.sublist(startIndex, endIndex);
     final int totalPages = (_allTickets.length / _ticketsPerPage).ceil();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Track your tickets and communicate with our team.', style: ShiftleyTokens.bodyMedium),
-        const SizedBox(height: ShiftleyTokens.spaceXL),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return SRefreshable(
+      onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Your Tickets', style: ShiftleyTokens.h2),
-            ShiftleyButton(
-              label: 'New Ticket', 
-              onPressed: _showRaiseTicketDialog,
-              size: ShiftleyButtonSize.small,
+            const Text('Track your tickets and communicate with our team.', style: ShiftleyTokens.bodyMedium),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Your Tickets', style: ShiftleyTokens.h2),
+                ShiftleyButton(
+                  label: 'New Ticket', 
+                  onPressed: _showRaiseTicketDialog,
+                  size: ShiftleyButtonSize.small,
+                ),
+              ],
             ),
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            
+            if (displayedTickets.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(child: Text('No tickets found', style: ShiftleyTokens.bodyMedium)),
+              )
+            else
+              ...displayedTickets.map((ticket) => _buildTicketItem(
+                ticket['id'], 
+                ticket['subject'], 
+                ticket['status'], 
+                ticket['color'],
+              )),
+            
+            if (totalPages > 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceL),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildPageButton(Icons.chevron_left, _currentPage > 1 ? () => setState(() => _currentPage--) : null),
+                    const SizedBox(width: ShiftleyTokens.spaceL),
+                    Text('Page $_currentPage of $totalPages', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: ShiftleyTokens.spaceL),
+                    _buildPageButton(Icons.chevron_right, _currentPage < totalPages ? () => setState(() => _currentPage++) : null),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 100),
           ],
         ),
-        const SizedBox(height: ShiftleyTokens.spaceM),
-        
-        Expanded(
-          child: Column(
-            children: [
-              if (displayedTickets.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Text('No tickets found', style: ShiftleyTokens.bodyMedium),
-                )
-              else
-                ...displayedTickets.map((ticket) => _buildTicketItem(
-                  ticket['id'], 
-                  ticket['subject'], 
-                  ticket['status'], 
-                  ticket['color'],
-                )),
-              
-              const Spacer(),
-
-              if (totalPages > 1)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: ShiftleyTokens.spaceL),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildPageButton(Icons.chevron_left, _currentPage > 1 ? () => setState(() => _currentPage--) : null),
-                      const SizedBox(width: ShiftleyTokens.spaceL),
-                      Text('Page $_currentPage of $totalPages', style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(width: ShiftleyTokens.spaceL),
-                      _buildPageButton(Icons.chevron_right, _currentPage < totalPages ? () => setState(() => _currentPage++) : null),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 

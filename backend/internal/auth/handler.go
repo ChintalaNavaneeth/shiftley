@@ -297,20 +297,29 @@ func (h *Handler) GetMe(c *gin.Context) {
 		if err := h.db.First(&wp, "user_id = ?", user.ID).Error; err == nil {
 			resp["reliability_score"] = wp.ReliabilityScore
 			
-			// Resolve skill names from IDs
+			// Resolve skill names and IDs
 			if len(wp.Skills) > 0 {
-				var skillNames []string
+				var skills []struct {
+					ID   uuid.UUID `json:"id"`
+					Name string    `json:"name"`
+				}
 				err := h.db.Table("shiftley.skills").
+					Select("id, name").
 					Where("id::text IN ?", []string(wp.Skills)).
-					Pluck("name", &skillNames).Error
+					Find(&skills).Error
 				if err != nil {
 					fmt.Printf("[DEBUG] Skill resolution error: %v\n", err)
 				}
-				resp["skills"] = skillNames
-				fmt.Printf("[DEBUG] Resolved skills for user %s: %v\n", user.ID, skillNames)
+				resp["skills"] = skills
+				fmt.Printf("[DEBUG] Resolved skills for user %s: %v\n", user.ID, skills)
 			} else {
-				resp["skills"] = []string{}
+				resp["skills"] = []interface{}{}
 			}
+
+			// Resolve certifications
+			var certs []Certification
+			h.db.Where("user_id = ?", user.ID).Find(&certs)
+			resp["certifications"] = certs
 		} else {
 			fmt.Printf("[DEBUG] Worker profile not found for user %s: %v\n", user.ID, err)
 		}

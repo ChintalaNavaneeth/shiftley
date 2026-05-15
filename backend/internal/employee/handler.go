@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -66,12 +67,18 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		Row().Scan(&thisMonthEarned)
 
 	// 5. Next Shift
-	var nextApp gig.GigApplication
+	var nextApps []gig.GigApplication
 	h.db.Preload("Gig").
 		Joins("JOIN shiftley.gigs ON gigs.id = gig_applications.gig_id").
 		Where("gig_applications.employee_id = ? AND gig_applications.status = ? AND gigs.start_time > ?", userID, "APPROVED", time.Now()).
 		Order("gigs.start_time ASC").
-		First(&nextApp)
+		Limit(1).
+		Find(&nextApps)
+
+	var nextShift interface{} = nil
+	if len(nextApps) > 0 {
+		nextShift = nextApps[0].Gig
+	}
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
 		"employee_id":             user.ID,
@@ -83,7 +90,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		"total_earned_paise":      totalEarned,
 		"this_month_earned_paise": thisMonthEarned,
 		"no_shows":                noShows,
-		"next_shift":              nextApp.Gig,
+		"next_shift":              nextShift,
 	}, nil)
 }
 
@@ -177,4 +184,104 @@ func (h *Handler) PayPenalty(c *gin.Context) {
 		"razorpay_order_id": orderID,
 		"amount_paise":      user.UnpaidFinePaise,
 	}, nil)
+}
+
+// DeleteSkill handles DELETE /api/v1/employees/me/skills/:skillId
+func (h *Handler) DeleteSkill(c *gin.Context) {
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+	skillID := c.Param("skillId")
+
+	var wp auth.WorkerProfile
+	if err := h.db.First(&wp, "user_id = ?", userID).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Profile not found", nil)
+		return
+	}
+
+	newSkills := []string{}
+	for _, s := range wp.Skills {
+		if s != skillID {
+			newSkills = append(newSkills, s)
+		}
+	}
+
+	if err := h.db.Model(&wp).Update("skills", pq.StringArray(newSkills)).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to update skills", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, "Skill removed", nil)
+}
+
+// DeleteCertification handles DELETE /api/v1/employees/me/certifications/:certId
+func (h *Handler) DeleteCertification(c *gin.Context) {
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+	certID := c.Param("certId")
+
+	if err := h.db.Where("id = ? AND user_id = ?", certID, userID).Delete(&auth.Certification{}).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to delete certification", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, "Certification removed", nil)
+}
+
+// AddSkill handles POST /api/v1/employees/me/skills
+func (h *Handler) AddSkill(c *gin.Context) {
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	var req struct {
+		SkillID string `json:"skill_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid request", nil)
+		return
+	}
+
+	var wp auth.WorkerProfile
+	if err := h.db.First(&wp, "user_id = ?", userID).Error; err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrNotFound, "Profile not found", nil)
+		return
+	}
+
+	// Check if already exists
+	for _, s := range wp.Skills {
+		if s == req.SkillID {
+			utils.RespondSuccess(c, http.StatusOK, "Skill already exists", nil)
+			return
+		}
+	}
+
+	wp.Skills = append(wp.Skills, req.SkillID)
+
+	if err := h.db.Model(&wp).Update("skills", pq.StringArray(wp.Skills)).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to add skill", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, "Skill added", nil)
+}
+
+// AddCertification handles POST /api/v1/employees/me/certifications
+func (h *Handler) AddCertification(c *gin.Context) {
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
+	var cert auth.Certification
+	if err := c.ShouldBindJSON(&cert); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrValidation, "Invalid request", nil)
+		return
+	}
+
+	cert.UserID = userID
+	cert.ID = uuid.New()
+
+	if err := h.db.Create(&cert).Error; err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to add certification", nil)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, cert, nil)
 }

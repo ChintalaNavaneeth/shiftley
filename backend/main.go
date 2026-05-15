@@ -89,7 +89,7 @@ func main() {
 	}
 
 	err = db.AutoMigrate(
-		&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &auth.WorkerProfile{}, &auth.EmployerProfile{},
+		&auth.User{}, &auth.OTP{}, &auth.KYCSession{}, &auth.WorkerProfile{}, &auth.EmployerProfile{}, &auth.Certification{},
 		&taxonomy.Category{}, &taxonomy.Skill{},
 		&config.PlatformConfig{},
 		&verifier.VerificationAudit{}, &verifier.VerifierProfile{},
@@ -454,6 +454,10 @@ func main() {
 			employeeGroup.GET("/me/schedule", employeeHandler.GetSchedule)
 			employeeGroup.PUT("/me/payout-methods", employeeHandler.UpdatePayoutMethods)
 			employeeGroup.POST("/me/pay-penalty", employeeHandler.PayPenalty)
+			employeeGroup.POST("/me/skills", employeeHandler.AddSkill)
+			employeeGroup.DELETE("/me/skills/:skillId", employeeHandler.DeleteSkill)
+			employeeGroup.POST("/me/certifications", employeeHandler.AddCertification)
+			employeeGroup.DELETE("/me/certifications/:certId", employeeHandler.DeleteCertification)
 		}
 
 

@@ -3,6 +3,7 @@ import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'package:shiftley_frontend/features/employee/presentation/widgets/gig_details_sheet.dart';
+import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
 
 class ExploreGigsView extends StatefulWidget {
   const ExploreGigsView({super.key});
@@ -18,10 +19,14 @@ class _ExploreGigsViewState extends State<ExploreGigsView> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Search and Filters
+    return SRefreshable(
+      onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+      child: Padding(
+        padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search and Filters
         STextField(
           hint: 'Search gigs, locations, or roles...',
           controller: _searchController,
@@ -51,61 +56,57 @@ class _ExploreGigsViewState extends State<ExploreGigsView> {
         ),
         const SizedBox(height: ShiftleyTokens.spaceM),
 
-        Expanded(
-          child: ListView(
-            children: [
-              _buildGigCard(
-                context,
-                'Kitchen Assistant',
-                'ITC Kohenur, HITEC City',
-                'Today, 06:00 PM - 11:00 PM',
-                '₹600',
-                'Immediate requirement. Must have basic kitchen skills.',
-                '1.2 km',
-                '4.8',
-                'ITC Limited',
-                'Hospitality',
-              ),
-              _buildGigCard(
-                context,
-                'Front Desk Support',
-                'Park Hyatt, Banjara Hills',
-                'May 07, 10:00 AM - 06:00 PM',
-                '₹900',
-                'Professional attire required. Excellent communication.',
-                '3.5 km',
-                '4.9',
-                'Hyatt Hotels',
-                'Hospitality',
-              ),
-              _buildGigCard(
-                context,
-                'Event Staff',
-                'Novotel, Airport',
-                'May 08, 04:00 PM - 12:00 AM',
-                '₹1,200',
-                'Helping with corporate event setup and guest handling.',
-                '12.0 km',
-                '4.7',
-                'Accor Hotels',
-                'Events',
-              ),
-              _buildGigCard(
-                context,
-                'Delivery Partner',
-                'Local Hub, Jubilee Hills',
-                'Ongoing • Flexible',
-                '₹400/shift',
-                'Bicycle or Two-wheeler required. Local area knowledge.',
-                '0.8 km',
-                '4.5',
-                'QuickShip',
-                'Logistics',
-              ),
-            ],
-          ),
+        _buildGigCard(
+          context,
+          'Kitchen Assistant',
+          'ITC Kohenur, HITEC City',
+          'Today, 06:00 PM - 11:00 PM',
+          '₹600',
+          'Immediate requirement. Must have basic kitchen skills.',
+          '1.2 km',
+          '4.8',
+          'ITC Limited',
+          'Hospitality',
         ),
-      ],
+        _buildGigCard(
+          context,
+          'Front Desk Support',
+          'Park Hyatt, Banjara Hills',
+          'May 07, 10:00 AM - 06:00 PM',
+          '₹900',
+          'Professional attire required. Excellent communication.',
+          '3.5 km',
+          '4.9',
+          'Hyatt Hotels',
+          'Hospitality',
+        ),
+        _buildGigCard(
+          context,
+          'Event Staff',
+          'Novotel, Airport',
+          'May 08, 04:00 PM - 12:00 AM',
+          '₹1,200',
+          'Helping with corporate event setup and guest handling.',
+          '12.0 km',
+          '4.7',
+          'Accor Hotels',
+          'Events',
+        ),
+        _buildGigCard(
+          context,
+          'Delivery Partner',
+          'Local Hub, Jubilee Hills',
+          'Ongoing • Flexible',
+          '₹400/shift',
+          'Bicycle or Two-wheeler required. Local area knowledge.',
+          '0.8 km',
+          '4.5',
+          'QuickShip',
+          'Logistics',
+        ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -127,3 +127,17 @@ type EmployerProfile struct {
 func (EmployerProfile) TableName() string {
 	return "shiftley.employer_profiles"
 }
+
+type Certification struct {
+	ID               uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID           uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	Name             string    `json:"name"`
+	IssuingAuthority string    `json:"issuing_authority"`
+	Year             string    `json:"year"`
+	DocumentURL      string    `json:"document_url"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
+func (Certification) TableName() string {
+	return "shiftley.certifications"
+}
