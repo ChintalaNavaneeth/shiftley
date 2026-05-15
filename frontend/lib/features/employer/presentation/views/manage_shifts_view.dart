@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pinput/pinput.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
@@ -858,11 +859,11 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
             ),
             title: const Text('Cancel GIG?', style: ShiftleyTokens.h2),
             content: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.9,
+              width: MediaQuery.of(context).size.width * 0.99,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
                       'Cancellation Fees include a fixed base fine plus a time-based penalty:', 
@@ -895,17 +896,29 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                     if (otpSent) ...[
                       const SizedBox(height: ShiftleyTokens.spaceL),
                       const Text('Enter OTP sent to your registered mobile:', style: ShiftleyTokens.caption),
-                      const SizedBox(height: 8),
-                      TextField(
-                        onChanged: (val) => setDialogState(() => otpCode = val),
-                        decoration: const InputDecoration(
-                          hintText: 'X X X X X X',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const SizedBox(height: ShiftleyTokens.spaceM),
+                      Center(
+                        child: Pinput(
+                          length: 6,
+                          onChanged: (val) => setDialogState(() => otpCode = val),
+                          autofocus: true,
+                          defaultPinTheme: PinTheme(
+                            width: 40,
+                            height: 48,
+                            textStyle: ShiftleyTokens.h2.copyWith(fontWeight: FontWeight.bold),
+                            decoration: const BoxDecoration(
+                              border: Border(bottom: BorderSide(color: ShiftleyTokens.inkBlack, width: 2)),
+                            ),
+                          ),
+                          focusedPinTheme: PinTheme(
+                            width: 40,
+                            height: 48,
+                            textStyle: ShiftleyTokens.h2.copyWith(fontWeight: FontWeight.bold),
+                            decoration: const BoxDecoration(
+                              border: Border(bottom: BorderSide(color: ShiftleyTokens.primaryRed, width: 3)),
+                            ),
+                          ),
                         ),
-                        keyboardType: TextInputType.number,
-                        autofocus: true,
-                        maxLength: 6,
                       ),
                     ],
                   ],

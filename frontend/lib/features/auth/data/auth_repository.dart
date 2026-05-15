@@ -111,7 +111,9 @@ class AuthRepository {
     } catch (e) {
       debugPrint('AuthRepository: getMe CRITICAL ERROR: $e');
       if (e is DioException) {
-        debugPrint('Dio Error Detail: ${e.response?.data}');
+        debugPrint('Dio Error Detail: ${e.response?.statusCode} - ${e.response?.data}');
+        debugPrint('Request Path: ${e.requestOptions.path}');
+        debugPrint('Request Headers: ${e.requestOptions.headers}');
       }
       rethrow;
     }

@@ -13,11 +13,17 @@ class Auth extends _$Auth {
   @override
   FutureOr<AuthData?> build() async {
     final storage = ref.read(tokenStorageProvider);
-    final token = await storage.getAccessToken();
-    if (token != null) {
-      // For now, we assume we are authenticated if we have a token
-      // In a real app, we might fetch the user profile here
-      return null; // Placeholder
+    final accessToken = await storage.getAccessToken();
+    final refreshToken = await storage.getRefreshToken();
+    
+    if (accessToken != null && refreshToken != null) {
+      // Reconstruct AuthData from storage
+      // We don't have the user object here yet, so we'll fetch it next
+      return AuthData(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        isNewUser: false,
+      );
     }
     return null;
   }
