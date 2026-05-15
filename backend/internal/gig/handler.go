@@ -13,6 +13,7 @@ import (
 	"shiftley/pkg/notify"
 	"shiftley/pkg/utils"
 	"encoding/json"
+	"math/rand"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -342,9 +343,10 @@ func (h *Handler) RequestCancelOTP(c *gin.Context) {
 		return
 	}
 
-	code, err := h.auth.SendOTP(c.Request.Context(), user.PhoneNumber, "PHONE", string(auth.RoleEmployer))
-	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to send OTP", nil)
+	code := fmt.Sprintf("%06d", rand.Intn(1000000))
+	key := fmt.Sprintf("otp:cancel:gig:%s", gigID)
+	if err := h.rdb.Set(c.Request.Context(), key, code, 10*time.Minute).Err(); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Failed to store OTP", nil)
 		return
 	}
 
@@ -376,11 +378,13 @@ func (h *Handler) VerifyCancelAndConfirm(c *gin.Context) {
 		return
 	}
 
-	_, _, _, _, err := h.auth.VerifyOTP(c.Request.Context(), user.PhoneNumber, "PHONE", req.Code, "")
-	if err != nil {
-		utils.RespondError(c, http.StatusUnauthorized, "INVALID_OTP", "Invalid or expired OTP", nil)
+	key := fmt.Sprintf("otp:cancel:gig:%s", gigID)
+	storedCode, err := h.rdb.Get(c.Request.Context(), key).Result()
+	if err != nil || storedCode != req.Code {
+		utils.RespondError(c, http.StatusBadRequest, "INVALID_OTP", "Invalid or expired OTP", nil)
 		return
 	}
+	h.rdb.Del(c.Request.Context(), key)
 
 	h.performCancellation(c, gigID, req.Reason)
 }

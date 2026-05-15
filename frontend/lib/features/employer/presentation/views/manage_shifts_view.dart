@@ -120,7 +120,19 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
 
     return allGigsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(child: Text('Error: $err')),
+      error: (err, _) => RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(employerGigsProvider(null));
+          return ref.read(employerGigsProvider(null).future).then((_) => null);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: Center(child: Text('Error: $err')),
+          ),
+        ),
+      ),
       data: (allGigs) {
         final activeGigs = allGigs.where((g) => ['DRAFT', 'OPEN', 'FILLED', 'RUNNING'].contains(g.status)).toList();
         final historyGigs = allGigs.where((g) => ['COMPLETED', 'CANCELLED'].contains(g.status)).toList();
@@ -161,24 +173,46 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
   }
 
   Widget _buildLocalGigList(List<Gig> gigs, String label) {
+    Future<void> onRefresh() async {
+      ref.invalidate(employerGigsProvider(null));
+      // Optionally also invalidate dashboard if needed
+      ref.invalidate(employerDashboardProvider);
+      return ref.read(employerGigsProvider(null).future).then((_) => null);
+    }
+
     if (gigs.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.work_off_outlined, size: 64, color: ShiftleyTokens.mutedText.withValues(alpha: 0.2)),
-            const SizedBox(height: ShiftleyTokens.spaceM),
-            Text('No $label Gigs Found', style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.mutedText)),
-          ],
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.work_off_outlined, size: 64, color: ShiftleyTokens.mutedText.withValues(alpha: 0.2)),
+                    const SizedBox(height: ShiftleyTokens.spaceM),
+                    Text('No $label Gigs Found', style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.mutedText)),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       );
     }
-    return ListView.builder(
-      itemCount: gigs.length,
-      padding: const EdgeInsets.only(bottom: 80),
-      itemBuilder: (context, index) {
-        return _buildGigCard(gigs[index], label.toUpperCase());
-      },
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        itemCount: gigs.length,
+        padding: const EdgeInsets.only(bottom: 80, top: 16),
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemBuilder: (context, index) {
+          return _buildGigCard(gigs[index], label.toUpperCase());
+        },
+      ),
     );
   }
 
@@ -820,6 +854,8 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
       
       String otpCode = '';
       bool otpSent = false;
+      bool isSendingOtp = false;
+      bool isVerifyingOtp = false;
       
       double penaltyPercent = 0;
       if (config != null) {
@@ -926,25 +962,36 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('KEEP GIG')),
+              TextButton(
+                onPressed: (isSendingOtp || isVerifyingOtp) ? null : () => Navigator.pop(context), 
+                child: const Text('KEEP GIG')
+              ),
               if (!otpSent)
                 ShiftleyButton(
                   label: 'Send OTP', 
-                    onPressed: () async {
-                      try {
-                         await ref.read(employerRepositoryProvider).requestCancelOTP(gig.id);
-                         setDialogState(() => otpSent = true);
-                      } catch (e) {
-                         if (!context.mounted) return;
-                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send OTP: $e')));
-                      }
-                    }, 
+                  isLoading: isSendingOtp,
+                  onPressed: isSendingOtp ? null : () async {
+                    setDialogState(() => isSendingOtp = true);
+                    try {
+                        await ref.read(employerRepositoryProvider).requestCancelOTP(gig.id);
+                        setDialogState(() {
+                          otpSent = true;
+                          isSendingOtp = false;
+                        });
+                    } catch (e) {
+                        setDialogState(() => isSendingOtp = false);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send OTP: $e')));
+                    }
+                  }, 
                   size: ShiftleyButtonSize.small,
                 )
               else
                 ShiftleyButton(
                   label: 'Verify & Confirm', 
-                  onPressed: () async {
+                  isLoading: isVerifyingOtp,
+                  onPressed: (isVerifyingOtp || otpCode.length < 6) ? null : () async {
+                    setDialogState(() => isVerifyingOtp = true);
                     try {
                       final repository = ref.read(employerRepositoryProvider);
                       await repository.verifyCancelAndConfirm(gig.id, otpCode, 'User Requested via App');
@@ -960,6 +1007,7 @@ class _ManageGigsViewState extends ConsumerState<ManageGigsView> {
                       });
                       Navigator.pop(context);
                     } catch (e) {
+                       setDialogState(() => isVerifyingOtp = false);
                        if (!context.mounted) return;
                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
                     }

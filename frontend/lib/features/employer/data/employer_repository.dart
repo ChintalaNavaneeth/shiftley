@@ -73,7 +73,13 @@ class EmployerRepository {
   }
 
   Future<void> requestCancelOTP(String gigId) async {
-    await _apiClient.dio.post('/gigs/$gigId/cancel/otp');
+    final token = await _tokenStorage.getAccessToken();
+    await _apiClient.dio.post(
+      '/gigs/$gigId/cancel/otp',
+      options: Options(
+        headers: token != null ? {'Authorization': 'Bearer $token'} : null,
+      ),
+    );
   }
 
   Future<void> verifyCancelAndConfirm(String gigId, String code, String reason) async {
