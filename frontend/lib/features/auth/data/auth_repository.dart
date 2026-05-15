@@ -78,20 +78,7 @@ class AuthRepository {
 
   Future<Map<String, dynamic>> getMe() async {
     try {
-      const profileKey = 'cached_user_profile';
-      
-      // 1. Try cache
-      final cachedJson = _prefs.getString(profileKey);
-      if (cachedJson != null) {
-        try {
-          final data = jsonDecode(cachedJson) as Map<String, dynamic>;
-          if (data.containsKey('full_name')) return data;
-        } catch (e) {
-          debugPrint('AuthRepository: Failed to decode cache: $e');
-        }
-      }
-
-      // 2. Fetch API
+      // 1. Fetch API (Disabled cache to ensure fresh data for skills/profile)
       debugPrint('AuthRepository: Fetching profile from /auth/me');
       final response = await _dio.get('auth/me');
       
@@ -105,15 +92,11 @@ class AuthRepository {
         throw Exception('Invalid data structure from server');
       }
       
-      // 3. Store cache
-      await _prefs.setString(profileKey, jsonEncode(data));
       return data;
     } catch (e) {
       debugPrint('AuthRepository: getMe CRITICAL ERROR: $e');
       if (e is DioException) {
         debugPrint('Dio Error Detail: ${e.response?.statusCode} - ${e.response?.data}');
-        debugPrint('Request Path: ${e.requestOptions.path}');
-        debugPrint('Request Headers: ${e.requestOptions.headers}');
       }
       rethrow;
     }

@@ -280,7 +280,8 @@ func (h *Handler) GetMe(c *gin.Context) {
 		}
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{
+	// Prepare response
+	resp := gin.H{
 		"id":                user.ID,
 		"full_name":         user.FullName,
 		"email":             user.Email,
@@ -288,6 +289,33 @@ func (h *Handler) GetMe(c *gin.Context) {
 		"role":              user.Role,
 		"profile_photo_url": photoURL,
 		"kyc_status":        user.IsVerified,
-	}, nil)
+	}
+
+	// Add worker specific fields if role is WORKER
+	if user.Role == RoleWorker {
+		var wp WorkerProfile
+		if err := h.db.First(&wp, "user_id = ?", user.ID).Error; err == nil {
+			resp["reliability_score"] = wp.ReliabilityScore
+			
+			// Resolve skill names from IDs
+			if len(wp.Skills) > 0 {
+				var skillNames []string
+				err := h.db.Table("shiftley.skills").
+					Where("id::text IN ?", []string(wp.Skills)).
+					Pluck("name", &skillNames).Error
+				if err != nil {
+					fmt.Printf("[DEBUG] Skill resolution error: %v\n", err)
+				}
+				resp["skills"] = skillNames
+				fmt.Printf("[DEBUG] Resolved skills for user %s: %v\n", user.ID, skillNames)
+			} else {
+				resp["skills"] = []string{}
+			}
+		} else {
+			fmt.Printf("[DEBUG] Worker profile not found for user %s: %v\n", user.ID, err)
+		}
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, resp, nil)
 }
 

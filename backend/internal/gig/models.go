@@ -114,6 +114,7 @@ const (
 type GigApplication struct {
 	ID         uuid.UUID         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	GigID      uuid.UUID         `gorm:"type:uuid;not null;index" json:"gig_id"`
+	Gig        Gig               `gorm:"foreignKey:GigID" json:"gig,omitempty"`
 	EmployeeID uuid.UUID         `gorm:"type:uuid;not null;index" json:"employee_id"`
 	Status     ApplicationStatus `gorm:"type:varchar(20);default:'APPLIED'" json:"status"`
 	Notes      string            `json:"notes"`

@@ -3,6 +3,7 @@ package employee
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"shiftley/internal/auth"
 	"shiftley/internal/gig"
@@ -39,13 +40,50 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	// Mock rating/reliability for now
+	// 1. Total Gigs (Approved or Completed)
+	var totalGigs int64
+	h.db.Model(&gig.GigApplication{}).Where("employee_id = ? AND status IN ?", userID, []string{"APPROVED", "COMPLETED"}).Count(&totalGigs)
+
+	// 2. No Shows
+	var noShows int64
+	h.db.Model(&gig.GigApplication{}).Where("employee_id = ? AND status = ?", userID, "NO_SHOW").Count(&noShows)
+
+	// 3. Earnings (Sum of wage_per_worker for COMPLETED gigs)
+	var totalEarned int64
+	h.db.Table("shiftley.gig_applications").
+		Select("COALESCE(SUM(gigs.wage_per_worker), 0)").
+		Joins("JOIN shiftley.gigs ON gigs.id = gig_applications.gig_id").
+		Where("gig_applications.employee_id = ? AND gig_applications.status = ?", userID, "COMPLETED").
+		Row().Scan(&totalEarned)
+
+	// 4. This Month Earnings
+	var thisMonthEarned int64
+	firstOfMonth := time.Now().AddDate(0, 0, -time.Now().Day()+1)
+	h.db.Table("shiftley.gig_applications").
+		Select("COALESCE(SUM(gigs.wage_per_worker), 0)").
+		Joins("JOIN shiftley.gigs ON gigs.id = gig_applications.gig_id").
+		Where("gig_applications.employee_id = ? AND gig_applications.status = ? AND gig_applications.updated_at >= ?", userID, "COMPLETED", firstOfMonth).
+		Row().Scan(&thisMonthEarned)
+
+	// 5. Next Shift
+	var nextApp gig.GigApplication
+	h.db.Preload("Gig").
+		Joins("JOIN shiftley.gigs ON gigs.id = gig_applications.gig_id").
+		Where("gig_applications.employee_id = ? AND gig_applications.status = ? AND gigs.start_time > ?", userID, "APPROVED", time.Now()).
+		Order("gigs.start_time ASC").
+		First(&nextApp)
+
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
-		"employee_id":        user.ID,
-		"full_name":          user.FullName,
-		"overall_rating":     4.8,
-		"reliability_status": "GOOD",
-		"active_fine_paise":  user.UnpaidFinePaise,
+		"employee_id":             user.ID,
+		"full_name":               user.FullName,
+		"overall_rating":          4.8, // Mock for now until reviews are integrated
+		"reliability_status":      "GOOD",
+		"active_fine_paise":       user.UnpaidFinePaise,
+		"total_gigs":              totalGigs,
+		"total_earned_paise":      totalEarned,
+		"this_month_earned_paise": thisMonthEarned,
+		"no_shows":                noShows,
+		"next_shift":              nextApp.Gig,
 	}, nil)
 }
 

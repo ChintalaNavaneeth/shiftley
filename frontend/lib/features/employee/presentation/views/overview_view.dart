@@ -1,43 +1,74 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
+import 'package:shiftley_frontend/features/employee/data/employee_repository.dart';
+import 'package:shiftley_frontend/features/employee/domain/models/employee_models.dart';
+import 'package:shiftley_frontend/shared/domain/models/gig_models.dart';
 
-class OverviewView extends StatelessWidget {
+class OverviewView extends ConsumerWidget {
   const OverviewView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Next Shift Section
-          const Text('Next Shift', style: ShiftleyTokens.h2),
-          const SizedBox(height: ShiftleyTokens.spaceM),
-          _buildNextShiftCard(
-            context,
-            'Housekeeping Professional',
-            'Taj Banjara, Hyderabad',
-            'Tomorrow, 09:00 AM - 05:00 PM',
-            '₹800',
-            'General cleaning of lobby area, banquet halls, and guest corridors. Ensure high standards of hygiene and presentation.',
-            'Mr. Rajesh Gupta',
-            '+91 98765 43210',
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dashboardAsync = ref.watch(employeeDashboardProvider);
+    final formatter = NumberFormat('#,###');
 
-          // Stats Table Section
-          const Text('Performance Stats', style: ShiftleyTokens.h2),
+    return RefreshIndicator(
+      onRefresh: () => ref.refresh(employeeDashboardProvider.future),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: dashboardAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error: $err')),
+          data: (data) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Next Shift Section
+              const Text('Next Shift', style: ShiftleyTokens.h2),
+              const SizedBox(height: ShiftleyTokens.spaceM),
+              if (data.nextShift != null)
+                _buildNextShiftCard(context, data.nextShift!)
+              else
+                _buildEmptyShiftCard(),
+              const SizedBox(height: ShiftleyTokens.spaceXL),
+
+              // Stats Table Section
+              const Text('Performance Stats', style: ShiftleyTokens.h2),
+              const SizedBox(height: ShiftleyTokens.spaceM),
+              _buildStatsTable(data, formatter),
+              const SizedBox(height: ShiftleyTokens.spaceXXL),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyShiftCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(ShiftleyTokens.spaceXL),
+      decoration: BoxDecoration(
+        color: ShiftleyTokens.paperWhite,
+        border: ShiftleyTokens.primaryBorder,
+        borderRadius: BorderRadius.circular(ShiftleyTokens.borderRadiusVal),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.calendar_today_outlined, size: 48, color: ShiftleyTokens.mutedText),
           const SizedBox(height: ShiftleyTokens.spaceM),
-          _buildStatsTable(),
-          const SizedBox(height: ShiftleyTokens.spaceXXL),
+          Text('No upcoming shifts', style: ShiftleyTokens.bodyLarge.copyWith(color: ShiftleyTokens.mutedText)),
+          const SizedBox(height: ShiftleyTokens.spaceS),
+          const Text('Explore and apply for gigs to get started!', style: ShiftleyTokens.caption, textAlign: TextAlign.center),
         ],
       ),
     );
   }
 
-  Widget _buildStatsTable() {
+  Widget _buildStatsTable(EmployeeDashboardData data, NumberFormat formatter) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -47,11 +78,20 @@ class OverviewView extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildTablePair('Total Gigs', '42', 'Total Earned', '₹12,450'),
+          _buildTablePair(
+            'Total Gigs', '${data.totalGigs}', 
+            'Total Earned', '₹${formatter.format(data.totalEarnedPaise / 100)}'
+          ),
           const Divider(height: 1, color: ShiftleyTokens.inkBlack),
-          _buildTablePair('This Month', '₹3,200', 'No Shows', '0'),
+          _buildTablePair(
+            'This Month', '₹${formatter.format(data.thisMonthEarnedPaise / 100)}', 
+            'No Shows', '${data.noShows}'
+          ),
           const Divider(height: 1, color: ShiftleyTokens.inkBlack),
-          _buildTablePair('Fines', '₹0', 'Avg Rating', '4.9 ★'),
+          _buildTablePair(
+            'Fines', '₹${formatter.format(data.activeFinePaise / 100)}', 
+            'Avg Rating', '${data.overallRating} ★'
+          ),
         ],
       ),
     );
@@ -81,16 +121,10 @@ class OverviewView extends StatelessWidget {
     );
   }
 
-  Widget _buildNextShiftCard(
-    BuildContext context, 
-    String title, 
-    String location, 
-    String time, 
-    String pay,
-    String description,
-    String employerName,
-    String contactNumber,
-  ) {
+  Widget _buildNextShiftCard(BuildContext context, Gig gig) {
+    final timeFormatter = DateFormat('MMM dd, hh:mm a');
+    final payFormatter = NumberFormat('#,###');
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
@@ -105,8 +139,8 @@ class OverviewView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: ShiftleyTokens.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
-              Text(pay, style: ShiftleyTokens.h2.copyWith(color: Colors.green)),
+              Expanded(child: Text(gig.title, style: ShiftleyTokens.bodyLarge.copyWith(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+              Text('₹${payFormatter.format(gig.wagePerWorker / 100)}', style: ShiftleyTokens.h2.copyWith(color: Colors.green)),
             ],
           ),
           const SizedBox(height: ShiftleyTokens.spaceS),
@@ -114,7 +148,7 @@ class OverviewView extends StatelessWidget {
             children: [
               const Icon(Icons.location_on_outlined, size: 16, color: ShiftleyTokens.mutedText),
               const SizedBox(width: 4),
-              Text(location, style: ShiftleyTokens.caption),
+              Expanded(child: Text(gig.address, style: ShiftleyTokens.caption, overflow: TextOverflow.ellipsis)),
             ],
           ),
           const SizedBox(height: 4),
@@ -122,44 +156,18 @@ class OverviewView extends StatelessWidget {
             children: [
               const Icon(Icons.access_time, size: 16, color: ShiftleyTokens.mutedText),
               const SizedBox(width: 4),
-              Text(time, style: ShiftleyTokens.caption),
+              Text('${timeFormatter.format(gig.startTime)} - ${DateFormat('hh:mm a').format(gig.endTime)}', style: ShiftleyTokens.caption),
             ],
           ),
           const Divider(height: ShiftleyTokens.spaceXL, color: ShiftleyTokens.inkBlack),
           
           const Text('JOB DESCRIPTION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.primaryRed)),
           const SizedBox(height: 4),
-          Text(description, style: ShiftleyTokens.bodyMedium),
-          const SizedBox(height: ShiftleyTokens.spaceL),
-
-          const Text('EMPLOYER CONTACT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ShiftleyTokens.primaryRed)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(color: ShiftleyTokens.secondaryCyan, shape: BoxShape.circle),
-                child: const Icon(Icons.person, size: 16, color: ShiftleyTokens.inkBlack),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(employerName, style: ShiftleyTokens.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-                  Text(contactNumber, style: ShiftleyTokens.caption),
-                ],
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.phone_in_talk, color: Colors.green),
-                onPressed: () {},
-              ),
-            ],
-          ),
+          Text(gig.description, style: ShiftleyTokens.bodyMedium, maxLines: 3, overflow: TextOverflow.ellipsis),
           const SizedBox(height: ShiftleyTokens.spaceM),
           ShiftleyButton(
             label: 'Check-In Details',
-            onPressed: () => _showQrDialog(context),
+            onPressed: () => _showQrDialog(context, gig),
             isFullWidth: true,
           ),
         ],
@@ -167,7 +175,7 @@ class OverviewView extends StatelessWidget {
     );
   }
 
-  void _showQrDialog(BuildContext context) {
+  void _showQrDialog(BuildContext context, Gig gig) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -197,7 +205,7 @@ class OverviewView extends StatelessWidget {
                     width: 250,
                     height: 250,
                     child: QrImageView(
-                      data: 'SHIFT-EMP-12345-RAHUL',
+                      data: 'shiftley://scan?gig=${gig.id}&action=CLOCK_IN',
                       version: QrVersions.auto,
                       backgroundColor: Colors.white,
                     ),
@@ -217,3 +225,4 @@ class OverviewView extends StatelessWidget {
     );
   }
 }
+

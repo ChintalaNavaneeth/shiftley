@@ -1,68 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shiftley_frontend/core/network/api_client.dart';
+import 'package:shiftley_frontend/features/auth/presentation/providers/profile_provider.dart';
 
-
-class ProfileView extends StatelessWidget {
+class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Profile Header
-          Row(
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: ShiftleyTokens.secondaryCyan,
-                  border: ShiftleyTokens.primaryBorder,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.person, size: 40, color: ShiftleyTokens.inkBlack),
-              ),
-              const SizedBox(width: ShiftleyTokens.spaceM),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Rahul Kumar', style: ShiftleyTokens.h1),
-                    Text('Professional Member since 2024', style: ShiftleyTokens.caption),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        border: Border.all(color: Colors.green, width: 1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified, size: 12, color: Colors.green),
-                          SizedBox(width: 4),
-                          Text('KYC VERIFIED', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+  String _resolveUrl(String? url) {
+    if (url == null || url.isEmpty) return '';
+    if (url.startsWith('http')) return url;
+    // ApiClient.baseUrl is 'http://.../api/v1/'
+    final base = ApiClient.baseUrl.replaceAll('/api/v1/', '');
+    return '$base$url';
+  }
 
-          // Basic Info
-          _buildSectionHeader('Basic Information'),
-          _buildInfoRow('Phone', '+91 98765 43210'),
-          _buildInfoRow('Email', 'rahul.k@example.com'),
-          _buildInfoRow('Location', 'Jubilee Hills, Hyderabad'),
-          const SizedBox(height: ShiftleyTokens.spaceXL),
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(userProfileProvider);
+
+    return profileAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => Center(child: Text('Error: $err')),
+      data: (profile) => SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Profile Header
+            Row(
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: ShiftleyTokens.secondaryCyan,
+                    border: ShiftleyTokens.primaryBorder,
+                    shape: BoxShape.circle,
+                    image: profile['profile_photo_url'] != null
+                        ? DecorationImage(
+                            image: NetworkImage(_resolveUrl(profile['profile_photo_url'])),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: profile['profile_photo_url'] == null
+                      ? const Icon(Icons.person, size: 40, color: ShiftleyTokens.inkBlack)
+                      : null,
+                ),
+                const SizedBox(width: ShiftleyTokens.spaceM),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(profile['full_name'] ?? 'Professional', style: ShiftleyTokens.h1),
+                      Text('Professional Member', style: ShiftleyTokens.caption),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          border: Border.all(color: Colors.green, width: 1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.verified, size: 12, color: Colors.green),
+                            SizedBox(width: 4),
+                            Text('KYC VERIFIED', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
+
+            // Basic Info
+            _buildSectionHeader('Basic Information'),
+            _buildInfoRow('Phone', profile['phone_number'] ?? 'Not provided'),
+            _buildInfoRow('Email', profile['email'] ?? 'Not provided'),
+            _buildInfoRow('Location', profile['location'] ?? 'Hyderabad, India'),
+            const SizedBox(height: ShiftleyTokens.spaceXL),
 
           // Skills
           _buildSectionHeader(
@@ -73,12 +96,8 @@ class ProfileView extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [
-              _buildSkillChip('Housekeeping'),
-              _buildSkillChip('Cooking (North Indian)'),
-              _buildSkillChip('Driving (LMW)'),
-              _buildSkillChip('Waiter Service'),
-              _buildSkillChip('Cleaning'),
+            children: (profile['skills'] as List<dynamic>?)?.map((skill) => _buildSkillChip(skill.toString())).toList() ?? [
+              Text('No skills listed', style: ShiftleyTokens.caption),
             ],
           ),
           const SizedBox(height: ShiftleyTokens.spaceXL),
@@ -89,15 +108,18 @@ class ProfileView extends StatelessWidget {
             actionLabel: 'Add Certification',
             onActionTap: () => _showAddCertificationDialog(context),
           ),
-          _buildCertificationItem('Food Safety Level 1', 'FSSAI Certified • 2023'),
-          _buildCertificationItem('Professional Driving', 'Regional Transport Office • 2022'),
+          const SizedBox(height: ShiftleyTokens.spaceM),
+          Center(
+            child: Text(
+              'No certifications added yet.',
+              style: ShiftleyTokens.caption.copyWith(fontStyle: FontStyle.italic),
+            ),
+          ),
           const SizedBox(height: ShiftleyTokens.spaceXL),
 
           // Bank Details
           _buildSectionHeader(
             'Bank & Payment Details',
-            actionLabel: 'Edit Details',
-            onActionTap: () => _showEditBankDetailsDialog(context),
           ),
           Container(
             padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
@@ -108,12 +130,15 @@ class ProfileView extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildPaymentInfoRow('Account Holder', 'Rahul Kumar'),
-                _buildPaymentInfoRow('Bank Name', 'HDFC Bank'),
-                _buildPaymentInfoRow('Account Number', '**** **** 5678'),
-                _buildPaymentInfoRow('IFSC Code', 'HDFC0001234'),
-                const Divider(color: ShiftleyTokens.inkBlack, thickness: 1),
-                _buildPaymentInfoRow('UPI ID', 'rahulkumar@okaxis'),
+                _buildPaymentInfoRow('Account Holder', profile['full_name'] ?? 'Not Linked'),
+                _buildPaymentInfoRow('Bank Name', 'Verification Required'),
+                _buildPaymentInfoRow('Account Number', '**** **** ****'),
+                const SizedBox(height: ShiftleyTokens.spaceM),
+                ShiftleyButton(
+                  label: 'FETCH BANK DETAILS',
+                  onPressed: () => _showRazorpayMock(context),
+                  isFullWidth: true,
+                ),
                 const SizedBox(height: ShiftleyTokens.spaceS),
                 Row(
                   children: [
@@ -121,7 +146,7 @@ class ProfileView extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'All shift payouts will be automatically deposited into this account upon completion.',
+                        'We will perform a ₹1 penny-drop to verify your account.',
                         style: ShiftleyTokens.caption.copyWith(color: ShiftleyTokens.primaryRed, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -134,10 +159,35 @@ class ProfileView extends StatelessWidget {
 
           // Documents
           _buildSectionHeader('Verified Documents'),
-          _buildDocumentItem('Aadhaar Card', 'Verified on Jan 12, 2024'),
-          _buildDocumentItem('Driving License', 'Verified on Jan 15, 2024'),
+          _buildDocumentItem('KYC Verification', profile['kyc_status'] == true ? 'Completed' : 'Pending'),
+          _buildDocumentItem('Profile Details', 'Verified'),
           const SizedBox(height: ShiftleyTokens.spaceXXL),
         ],
+      ),
+    ),
+  );
+}
+
+  void _showRazorpayMock(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _RazorpayMockModal(
+        onSuccess: (paymentId) {
+          Navigator.pop(context);
+          _showSuccessScreen(context);
+        },
+      ),
+    );
+  }
+
+  void _showSuccessScreen(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _PaymentSuccessScreen(
+          onDone: () => Navigator.pop(context),
+        ),
       ),
     );
   }
@@ -424,6 +474,161 @@ class ProfileView extends StatelessWidget {
           ),
           const Icon(Icons.edit_outlined, size: 16, color: ShiftleyTokens.mutedText),
         ],
+      ),
+    );
+  }
+}
+
+class _RazorpayMockModal extends StatelessWidget {
+  final Function(String) onSuccess;
+
+  const _RazorpayMockModal({required this.onSuccess});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            color: const Color(0xFF02042B),
+            child: Row(
+              children: [
+                const Icon(Icons.payment, color: Colors.blue, size: 32),
+                const SizedBox(width: 16),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'RAZORPAY',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    Text(
+                      'Bank Account Verification',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                const Text(
+                  'Penny-Drop Verification',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'We will deduct ₹1 to verify your bank account details. This amount will be automatically refunded within 24 hours.',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Preferred Payment Methods',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                _buildMethod(Icons.qr_code, 'UPI - Google Pay, PhonePe, etc.'),
+                _buildMethod(
+                  Icons.credit_card,
+                  'Card - Visa, Mastercard, RuPay',
+                ),
+                _buildMethod(Icons.account_balance, 'Netbanking'),
+                _buildMethod(Icons.wallet, 'Wallet'),
+                const SizedBox(height: 32),
+                const Center(
+                  child: Text(
+                    'TEST MODE',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: ShiftleyButton(
+              label: 'PAY ₹1 & VERIFY',
+              onPressed: () => onSuccess(
+                'pay_mock_${DateTime.now().millisecondsSinceEpoch}',
+              ),
+              isFullWidth: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMethod(IconData icon, String label) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.blueGrey),
+      title: Text(label, style: const TextStyle(fontSize: 14)),
+      trailing: const Icon(Icons.chevron_right, size: 16),
+      onTap: () {},
+    );
+  }
+}
+
+class _PaymentSuccessScreen extends StatelessWidget {
+  final VoidCallback onDone;
+
+  const _PaymentSuccessScreen({required this.onDone});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green, size: 100),
+              const SizedBox(height: 24),
+              const Text(
+                'Verification Started!',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'We have received your ₹1 payment. Your bank details are being verified and will be updated in your profile shortly. The verification amount will be refunded within 24 hours.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 48),
+              ShiftleyButton(
+                label: 'BACK TO PROFILE',
+                onPressed: onDone,
+                isFullWidth: true,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
