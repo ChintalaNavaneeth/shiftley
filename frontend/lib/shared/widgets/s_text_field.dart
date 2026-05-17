@@ -12,6 +12,8 @@ class STextField extends StatefulWidget {
   final bool readOnly;
   final VoidCallback? onTap;
   final String? Function(String?)? validator;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
 
   const STextField({
     super.key,
@@ -25,6 +27,8 @@ class STextField extends StatefulWidget {
     this.readOnly = false,
     this.onTap,
     this.validator,
+    this.onChanged,
+    this.onSubmitted,
   });
 
   @override
@@ -55,6 +59,8 @@ class _STextFieldState extends State<STextField> {
           readOnly: widget.readOnly,
           onTap: widget.onTap,
           validator: widget.validator,
+          onChanged: widget.onChanged,
+          onFieldSubmitted: widget.onSubmitted,
           style: ShiftleyTokens.bodyMedium,
           scrollPadding: const EdgeInsets.all(100), // Ensures field is visible above keyboard
           decoration: InputDecoration(

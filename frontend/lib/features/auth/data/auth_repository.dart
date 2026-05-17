@@ -68,7 +68,11 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
+      debugPrint('AuthRepository: Attempting API logout at auth/logout');
       await _dio.post('auth/logout', options: Options(extra: {'no-retry': true}));
+      debugPrint('AuthRepository: API logout successful');
+    } catch (e) {
+      debugPrint('AuthRepository: API logout failed (continuing to clear local state): $e');
     } finally {
       // Always clear local cache on logout regardless of API success
       await _prefs.clear(); 

@@ -1,114 +1,175 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/shared/widgets/s_text_field.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_button.dart';
 import 'package:shiftley_frontend/features/employee/presentation/widgets/gig_details_sheet.dart';
 import 'package:shiftley_frontend/shared/widgets/s_refreshable.dart';
+import 'package:shiftley_frontend/features/employee/data/employee_repository.dart';
+import 'package:shiftley_frontend/shared/domain/models/gig_models.dart';
+import 'package:geolocator/geolocator.dart';
 
-class ExploreGigsView extends StatefulWidget {
+class ExploreGigsView extends ConsumerStatefulWidget {
   const ExploreGigsView({super.key});
 
   @override
-  State<ExploreGigsView> createState() => _ExploreGigsViewState();
+  ConsumerState<ExploreGigsView> createState() => _ExploreGigsViewState();
 }
 
-class _ExploreGigsViewState extends State<ExploreGigsView> {
+class _ExploreGigsViewState extends ConsumerState<ExploreGigsView> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedRadius = 5;
   String _selectedSort = 'Distance: Near to Far';
 
   @override
+  void initState() {
+    super.initState();
+    // Initialize controller with current search query if any
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchController.text = ref.read(gigSearchQueryProvider);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final locationAsync = ref.watch(userLocationProvider);
+    final gigsAsync = ref.watch(exploreGigsProvider);
+    final selectedRadius = ref.watch(gigSearchRadiusProvider);
+
     return SRefreshable(
-      onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+      onRefresh: () async {
+        final _ = await ref.refresh(userLocationProvider.future);
+        return ref.refresh(exploreGigsProvider.future);
+      },
       child: Padding(
         padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Search and Filters
-        STextField(
-          hint: 'Search gigs, locations, or roles...',
-          controller: _searchController,
-          prefix: const Icon(Icons.search),
-        ),
-        const SizedBox(height: ShiftleyTokens.spaceM),
-        
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _buildFilterChip('5 km', _selectedRadius == 5, onTap: () => setState(() => _selectedRadius = 5)),
-              _buildFilterChip('10 km', _selectedRadius == 10, onTap: () => setState(() => _selectedRadius = 10)),
-              _buildFilterChip('25 km', _selectedRadius == 25, onTap: () => setState(() => _selectedRadius = 25)),
-              _buildFilterChip('50 km', _selectedRadius == 50, onTap: () => setState(() => _selectedRadius = 50)),
-            ],
-          ),
-        ),
-        const SizedBox(height: ShiftleyTokens.spaceL),
+            STextField(
+              hint: 'Search gigs, locations, or roles...',
+              controller: _searchController,
+              prefix: const Icon(Icons.search),
+              onSubmitted: (val) {
+                ref.read(gigSearchQueryProvider.notifier).state = val;
+              },
+              onChanged: (val) {
+                if (val.isEmpty) {
+                  ref.read(gigSearchQueryProvider.notifier).state = '';
+                }
+              },
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceM),
+            
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('5 km', selectedRadius == 5.0, onTap: () => ref.read(gigSearchRadiusProvider.notifier).state = 5.0),
+                  _buildFilterChip('10 km', selectedRadius == 10.0, onTap: () => ref.read(gigSearchRadiusProvider.notifier).state = 10.0),
+                  _buildFilterChip('25 km', selectedRadius == 25.0, onTap: () => ref.read(gigSearchRadiusProvider.notifier).state = 25.0),
+                  _buildFilterChip('50 km', selectedRadius == 50.0, onTap: () => ref.read(gigSearchRadiusProvider.notifier).state = 50.0),
+                ],
+              ),
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceL),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Gigs Near You', style: ShiftleyTokens.h2),
-            _buildSortDropdown(),
-          ],
-        ),
-        const SizedBox(height: ShiftleyTokens.spaceM),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Gigs Near You', style: ShiftleyTokens.h2),
+                _buildSortDropdown(),
+              ],
+            ),
+            const SizedBox(height: ShiftleyTokens.spaceM),
 
-        _buildGigCard(
-          context,
-          'Kitchen Assistant',
-          'ITC Kohenur, HITEC City',
-          'Today, 06:00 PM - 11:00 PM',
-          '₹600',
-          'Immediate requirement. Must have basic kitchen skills.',
-          '1.2 km',
-          '4.8',
-          'ITC Limited',
-          'Hospitality',
-        ),
-        _buildGigCard(
-          context,
-          'Front Desk Support',
-          'Park Hyatt, Banjara Hills',
-          'May 07, 10:00 AM - 06:00 PM',
-          '₹900',
-          'Professional attire required. Excellent communication.',
-          '3.5 km',
-          '4.9',
-          'Hyatt Hotels',
-          'Hospitality',
-        ),
-        _buildGigCard(
-          context,
-          'Event Staff',
-          'Novotel, Airport',
-          'May 08, 04:00 PM - 12:00 AM',
-          '₹1,200',
-          'Helping with corporate event setup and guest handling.',
-          '12.0 km',
-          '4.7',
-          'Accor Hotels',
-          'Events',
-        ),
-        _buildGigCard(
-          context,
-          'Delivery Partner',
-          'Local Hub, Jubilee Hills',
-          'Ongoing • Flexible',
-          '₹400/shift',
-          'Bicycle or Two-wheeler required. Local area knowledge.',
-          '0.8 km',
-          '4.5',
-          'QuickShip',
-          'Logistics',
-        ),
+            locationAsync.when(
+              data: (pos) {
+                if (pos == null) {
+                  return _buildLocationPrompt(ref);
+                }
+                
+                return gigsAsync.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.only(top: 40),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (err, _) => Padding(
+                    padding: const EdgeInsets.only(top: 40),
+                    child: Center(child: Text('Error: $err')),
+                  ),
+                  data: (gigs) {
+                    if (gigs.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 40),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(Icons.search_off, size: 48, color: ShiftleyTokens.mutedText),
+                              SizedBox(height: 16),
+                              Text('No gigs found in your current area.', style: ShiftleyTokens.bodyMedium),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: gigs.map((gig) => _buildGigCard(context, gig)).toList(),
+                    );
+                  },
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.only(top: 40),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (err, _) => _buildLocationPrompt(ref, error: 'Please enable location to find gigs'),
+            ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildLocationPrompt(WidgetRef ref, {String? error}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 60, left: 20, right: 20),
+      child: Center(
+        child: Column(
+          children: [
+            const Icon(Icons.location_off_rounded, size: 64, color: ShiftleyTokens.primaryRed),
+            const SizedBox(height: 24),
+            const Text(
+              'Location Required',
+              style: ShiftleyTokens.h2,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              error ?? 'To find gigs near you, please enable location services and allow access.',
+              style: ShiftleyTokens.bodyMedium.copyWith(color: ShiftleyTokens.mutedText),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            ShiftleyButton(
+              label: 'Grant Permission / Enable GPS',
+              onPressed: () async {
+                final enabled = await Geolocator.isLocationServiceEnabled();
+                if (!enabled) {
+                  await Geolocator.openLocationSettings();
+                } else {
+                  ref.refresh(userLocationProvider);
+                }
+              },
+              isFullWidth: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildSortDropdown() {
     final List<String> options = [
@@ -171,7 +232,20 @@ class _ExploreGigsViewState extends State<ExploreGigsView> {
     );
   }
 
-  Widget _buildGigCard(BuildContext context, String title, String location, String time, String pay, String description, String distance, String rating, String employer, String industry) {
+  Widget _buildGigCard(BuildContext context, Gig gig) {
+    final payFormatter = NumberFormat('#,###');
+    final dateFormatter = DateFormat('MMM dd, hh:mm a');
+    
+    const rating = '4.8'; // Mocking rating for now
+    final distance = gig.distanceMeters != null 
+        ? '${(gig.distanceMeters! / 1000).toStringAsFixed(1)} km' 
+        : '0.0 km';
+    
+    final employer = gig.businessName ?? 'Shiftley Partner';
+    final industry = gig.businessType ?? 'Services';
+
+    final timeString = "${dateFormatter.format(gig.startTime)} - ${DateFormat('hh:mm a').format(gig.endTime)}";
+
     return Container(
       margin: const EdgeInsets.only(bottom: ShiftleyTokens.spaceM),
       padding: const EdgeInsets.all(ShiftleyTokens.spaceM),
@@ -186,18 +260,18 @@ class _ExploreGigsViewState extends State<ExploreGigsView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: Text(title, style: ShiftleyTokens.h2, overflow: TextOverflow.ellipsis)),
-              Text(pay, style: ShiftleyTokens.h2.copyWith(color: Colors.green)),
+              Expanded(child: Text(gig.title, style: ShiftleyTokens.h2, overflow: TextOverflow.ellipsis)),
+              Text('₹${payFormatter.format(gig.wagePerWorker / 100)}', style: ShiftleyTokens.h2.copyWith(color: Colors.green)),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              Text(location, style: ShiftleyTokens.bodyMedium.copyWith(color: ShiftleyTokens.primaryRed)),
+              Text(gig.address, style: ShiftleyTokens.bodyMedium.copyWith(color: ShiftleyTokens.primaryRed)),
               const Spacer(),
               const Icon(Icons.star, size: 14, color: Colors.amber),
               const SizedBox(width: 4),
-              Text(rating, style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
+              const Text(rating, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
@@ -205,15 +279,15 @@ class _ExploreGigsViewState extends State<ExploreGigsView> {
             children: [
               const Icon(Icons.access_time, size: 14, color: ShiftleyTokens.mutedText),
               const SizedBox(width: 4),
-              Text(time, style: ShiftleyTokens.caption),
+              Text(timeString, style: ShiftleyTokens.caption),
               const Spacer(),
               const Icon(Icons.near_me_outlined, size: 14, color: ShiftleyTokens.mutedText),
               const SizedBox(width: 4),
-              Text(distance, style: ShiftleyTokens.caption.copyWith(fontWeight: FontWeight.bold)),
+              Text(distance, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
-          Text(description, style: ShiftleyTokens.bodyMedium.copyWith(color: ShiftleyTokens.mutedText), maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(gig.description, style: ShiftleyTokens.bodyMedium.copyWith(color: ShiftleyTokens.mutedText), maxLines: 2, overflow: TextOverflow.ellipsis),
           const SizedBox(height: ShiftleyTokens.spaceM),
           ShiftleyButton(
             label: 'View Details & Apply',
@@ -221,17 +295,21 @@ class _ExploreGigsViewState extends State<ExploreGigsView> {
               showGigDetailsSheet(
                 context,
                 GigDetails(
-                  title: title,
-                  location: location,
-                  time: time,
-                  pay: pay,
-                  description: description,
+                  id: gig.id,
+                  title: gig.title,
+                  location: gig.address,
+                  time: timeString,
+                  pay: '₹${payFormatter.format(gig.wagePerWorker / 100)}',
+                  description: gig.description,
                   distance: distance,
                   rating: rating,
                   employerName: employer,
                   employerIndustry: industry,
-                  latitude: 17.4435, // Mock coordinates (Hyderabad area)
-                  longitude: 78.3772,
+                  latitude: gig.lat,
+                  longitude: gig.lng,
+                  photoUrls: gig.photoUrls,
+                  businessType: gig.businessType,
+                  myApplicationStatus: gig.myApplicationStatus,
                 ),
               );
             },

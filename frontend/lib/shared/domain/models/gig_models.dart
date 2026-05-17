@@ -34,6 +34,18 @@ class Gig {
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
+  // Joined fields from SearchResult
+  @JsonKey(name: 'business_name')
+  final String? businessName;
+  @JsonKey(name: 'business_type')
+  final String? businessType;
+  @JsonKey(name: 'photo_urls')
+  final List<String>? photoUrls;
+  @JsonKey(name: 'distance_meters')
+  final double? distanceMeters;
+  @JsonKey(name: 'my_application_status')
+  final String? myApplicationStatus;
+
   Gig({
     required this.id,
     required this.employerId,
@@ -53,6 +65,11 @@ class Gig {
     this.cancelReason,
     this.isEscrowFunded = false,
     required this.createdAt,
+    this.businessName,
+    this.businessType,
+    this.photoUrls,
+    this.distanceMeters,
+    this.myApplicationStatus,
   });
 
   factory Gig.fromJson(Map<String, dynamic> json) => _$GigFromJson(json);

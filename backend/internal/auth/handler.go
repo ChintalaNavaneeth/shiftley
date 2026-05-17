@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -239,6 +240,8 @@ func (h *Handler) Logout(c *gin.Context) {
 		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized, "User session not found", nil)
 		return
 	}
+
+	log.Printf("[AUTH] Logout requested for user: %s", userIDStr)
 
 	err := h.svc.Logout(c.Request.Context(), userIDStr.(string))
 	if err != nil {

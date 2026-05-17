@@ -25,6 +25,13 @@ Gig _$GigFromJson(Map<String, dynamic> json) => Gig(
       cancelReason: json['cancel_reason'] as String?,
       isEscrowFunded: json['is_escrow_funded'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
+      businessName: json['business_name'] as String?,
+      businessType: json['business_type'] as String?,
+      photoUrls: (json['photo_urls'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+      distanceMeters: (json['distance_meters'] as num?)?.toDouble(),
+      myApplicationStatus: json['my_application_status'] as String?,
     );
 
 Map<String, dynamic> _$GigToJson(Gig instance) => <String, dynamic>{
@@ -46,6 +53,11 @@ Map<String, dynamic> _$GigToJson(Gig instance) => <String, dynamic>{
       'cancel_reason': instance.cancelReason,
       'is_escrow_funded': instance.isEscrowFunded,
       'created_at': instance.createdAt.toIso8601String(),
+      'business_name': instance.businessName,
+      'business_type': instance.businessType,
+      'photo_urls': instance.photoUrls,
+      'distance_meters': instance.distanceMeters,
+      'my_application_status': instance.myApplicationStatus,
     };
 
 GigApplication _$GigApplicationFromJson(Map<String, dynamic> json) =>

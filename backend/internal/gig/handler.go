@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -689,28 +690,52 @@ func (h *Handler) SearchGigs(c *gin.Context) {
 	latStr := c.Query("lat")
 	lngStr := c.Query("lng")
 	radiusStr := c.DefaultQuery("radius_km", "10")
+	searchText := c.Query("query")
 
 	lat, _ := strconv.ParseFloat(latStr, 64)
 	lng, _ := strconv.ParseFloat(lngStr, 64)
 	radiusKM, _ := strconv.ParseFloat(radiusStr, 64)
 
+	userIDStr, _ := c.Get("userID")
+	userID, _ := uuid.Parse(userIDStr.(string))
+
 	type SearchResult struct {
 		Gig
-		DistanceMeters float64 `json:"distance_meters"`
+		DistanceMeters    float64        `json:"distance_meters"`
+		BusinessName      string         `json:"business_name"`
+		BusinessType      string         `json:"business_type"`
+		PhotoURLs         pq.StringArray `json:"photo_urls" gorm:"type:text[]"`
+		ApplicationStatus *string        `json:"my_application_status"`
 	}
 
 	var results []SearchResult
 
 	// PostGIS Query using indexed geography column
-	query := `
-		SELECT *, ST_Distance(location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) as distance_meters
-		FROM shiftley.gigs
-		WHERE status = 'OPEN' 
-		AND ST_DWithin(location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)
-		ORDER BY distance_meters ASC
+	sqlQuery := `
+		SELECT 
+			g.*, 
+			ST_Distance(g.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) as distance_meters,
+			ep.business_name,
+			ep.business_type,
+			ep.photo_urls,
+			ga.status as my_application_status
+		FROM shiftley.gigs g
+		JOIN shiftley.employer_profiles ep ON g.employer_id = ep.user_id
+		LEFT JOIN shiftley.gig_applications ga ON g.id = ga.gig_id AND ga.employee_id = ?
+		WHERE g.status = 'OPEN' 
+		AND ST_DWithin(g.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)
 	`
+	
+	args := []interface{}{lng, lat, userID, lng, lat, radiusKM * 1000}
 
-	if err := h.db.Raw(query, lng, lat, lng, lat, radiusKM*1000).Scan(&results).Error; err != nil {
+	if searchText != "" {
+		sqlQuery += " AND (g.title ILIKE ? OR g.description ILIKE ?)"
+		args = append(args, "%"+searchText+"%", "%"+searchText+"%")
+	}
+
+	sqlQuery += " ORDER BY distance_meters ASC"
+
+	if err := h.db.Raw(sqlQuery, args...).Scan(&results).Error; err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternal, "Geospatial search failed", nil)
 		return
 	}
