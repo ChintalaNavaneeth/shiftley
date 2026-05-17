@@ -22,6 +22,7 @@ import 'features/employer/presentation/employer_auth_screen.dart';
 
 
 import 'features/auth/presentation/onboarding_screen.dart';
+import 'core/design_system/shiftley_tokens.dart';
 
 final _router = GoRouter(
   initialLocation: '/dev', // Temporary dev entry point
@@ -133,7 +134,7 @@ class ShiftleyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+        scaffoldBackgroundColor: ShiftleyTokens.background,
         fontFamily: 'Figtree',
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(elevation: 0),
@@ -142,8 +143,8 @@ class ShiftleyApp extends StatelessWidget {
           style: OutlinedButton.styleFrom(elevation: 0),
         ),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF0000),
-          surface: const Color(0xFFF5F5F5),
+          seedColor: ShiftleyTokens.primaryRed,
+          surface: ShiftleyTokens.background,
         ),
       ),
       routerConfig: _router,

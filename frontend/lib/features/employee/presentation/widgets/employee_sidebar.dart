@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shiftley_frontend/core/design_system/shiftley_tokens.dart';
 import 'package:shiftley_frontend/features/auth/presentation/providers/profile_provider.dart';
+import 'package:shiftley_frontend/features/auth/presentation/providers/auth_provider.dart';
 import '../employee_screen.dart';
 
 class EmployeeSidebar extends ConsumerWidget {
@@ -122,8 +124,31 @@ class EmployeeSidebar extends ConsumerWidget {
             icon: Icons.logout,
             label: 'Logout',
             isActive: false,
-            onTap: () {
-              // Handle logout
+            onTap: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Confirm Logout'),
+                  content: const Text('Are you sure you want to log out?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('CANCEL'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('LOGOUT', style: TextStyle(color: ShiftleyTokens.primaryRed)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) {
+                  context.go('/landing');
+                }
+              }
             },
           ),
           const SizedBox(height: ShiftleyTokens.spaceL),

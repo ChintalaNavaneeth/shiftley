@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class ShiftleyTokens {
   // ─── Colors ───────────────────────────────────────────────
   static const Color background    = Color(0xFFF5F5F5);
-  static const Color primaryRed    = Color(0xFFFF0000);
+  static const Color primaryRed    = Color(0xFFFF4F00);
   static const Color secondaryCyan = Color(0xFFDFF1F1);
   static const Color utilityGrey   = Color(0xFFBBD5DA);
   static const Color inkBlack      = Color(0xFF000000);

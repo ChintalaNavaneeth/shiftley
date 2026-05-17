@@ -159,7 +159,7 @@ class _ExploreGigsViewState extends ConsumerState<ExploreGigsView> {
                 if (!enabled) {
                   await Geolocator.openLocationSettings();
                 } else {
-                  ref.refresh(userLocationProvider);
+                  ref.invalidate(userLocationProvider);
                 }
               },
               isFullWidth: true,
